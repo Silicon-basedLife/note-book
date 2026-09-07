@@ -11,7 +11,8 @@
     "noEmit": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
-    "useDefineForClassFields": true
+    "useDefineForClassFields": true,
+    "allowImportingTsExtensions": true
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts", "vite.config.ts"]
 }
