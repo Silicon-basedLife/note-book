@@ -360,7 +360,16 @@
   let editorRef: HTMLTextAreaElement | undefined = $state();
   let renameInput: HTMLInputElement | undefined = $state();
 
-  async function onDeleteKeyHandler() { /* 占位：删除仅通过按钮确认 */ }
+  /** 预览容器点击委托（待办勾选）：经 action 挂载，避免静态元素交互的 a11y 告警 */
+  function previewAction(node: HTMLElement) {
+    const onClick = (e: Event) => { void onPreviewClick(e as MouseEvent); };
+    node.addEventListener('click', onClick);
+    return {
+      destroy() {
+        node.removeEventListener('click', onClick);
+      },
+    };
+  }
 
   onMount(() => {
     registerActions();
@@ -551,7 +560,7 @@
             <div
               class="preview" id="preview"
               bind:this={previewEl}
-              onclick={onPreviewClick}
+              use:previewAction
             >
               {@html previewRender?.html ?? ''}
             </div>
@@ -587,12 +596,14 @@
     <div class="panel help-card">
       <h3>⌨️ 快捷键</h3>
       <table>
-        {#each registry.list() as def}
-          <tr>
-            <td><kbd>{displayShortcut(def)}</kbd></td>
-            <td>{def.label}</td>
-          </tr>
-        {/each}
+        <tbody>
+          {#each registry.list() as def}
+            <tr>
+              <td><kbd>{displayShortcut(def)}</kbd></td>
+              <td>{def.label}</td>
+            </tr>
+          {/each}
+        </tbody>
       </table>
       <p class="help-note">
         提示：输入即自动保存（去抖）；「Esc」关闭弹层；双击文件夹名可重命名（收件箱除外）。

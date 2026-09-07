@@ -1,6 +1,7 @@
 # Node
 node_modules/
 .npm-cache/
+web/.smoke-profile/
 
 # 构建产物
 dist/

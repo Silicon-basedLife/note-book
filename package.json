@@ -11,6 +11,9 @@
     "test": "node --test --test-isolation=none \"tests/**/*.test.mjs\"",
     "build": "npm --prefix web run build",
     "dev": "npm --prefix web run dev",
-    "preview": "npm --prefix web run preview"
+    "preview": "npm --prefix web run preview",
+    "typecheck": "npm --prefix web run typecheck",
+    "serve:dist": "npm --prefix web run serve:dist",
+    "smoke": "npm --prefix web run smoke"
   }
 }
