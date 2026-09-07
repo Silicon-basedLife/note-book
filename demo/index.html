@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NoteApp · MVP 界面演示</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <!-- 模拟桌面窗口标题栏 -->
+  <header class="titlebar">
+    <span class="tb-dots"><i></i><i></i><i></i></span>
+    <span class="tb-title">NoteApp · MVP 界面演示（纯前端 · 数据为本地模拟）</span>
+    <span class="tb-fake"><i class="fb-min" title="最小化（演示）">─</i><i class="fb-max" title="最大化（演示）">□</i><i class="fb-close" title="关闭（演示）">✕</i></span>
+  </header>
+
+  <main class="app-body">
+    <!-- 左：导航 / 文件夹 -->
+    <aside class="sidebar">
+      <div class="sb-brand">
+        <span class="logo">N</span>
+        <div class="sb-brand-text">
+          <strong>NoteApp</strong>
+          <small>MVP Demo</small>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="btn-new">＋ 新建笔记</button>
+
+      <div class="nav-scroll">
+        <p class="nav-label">笔记</p>
+        <button class="nav-item" data-type="all">
+          <span class="nav-ico">🗂️</span>全部笔记 <span class="nav-count" data-count="all"></span>
+        </button>
+
+        <p class="nav-label">文件夹</p>
+        <div id="folder-list"></div>
+      </div>
+
+      <div class="sb-foot">
+        <button class="btn-ghost" id="btn-help">⌨️ 快捷键与帮助</button>
+        <button class="btn-ghost" id="btn-reset">↺ 重置演示数据</button>
+      </div>
+    </aside>
+
+    <!-- 中：笔记列表 + 搜索 -->
+    <section class="list-pane">
+      <div class="list-head">
+        <h2 id="list-title">全部笔记</h2>
+        <span class="list-sub" id="list-sub">按更新时间排序</span>
+      </div>
+      <div class="searchbox">
+        <span class="search-ico">🔍</span>
+        <input id="search-input" type="text" placeholder="搜索标题与正文…（Ctrl+K）" autocomplete="off" spellcheck="false">
+        <button id="search-clear" class="search-clear" title="清空搜索">✕</button>
+      </div>
+      <div class="note-list" id="note-list"></div>
+    </section>
+
+    <!-- 右：编辑器 + 预览 -->
+    <section class="editor-pane">
+      <div class="ed-toolbar">
+        <div class="ed-left">
+          <span class="folder-chip" id="editor-folder">收件箱</span>
+          <input id="title-input" class="title-input" type="text" placeholder="无标题笔记…" spellcheck="false">
+        </div>
+        <div class="ed-right">
+          <div class="seg" id="mode-seg">
+            <button data-mode="edit">编辑</button>
+            <button data-mode="split" class="active">分屏</button>
+            <button data-mode="preview">预览</button>
+          </div>
+          <span class="save-status" id="save-status">已保存</span>
+          <button class="btn-danger" id="btn-delete" title="删除当前笔记">删除</button>
+        </div>
+      </div>
+
+      <div class="workspace" id="workspace">
+        <textarea id="editor" class="editor" placeholder="开始书写…（支持 Markdown：`#` 标题、`- [ ]` 待办、``` 代码块）" spellcheck="false"></textarea>
+        <div class="preview" id="preview"></div>
+        <div class="empty-editor" id="empty-editor" hidden>
+          <div class="empty-icon">🗒️</div>
+          <h3>这里还没有笔记</h3>
+          <p>点击左侧「＋ 新建笔记」开始第一条记录。</p>
+        </div>
+      </div>
+
+      <footer class="statusbar">
+        <span id="status-notes">0 条笔记</span>
+        <span>纯前端演示 · 数据仅存本地浏览器</span>
+      </footer>
+    </section>
+  </main>
+
+  <!-- 快捷键帮助弹层 -->
+  <div class="help-panel" id="help-panel" hidden>
+    <div class="help-card">
+      <h3>⌨️ 快捷键</h3>
+      <table>
+        <tr><td><kbd>Ctrl</kbd> + <kbd>K</kbd></td><td>聚焦搜索</td></tr>
+        <tr><td><kbd>Alt</kbd> + <kbd>N</kbd></td><td>新建笔记</td></tr>
+        <tr><td><kbd>Ctrl</kbd> + <kbd>S</kbd></td><td>立即保存</td></tr>
+        <tr><td><kbd>?</kbd></td><td>打开 / 关闭本帮助</td></tr>
+        <tr><td><kbd>Esc</kbd></td><td>关闭弹层</td></tr>
+      </table>
+      <p class="help-note">说明：浏览器演示中无法使用真实“全局”快捷键；桌面版（P1）将支持全局速记窗与可自定义热键。本页编辑区已模拟「自动保存」与「删除确认」流程。</p>
+      <button class="btn-primary" id="help-close">知道了</button>
+    </div>
+  </div>
+
+  <!-- 确认对话框 -->
+  <div class="modal-mask" id="modal-mask" hidden>
+    <div class="modal-card">
+      <h3 id="modal-title">确认</h3>
+      <p id="modal-message"></p>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="modal-cancel">取消</button>
+        <button class="btn-danger" id="modal-ok">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 轻提示 -->
+  <div class="toasts" id="toasts"></div>
+
+  <script type="module" src="./js/app.mjs"></script>
+</body>
+</html>
