@@ -6,6 +6,12 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 
+# 本机（用户级 .npmrc / 环境变量）配置了 npm 11 的 allow-scripts=["pnpm"]；
+# npm 不允许项目级安装从该配置带入，会直接报 EALLOWSCRIPTS。清空后恢复常规安装行为。
+if ($env:npm_config_allow_scripts) {
+    $env:npm_config_allow_scripts = ''
+}
+
 function Pass($msg) { Write-Host "[OK] $msg" -ForegroundColor Green }
 function Warn($msg) { Write-Host "[!!] $msg" -ForegroundColor Yellow }
 
@@ -35,11 +41,12 @@ if (-not $hasCargo) {
 }
 Pass ("cargo " + (cargo --version))
 
-# MSVC build tools presence (tauri on Windows needs cl.exe; Visual Studio 2022 Build Tools)
+# MSVC build tools: 通常无需把 cl.exe 加入 PATH —— rustup 会经 vswhere 自动发现 VS 的 MSVC。
+# 仅当后续链接阶段出现 LNK 相关错误时，再用 “x64 Native Tools” 环境重跑本脚本。
 $cl = Get-Command cl -ErrorAction SilentlyContinue
 if (-not $cl) {
-    Warn "cl.exe not on PATH - Visual Studio (MSVC) workload required for Rust on Windows."
-    Warn "Install 'Desktop development with C++' via Visual Studio Installer, or VS Build Tools."
+    Warn "cl.exe 不在 PATH 上（正常）。rustup 会自动检测 Visual Studio MSVC。"
+    Warn "若 cargo 链接报 LNK 错误，请安装 '使用 C++ 的桌面开发' 工作负载后重试。"
 }
 
 # 3) Root npm deps (@tauri-apps/cli) + web deps (@tauri-apps/api / vite / svelte)
