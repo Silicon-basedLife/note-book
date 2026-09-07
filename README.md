@@ -11,13 +11,13 @@
 仓库已包含完整桌面工程（`src-tauri/` Rust 薄壳 + 现有 Svelte UI），在本机**有网络的普通终端**执行一次即可产出可运行/可安装的程序：
 
 ```powershell
-npm run desktop:setup     # = scripts/setup.ps1：装 Rust(如缺) → 装依赖 → tauri build
+npm run desktop:setup     # = scripts/setup.ps1：装 Rust(如缺) → 装依赖 → 构建 NoteApp.exe
 ```
 
-产物位置（默认配置）：
+产物位置（默认构建免安装 exe；MSI/NSIS 安装包需 github.com 可达时执行 `npm run desktop:build`）：
 
 - 免安装直接运行：`src-tauri\target\release\NoteApp.exe`
-- 安装包：`src-tauri\target\release\bundle\msi\NoteApp_0.1.0_x64_en-US.msi`
+- 安装包（可选）：`src-tauri\target\release\bundle\msi\NoteApp_0.1.0_x64_en-US.msi`
   `src-tauri\target\release\bundle\nsis\NoteApp_0.1.0_x64-setup.exe`
 
 数据存放：`%APPDATA%\com.noteapp.desktop\notes\<id>.md`（笔记）+ 同目录 `meta.json`（文件夹等元数据），纯文本可随时备份。
@@ -26,6 +26,10 @@ npm run desktop:setup     # = scripts/setup.ps1：装 Rust(如缺) → 装依赖
 > 因此 **cargo/tauri 的最终编译需在你的本机终端执行**（`npm run desktop:setup`）。代码侧验证（71 项单测、
 > tsc、vite build、真实 Chrome 冒烟）均已在此环境通过；Rust 薄壳只做 8 个文件读写命令（薄壳核心边界，
 > 见 [TECH_DESIGN §1.1/§2](docs/TECH_DESIGN.md)），前端存储适配器见 `web/src/lib/core/storage/tauri.ts`。
+>
+> 另外：**打包 MSI/NSIS 安装包**需要 Tauri 从 github.com 下载 NSIS/WiX 工具；若网络访问不了
+> github.com，默认流程只产出可运行的 `NoteApp.exe`（`tauri build --no-bundle`），
+> 安装包留到可访问 github.com 的网络下执行 `npm run desktop:build` 即可。
 
 桌面版日常开发：`npm run desktop:dev`（Vite + WebView 热更）。
 

@@ -60,10 +60,18 @@ npm --prefix web install --no-audit --no-fund
 if ($LASTEXITCODE -ne 0) { throw "web npm install failed" }
 Pass "npm dependencies ready"
 
-# 4) Frontend build (vite -> web/dist) then Tauri bundle (exe + msi/nsis)
+# 4) Build the runnable EXE first (no bundling: bundling downloads NSIS/WiX from
+#    github.com, which this network refuses). If NOTEAPP_BUNDLE=1 and github is
+#    reachable, also build MSI/NSIS installers afterwards.
 Write-Host "Building desktop app (first cargo run downloads crates, may take a while)..." -ForegroundColor Cyan
-npm run desktop:build
+npm run desktop:exe
 if ($LASTEXITCODE -ne 0) { throw "tauri build failed - see messages above" }
+
+if ($env:NOTEAPP_BUNDLE -eq '1') {
+    Write-Host "Building installers (MSI/NSIS; needs github.com reachable)..." -ForegroundColor Cyan
+    npm run desktop:build
+    if ($LASTEXITCODE -ne 0) { Warn "Installer bundling failed (github unreachable?) - the EXE above is still usable." }
+}
 
 $exe = Join-Path $root 'src-tauri\target\release\NoteApp.exe'
 $bundle = Join-Path $root 'src-tauri\target\release\bundle'
@@ -75,4 +83,8 @@ if (Test-Path (Join-Path $bundle 'msi')) {
 if (Test-Path (Join-Path $bundle 'nsis')) {
     Get-ChildItem (Join-Path $bundle 'nsis') | ForEach-Object { Write-Host "Installer EXE : $($_.FullName)" -ForegroundColor Green }
 }
+Write-Host ""
+Write-Host "No installers were built because github.com is unreachable from here." -ForegroundColor Yellow
+Write-Host "To also build MSI/NSIS later (on a network that can reach github.com):" -ForegroundColor Cyan
+Write-Host "    npm run desktop:build" -ForegroundColor Cyan
 Write-Host "Notes live under %APPDATA%\com.noteapp.desktop\notes\ (<id>.md per note)." -ForegroundColor Cyan

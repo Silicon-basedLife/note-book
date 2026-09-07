@@ -1,3 +1,3 @@
-# Rust 构建产物
-src-tauri/target/
-src-tauri/gen/
+# Rust 构建产物（此文件位于 src-tauri/ 内，路径相对本目录）
+/target/
+/gen/

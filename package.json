@@ -18,6 +18,7 @@
     "tauri": "tauri",
     "desktop:dev": "tauri dev",
     "desktop:build": "tauri build",
+    "desktop:exe": "tauri build --no-bundle",
     "desktop:setup": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/setup.ps1"
   },
   "devDependencies": {
