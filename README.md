@@ -2,9 +2,38 @@
 
 依据 [docs/ROADMAP.md](docs/ROADMAP.md)（产品路线图）与 [docs/TECH_DESIGN.md](docs/TECH_DESIGN.md)（技术方案）实现。
 
-- 定位：跨平台桌面笔记应用的 **P0 MVP 可运行实现（Web，Svelte + TypeScript）**。
+- 定位：**Windows 桌面软件（Tauri 2 + Svelte + TypeScript）**，纯本地存储，每条笔记一个 `.md` 文件。
 - 当前里程碑：P0 MVP 全部功能 + P1 架构预留（见下文「范围与预留」）。
 - 质量约定：遵循 [AGENTS.md](AGENTS.md) —— 每次改动一个 Git commit；功能落地同步测试且全绿后交付。
+
+## 桌面版（Windows，Tauri 2）
+
+仓库已包含完整桌面工程（`src-tauri/` Rust 薄壳 + 现有 Svelte UI），在本机**有网络的普通终端**执行一次即可产出可运行/可安装的程序：
+
+```powershell
+npm run desktop:setup     # = scripts/setup.ps1：装 Rust(如缺) → 装依赖 → tauri build
+```
+
+产物位置（默认配置）：
+
+- 免安装直接运行：`src-tauri\target\release\NoteApp.exe`
+- 安装包：`src-tauri\target\release\bundle\msi\NoteApp_0.1.0_x64_en-US.msi`
+  `src-tauri\target\release\bundle\nsis\NoteApp_0.1.0_x64-setup.exe`
+
+数据存放：`%APPDATA%\com.noteapp.desktop\notes\<id>.md`（笔记）+ 同目录 `meta.json`（文件夹等元数据），纯文本可随时备份。
+
+> 说明：本仓库的开发沙箱网络只放行 npm 源，`cargo` 需要的 crates.io / static.rust-lang.org 不可达，
+> 因此 **cargo/tauri 的最终编译需在你的本机终端执行**（`npm run desktop:setup`）。代码侧验证（71 项单测、
+> tsc、vite build、真实 Chrome 冒烟）均已在此环境通过；Rust 薄壳只做 8 个文件读写命令（薄壳核心边界，
+> 见 [TECH_DESIGN §1.1/§2](docs/TECH_DESIGN.md)），前端存储适配器见 `web/src/lib/core/storage/tauri.ts`。
+
+桌面版日常开发：`npm run desktop:dev`（Vite + WebView 热更）。
+
+## Web 开发版（同一套代码）
+
+`npm run dev` 可在浏览器开发/验证同一 UI；此时数据层回退到 IndexedDB 虚拟文件系统（仅便于开发，
+桌面版始终写真实 `.md` 文件）。
+
 
 ## 功能（P0 MVP）
 
@@ -27,7 +56,8 @@
 ```
 UI 层（Svelte 5 + TS）  web/src/main/*、web/src/shared/core-client.ts
 Core 层（TS 同构实现）  web/src/lib/core/*   —— 文件读写、frontmatter、索引、搜索、事件、动作注册表
-存储端口（可插拔）      web/src/lib/core/storage/*（port / memory / IndexedDB）
+存储端口（可插拔）      web/src/lib/core/storage/*（TauriStorage / memory / IndexedDB）
+Tauri 薄壳（Rust）      src-tauri/*           —— notes 目录真实文件读写 + meta.json KV（8 命令）
 ```
 
 - `NoteCore`（[store.ts](web/src/lib/core/store.ts)）是**唯一事实源**：启动扫描建索引，所有读写/索引/搜索集中在 Core，UI 通过事件订阅同一份数据 —— 对应技术方案「数据层与 UI 解耦」。
@@ -72,12 +102,13 @@ SMOKE_URL=http://127.0.0.1:5174/ node web/scripts/ui-smoke.mjs
 
 ```
 docs/                     # 产品路线图 + 技术方案（需求来源）
+src-tauri/                # Tauri 2 薄壳：文件/KV 命令、窗口配置、图标、bundle
 web/
-  src/lib/core/           # 核心逻辑（TS 同构；未来与 src-tauri/core 对应）
-  src/shared/             # core-client（UI 装配入口）
+  src/lib/core/           # 核心逻辑（TS 同构；未来可逐步下沉到 Rust core）
+  src/shared/             # core-client（UI 装配入口，按环境选存储适配器）
   src/main/               # 主窗口（App.svelte + app.css + main.ts）
   scripts/                # serve-dist.mjs（静态托管）、ui-smoke.mjs（CDP 冒烟）
-  tests -> 仓库根 tests/  # 单测位于仓库根 tests/
+scripts/                  # setup.ps1（桌面一键构建）
 tests/                    # node:test 套件：core.* 迁移基线 + demo 回归
 demo/                     # 纯前端原型（参照保留）
 ```
