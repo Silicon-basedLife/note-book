@@ -1,0 +1,16 @@
+{
+  "name": "note-app",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "description": "NoteApp —— 本地 Markdown 笔记应用（docs/ROADMAP.md + docs/TECH_DESIGN.md）",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "test": "node --test tests/",
+    "build": "npm --prefix web run build",
+    "dev": "npm --prefix web run dev",
+    "preview": "npm --prefix web run preview"
+  }
+}
