@@ -18,6 +18,9 @@
 }
 
 * { box-sizing: border-box; }
+/* 修复：display:flex 等作者样式会覆盖 hidden 属性的默认 display:none，
+   导致本应隐藏的弹层(modal/help/空状态)一打开就显示。强制 hidden 生效。 */
+[hidden] { display: none !important; }
 html, body { height: 100%; margin: 0; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
