@@ -2,12 +2,15 @@
 # Run from a NORMAL terminal that can reach static.rust-lang.org / crates.io / github.com.
 #   powershell -ExecutionPolicy Bypass -File scripts/setup.ps1
 # or:  npm run desktop:setup
+# NOTE: keep this file pure ASCII (no non-ASCII chars) so Windows PowerShell 5.1
+#       parses it correctly regardless of system codepage.
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 
-# 本机（用户级 .npmrc / 环境变量）配置了 npm 11 的 allow-scripts=["pnpm"]；
-# npm 不允许项目级安装从该配置带入，会直接报 EALLOWSCRIPTS。清空后恢复常规安装行为。
+# This machine configures npm 11 "allow-scripts" at user level, which npm refuses
+# for project-scoped installs (EALLOWSCRIPTS). Clearing the variable restores the
+# regular install behaviour. (Env var beats package.json, so only this works.)
 if ($env:npm_config_allow_scripts) {
     $env:npm_config_allow_scripts = ''
 }
@@ -41,12 +44,12 @@ if (-not $hasCargo) {
 }
 Pass ("cargo " + (cargo --version))
 
-# MSVC build tools: 通常无需把 cl.exe 加入 PATH —— rustup 会经 vswhere 自动发现 VS 的 MSVC。
-# 仅当后续链接阶段出现 LNK 相关错误时，再用 “x64 Native Tools” 环境重跑本脚本。
+# MSVC is auto-detected by rustup via vswhere; cl.exe does NOT need to be on PATH.
+# Only if cargo linking later fails with LNK errors, install the C++ workload.
 $cl = Get-Command cl -ErrorAction SilentlyContinue
 if (-not $cl) {
-    Warn "cl.exe 不在 PATH 上（正常）。rustup 会自动检测 Visual Studio MSVC。"
-    Warn "若 cargo 链接报 LNK 错误，请安装 '使用 C++ 的桌面开发' 工作负载后重试。"
+    Warn "cl.exe is not on PATH (expected). rustup will auto-detect Visual Studio MSVC."
+    Warn "If cargo linking reports LNK errors later, install the 'Desktop development with C++' workload."
 }
 
 # 3) Root npm deps (@tauri-apps/cli) + web deps (@tauri-apps/api / vite / svelte)
