@@ -1,0 +1,19 @@
+[package]
+name = "noteapp"
+version = "0.1.0"
+description = "NoteApp —— 本地 Markdown 笔记（Tauri 薄壳：仅负责 notes 目录文件读写与 KV 元数据）"
+authors = ["NoteApp"]
+edition = "2021"
+
+# 供桌面壳引用（core-client 之上同一套 UI/逻辑不变）
+[lib]
+name = "noteapp_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
