@@ -662,8 +662,8 @@
   async function syncWindowSize() {
     if (!core || !isTauri()) return;
     try {
-      const cur = await getCurrentWindow().outerSize();
-      await getCurrentWindow().setSize(new LogicalSize(computeWidth(), cur.height));
+      // 用 CSS 像素（LogicalSize）设置宽度；高度保持当前逻辑像素，任意 DPI 下都正确
+      await getCurrentWindow().setSize(new LogicalSize(computeWidth(), window.innerHeight));
     } catch { /* 忽略（如窗口被系统限制） */ }
   }
 
@@ -878,14 +878,12 @@
       </div>
     </aside>
 
-    <!-- 手柄：侧栏 ⇄ 笔记列 -->
-    <button
-      class="seam seam-a" title="展开 / 收回笔记列"
-      aria-label={listOpen ? '收回笔记列' : '展开笔记列'}
-      onclick={toggleList}
-    >
-      <span class="seam-arrow">{listOpen ? '◀' : '▶'}</span>
-    </button>
+    <!-- 手柄：侧栏 ⇄ 笔记列（仅顶部小按钮可点，避免误触与滚动条重叠） -->
+    <div class="seam seam-a">
+      <button class="seam-btn" title="展开 / 收回笔记列" aria-label={listOpen ? '收回笔记列' : '展开笔记列'} onclick={toggleList}>
+        <span class="seam-arrow">{listOpen ? '◀' : '▶'}</span>
+      </button>
+    </div>
 
     <!-- 中：搜索 + 笔记列表（图4） -->
     <section class="list-pane" class:open={listOpen}>
@@ -1029,14 +1027,11 @@
     </section>
 
     <!-- 手柄：笔记列 ⇄ 编辑区 -->
-    <button
-      class="seam seam-b" class:closed={!listOpen}
-      title="展开 / 收回编辑区"
-      aria-label={editorOpen ? '收回编辑区' : '展开编辑区'}
-      onclick={toggleEditor}
-    >
-      <span class="seam-arrow">{editorOpen ? '◀' : '▶'}</span>
-    </button>
+    <div class="seam seam-b" class:closed={!listOpen}>
+      <button class="seam-btn" title="展开 / 收回编辑区" aria-label={editorOpen ? '收回编辑区' : '展开编辑区'} onclick={toggleEditor}>
+        <span class="seam-arrow">{editorOpen ? '◀' : '▶'}</span>
+      </button>
+    </div>
 
     <!-- 右：编辑器 + 预览（图5） -->
     <section class="editor-pane" class:open={editorOpen}>

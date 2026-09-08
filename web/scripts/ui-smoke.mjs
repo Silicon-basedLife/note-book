@@ -241,15 +241,15 @@ if (await evaluate('window.__ready()')) {
   await evaluate(`[...document.querySelectorAll('.nav-item')].find((n) => n.textContent.includes('全部笔记')).click()`);
   check('点“全部笔记”滑出笔记列（图4）', await waitEval(`!!document.querySelector('.list-pane.open')`));
   // 手柄收回笔记列 → 图3
-  await evaluate(`document.querySelector('.seam-a').click()`);
+  await evaluate(`document.querySelector('.seam-a .seam-btn').click()`);
   check('手柄收回笔记列（图3）', await waitEval(`!document.querySelector('.list-pane.open') && !document.querySelector('.editor-pane.open')`));
   // 再展开笔记列
-  await evaluate(`document.querySelector('.seam-a').click()`);
+  await evaluate(`document.querySelector('.seam-a .seam-btn').click()`);
   check('手柄再次展开笔记列', await waitEval(`!!document.querySelector('.list-pane.open')`));
   // 展开/收回编辑区（图4 ⇄ 图5）
-  await evaluate(`document.querySelector('.seam-b').click()`);
+  await evaluate(`document.querySelector('.seam-b .seam-btn').click()`);
   check('手柄展开编辑区（图5）', await waitEval(`!!document.querySelector('.editor-pane.open')`));
-  await evaluate(`document.querySelector('.seam-b').click()`);
+  await evaluate(`document.querySelector('.seam-b .seam-btn').click()`);
   check('手柄收回编辑区（图4）', await waitEval(`!document.querySelector('.editor-pane.open') && !!document.querySelector('.list-pane.open')`));
 
   // 9) 全局搜索命中回收站
