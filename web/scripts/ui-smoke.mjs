@@ -112,6 +112,11 @@ if (await evaluate('window.__ready()')) {
   await evaluate(`window.dispatchEvent(new KeyboardEvent('keydown', { key: 's', ctrlKey: true, bubbles: true }))`);
   check('自动保存“已保存”', await waitEval(`document.querySelector('.save-status') && document.querySelector('.save-status').textContent.includes('已保存')`, 9000));
   check('标题同步列表', await waitEval(`[...document.querySelectorAll('.note-title')].some((n) => n.textContent === '独门笔记')`, 9000));
+  // 同一笔记点击循环：开 → 收 → 再开
+  await evaluate(`[...document.querySelectorAll('.note-title')].find((n) => n.textContent === '独门笔记').closest('.note-row').click()`);
+  check('再点当前笔记收回编辑区', await waitEval(`!document.querySelector('.editor-pane.open')`));
+  await evaluate(`[...document.querySelectorAll('.note-title')].find((n) => n.textContent === '独门笔记').closest('.note-row').click()`);
+  check('第三次点击重新展开编辑区', await waitEval(`document.querySelector('.editor-pane.open') && document.querySelector('.title-input').value === '独门笔记'`));
 
   // 4) 双击文件夹重命名 工作 → 工作甲
   await evaluate(`(() => { const n = [...document.querySelectorAll('.folder-name')].find((x) => x.textContent === '工作'); if (!n) return false; n.dispatchEvent(new MouseEvent('dblclick', { bubbles: true })); return true; })()`);

@@ -233,7 +233,13 @@
 
   // ---------- 笔记打开 / 新建 / 回收站跳转 ----------
   async function openNote(id: string) {
-    if (currentId === id && current && !current.deleted) { saveState = 'saved'; return; }
+    const same = currentId === id && current && !current.deleted;
+    if (same) {
+      // 当前笔记再点一次：若编辑区开着则保留现状；若已收起则重新展开（第三次点击）
+      if (!editorOpen) { listOpen = true; editorOpen = true; }
+      saveState = 'saved';
+      return;
+    }
     await flush();
     const doc = core.getNote(id);
     if (!doc) return;
