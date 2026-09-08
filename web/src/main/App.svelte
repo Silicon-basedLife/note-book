@@ -5,6 +5,7 @@
   import { onMount } from 'svelte';
   import { getCurrentWindow, LogicalSize } from '@tauri-apps/api/window';
   import ContextMenu from './ui/ContextMenu.svelte';
+  import { SideDock } from '../lib/desktop/side-dock.ts';
   import { createCore, displayTitle, excerptOf } from '../shared/core-client.ts';
   import { renderMarkdown } from '../lib/core/markdown.ts';
   import { plainTextOf } from '../lib/core/index.ts';
@@ -49,6 +50,7 @@
 
   // ---------- 全局状态 ----------
   let core: NoteCore;
+  let dock: SideDock | null = null; // QQ 式侧边吸附（仅桌面 Tauri）
   let ready = $state(false);
   let folders = $state<string[]>([]);
   let counts = $state<Record<string, number>>({});
@@ -785,6 +787,14 @@
     void applyWindowWidth(w);
   });
 
+  // 侧边吸附仅在“图3 侧栏态”生效：展开面板 → 取消停靠；回到侧栏态 → 恢复启用
+  $effect(() => {
+    const fig3 = ready && !listOpen && !editorOpen;
+    if (!dock || !core) return;
+    if (fig3) dock.activate();
+    else dock.deactivate();
+  });
+
   function registerActions() {
     registry.register({ id: 'new-note', label: '新建笔记', shortcut: { key: 'n', alt: true }, run: () => { if (ready) void newNote(); } });
     registry.register({ id: 'focus-search', label: '聚焦搜索', shortcut: { key: 'k', ctrl: true }, run: () => { if (ready) searchEl?.focus(); } });
@@ -845,19 +855,35 @@
     const flushTimer = () => { if (saveState !== 'idle') void flush(); };
     window.addEventListener('beforeunload', flushTimer);
     window.addEventListener('blur', flushTimer);
+
+    const onMouseIn = () => dock?.setMouseInside(true);
+    const onMouseOut = () => dock?.setMouseInside(false);
+    if (isTauri()) {
+      // 桌面：跟踪鼠标是否停留在窗口内（停靠后 3 秒无鼠标则缩进）
+      window.addEventListener('pointermove', onMouseIn);
+      window.addEventListener('mouseleave', onMouseOut);
+    }
+
     void (async () => {
       core = await createCore();
       core.on(() => refresh());
       ready = true;
       refresh();
       void applyWindowWidth(computeWidth()); // 初始收缩到“仅侧栏”（图3）宽度
+      if (isTauri()) {
+        dock = new SideDock();
+        if (!listOpen && !editorOpen) dock.activate();
+      }
       // 默认保持图3（仅侧栏）；由用户点文件夹/点笔记逐级展开
     })();
     return () => {
       window.removeEventListener('keydown', onGlobalKey);
       window.removeEventListener('beforeunload', flushTimer);
       window.removeEventListener('blur', flushTimer);
+      window.removeEventListener('pointermove', onMouseIn);
+      window.removeEventListener('mouseleave', onMouseOut);
       releasePointer();
+      dock?.destroy();
       if (saveTimer) clearTimeout(saveTimer);
     };
   });
