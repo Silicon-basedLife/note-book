@@ -7,12 +7,21 @@ import {
 
 const area = { x: 0, y: 0, w: 1920, h: 1040 };
 
-test('nearSnap：贴近左/右边缘判定，两侧取更近者', () => {
+test('nearSnap：接触(=0)或超出屏幕边缘即吸附，内侧仍保留磁吸', () => {
   assert.equal(nearSnap({ x: 12, y: 100, w: 232, h: 760 }, area, 24), 'left');
   assert.equal(nearSnap({ x: 1920 - 232 - 14, y: 100, w: 232, h: 760 }, area, 24), 'right');
   assert.equal(nearSnap({ x: 300, y: 100, w: 232, h: 760 }, area, 24), null);
   // 距左 10px、距右 20px → 选左
   assert.equal(nearSnap({ x: 10, y: 0, w: 1920 - 20 - 10, h: 100 }, area, 24), 'left');
+  // 接触边界（0px）
+  assert.equal(nearSnap({ x: 0, y: 0, w: 232, h: 100 }, area, 24), 'left');
+  assert.equal(nearSnap({ x: 1920 - 232, y: 0, w: 232, h: 100 }, area, 24), 'right');
+  // 已超出左侧 → 左
+  assert.equal(nearSnap({ x: -80, y: 0, w: 232, h: 100 }, area, 24), 'left');
+  assert.equal(nearSnap({ x: -400, y: 0, w: 232, h: 100 }, area, 24), 'left');
+  // 已超出右侧 → 右
+  assert.equal(nearSnap({ x: 1920 - 232 + 60, y: 0, w: 232, h: 100 }, area, 24), 'right');
+  assert.equal(nearSnap({ x: 1920 + 200, y: 0, w: 232, h: 100 }, area, 24), 'right');
 });
 
 test('snapX：左贴边/右贴边', () => {

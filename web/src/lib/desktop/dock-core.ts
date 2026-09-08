@@ -12,12 +12,17 @@ export interface Point {
   y: number;
 }
 
-/** 窗口当前是否接近某条屏幕边缘（决定吸附） */
+/** 判定吸附侧：窗口边框“接触(=0)或超过屏幕边界”即吸附；
+ *  同时保留“仍在屏幕内侧但距边缘 ≤ snapPx”的磁吸手感。
+ *  两侧同时满足时取更贴边界的一侧。 */
 export function nearSnap(win: Rect, area: Rect, snapPx: number): DockSide | null {
-  const dl = Math.abs(win.x - area.x);
-  const dr = Math.abs(win.x + win.w - (area.x + area.w));
-  if (dl <= dr && dl <= snapPx) return 'left';
-  if (dr <= snapPx) return 'right';
+  const mL = win.x - area.x;                                        // 左缘偏差：0=接触，负=已超出左侧
+  const mR = win.x + win.w - (area.x + area.w);                     // 右缘偏差：0=接触，正=已超出右侧
+  const okL = mL <= snapPx;
+  const okR = mR >= -snapPx;
+  if (okL && okR) return Math.abs(mL) <= Math.abs(mR) ? 'left' : 'right';
+  if (okL) return 'left';
+  if (okR) return 'right';
   return null;
 }
 
