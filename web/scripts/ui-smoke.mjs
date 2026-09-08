@@ -142,6 +142,55 @@ if (await evaluate('window.__ready()')) {
   await evaluate(`[...document.querySelectorAll('.nav-item')].find((n) => n.textContent.includes('全部笔记')).click()`);
   check('还原后全部可见', await waitEval(`[...document.querySelectorAll('.note-title')].some((n) => n.textContent === '独门笔记')`));
 
+  // 6.5) 拖拽：文件夹排序、笔记拖入文件夹、文件夹删除进回收站并还原
+  async function dndFolder(fromName, toName, yTop) {
+    return await evaluate(`(() => {
+      const from = [...document.querySelectorAll('.folder-main .folder-name')].find((n) => n.textContent === ${JSON.stringify(fromName)})?.closest('.folder-main');
+      const to = [...document.querySelectorAll('.folder-main .folder-name')].find((n) => n.textContent === ${JSON.stringify(toName)})?.closest('.folder-main');
+      if (!from || !to) return false;
+      const dt = new DataTransfer();
+      from.dispatchEvent(new DragEvent('dragstart', { bubbles: true, cancelable: true, dataTransfer: dt }));
+      const r = to.getBoundingClientRect();
+      to.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, clientX: r.left + r.width / 2, clientY: r.top + (${yTop} ? 2 : r.height - 2), dataTransfer: dt }));
+      to.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, clientX: r.left + r.width / 2, clientY: r.top + (${yTop} ? 2 : r.height - 2), dataTransfer: dt }));
+      from.dispatchEvent(new DragEvent('dragend', { bubbles: true, dataTransfer: dt }));
+      return true;
+    })()`);
+  }
+  async function dndNoteToFolder(noteTitle, folderName) {
+    return await evaluate(`(() => {
+      const row = [...document.querySelectorAll('.note-title')].find((n) => n.textContent === ${JSON.stringify(noteTitle)})?.closest('.note-row');
+      const to = [...document.querySelectorAll('.folder-main .folder-name')].find((n) => n.textContent === ${JSON.stringify(folderName)})?.closest('.folder-main');
+      if (!row || !to) return false;
+      const dt = new DataTransfer();
+      row.dispatchEvent(new DragEvent('dragstart', { bubbles: true, cancelable: true, dataTransfer: dt }));
+      const r = to.getBoundingClientRect();
+      to.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, clientX: r.left + r.width / 2, clientY: r.top + 2, dataTransfer: dt }));
+      to.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, clientX: r.left + r.width / 2, clientY: r.top + 2, dataTransfer: dt }));
+      row.dispatchEvent(new DragEvent('dragend', { bubbles: true, dataTransfer: dt }));
+      return true;
+    })()`);
+  }
+
+  await evaluate(`[...document.querySelectorAll('.nav-item')].find((n) => n.textContent.includes('全部笔记')).click()`);
+  await waitEval(`[...document.querySelectorAll('.folder-name')].length >= 3`);
+  check('文件夹拖拽排序（读书移到工作甲前）', await dndFolder('读书', '工作甲', true));
+  check('拖拽后顺序生效', await waitEval(`JSON.stringify([...document.querySelectorAll('.folder-name')].map((n) => n.textContent)).includes('读书') && [...document.querySelectorAll('.folder-name')][1]?.textContent === '读书'`));
+  check('笔记拖入文件夹（独门笔记→读书）', await dndNoteToFolder('独门笔记', '读书'));
+  await waitEval(`[...document.querySelectorAll('.note-title')].some((n) => n.textContent === '独门笔记')`);
+  await evaluate(`[...document.querySelectorAll('.note-title')].find((n) => n.textContent === '独门笔记').closest('.note-row').click()`);
+  check('拖入后所在文件夹更新为「读书」', await waitEval(`document.querySelector('.folder-chip') && document.querySelector('.folder-chip').value === '读书'`));
+
+  check('文件夹右键删除进回收站', await pickCtxItem(`[...document.querySelectorAll('.folder-item')].find((f) => f.textContent.includes('读书'))`, '删除（移入回收站）'));
+  await waitEval(`!!document.querySelector('.modal-card')`, 4000);
+  await evaluate(`[...document.querySelectorAll('.modal-actions button')].find((b) => b.textContent.includes('移入回收站')).click()`);
+  check('文件夹从侧栏移除', await waitEval(`![...document.querySelectorAll('.folder-name')].some((n) => n.textContent === '读书')`));
+  await evaluate(`[...document.querySelectorAll('.nav-item')].find((n) => n.textContent.includes('回收站') && n.textContent.includes('🗑️')).click()`);
+  check('回收站出现已删除文件夹', await waitEval(`[...document.querySelectorAll('.trash-folder .folder-name')].some((n) => n.textContent === '读书')`));
+  check('文件夹右键还原', await pickCtxItem(`[...document.querySelectorAll('.trash-folder')].find((f) => f.textContent.includes('读书'))`, '还原文件夹'));
+  await evaluate(`[...document.querySelectorAll('.nav-item')].find((n) => n.textContent.includes('全部笔记')).click()`);
+  check('文件夹与其中笔记已还原', await waitEval(`[...document.querySelectorAll('.folder-name')].some((n) => n.textContent === '读书') && [...document.querySelectorAll('.note-title')].some((n) => n.textContent === '独门笔记')`));
+
   // 7) 再造一条 → 多选批量移入回收站
   await pickCtxItem(`document.querySelector('.nav-scroll')`, '新建文件夹');
   await waitEval(`!!document.querySelector('.prompt-input')`);
@@ -156,6 +205,27 @@ if (await evaluate('window.__ready()')) {
 
   await evaluate(`[...document.querySelectorAll('.nav-item')].find((n) => n.textContent.includes('全部笔记')).click()`);
   await waitEval(`document.querySelectorAll('.note-row').length >= 2`);
+
+  // 6.8) 列表内拖拽手排 + 一键恢复时间序
+  const beforeOrder = await evaluate(`JSON.stringify([...document.querySelectorAll('.note-title')].map((n) => n.textContent))`);
+  const rowDrag = await evaluate(`(() => {
+    const rows = [...document.querySelectorAll('.note-row')];
+    if (rows.length < 2) return false;
+    const dt = new DataTransfer();
+    rows[1].dispatchEvent(new DragEvent('dragstart', { bubbles: true, cancelable: true, dataTransfer: dt }));
+    const r = rows[0].getBoundingClientRect();
+    rows[0].dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, clientX: r.left + r.width / 2, clientY: r.top + 2, dataTransfer: dt }));
+    rows[0].dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, clientX: r.left + r.width / 2, clientY: r.top + 2, dataTransfer: dt }));
+    rows[1].dispatchEvent(new DragEvent('dragend', { bubbles: true, dataTransfer: dt }));
+    return true;
+  })()`);
+  check('列表内拖拽发生', !!rowDrag);
+  await waitEval(`JSON.stringify([...document.querySelectorAll('.note-title')].map((n) => n.textContent)) !== ${JSON.stringify(beforeOrder)}`);
+  check('拖拽后顺序变化（手排生效）', await waitEval(`document.querySelector('.list-sub') && document.querySelector('.list-sub').textContent.includes('手动排序')`));
+  check('出现“恢复时间序”入口', await waitEval(`[...document.querySelectorAll('.chip-btn')].some((b) => b.textContent.includes('恢复时间序'))`));
+  await evaluate(`[...document.querySelectorAll('.chip-btn')].find((b) => b.textContent.includes('恢复时间序')).click()`);
+  check('恢复后回到时间序', await waitEval(`JSON.stringify([...document.querySelectorAll('.note-title')].map((n) => n.textContent)) === ${JSON.stringify(beforeOrder)}`));
+
   await evaluate(`[...document.querySelectorAll('.chip-btn')].find((b) => b.textContent.includes('选择')).click()`);
   check('出现多选条', await waitEval(`!!document.querySelector('.selbar')`));
   await evaluate(`[...document.querySelectorAll('.selbar button')].find((b) => b.textContent.includes('全选')).click()`);

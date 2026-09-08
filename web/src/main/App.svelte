@@ -81,7 +81,7 @@
   let overFolderName = $state<string | null>(null);  // 侧栏高亮的目标文件夹
   let dropLineIdx = $state<number | null>(null);     // 中间列表插入线位置
   let dragFolderIdx = $state<number | null>(null);   // 正在拖拽的文件夹下标
-  let folderOverIdx = $state<number | null>(null);   // 文件夹排序插入位置
+  let folderDropIdx = $state<number | null>(null);   // 文件夹排序插入位置（0..len）
 
   // 收边窄条（QQ 式近似：CSS hover 滑出）
   let rail = $state(false);
@@ -538,10 +538,13 @@
   }
 
   // ---------- 排序（文件夹拖拽 / 笔记手排） ----------
+  /** folderDropIdx = 移除被拖项之后的“最终插入下标”；不变时拖放为 no-op */
   async function commitFolderDrop(fromIdx: number, toIdx: number) {
     dragFolderIdx = null;
-    folderOverIdx = null;
-    if (fromIdx === toIdx || fromIdx === toIdx - 1) return;
+    folderDropIdx = null;
+    overFolderName = null;
+    if (toIdx < 0 || toIdx > folders.length) return;
+    if (toIdx === fromIdx || toIdx === fromIdx - 1) return;
     const next = [...folders];
     const [moved] = next.splice(fromIdx, 1);
     next.splice(toIdx, 0, moved);
@@ -750,8 +753,8 @@
                 class="nav-item folder-item"
                 class:active={view === 'notes' && activeFolder === folder && !query}
                 class:drop-target={overFolderName === folder}
-                class:drop-line-top={folderOverIdx === fi}
-                class:drop-line-bottom={folderOverIdx === fi + 1}
+                class:drop-line-top={folderDropIdx === fi}
+                class:drop-line-bottom={folderDropIdx === fi + 1}
                 oncontextmenu={(e) => onFolderCtx(e, folder)}
                 role="button"
                 tabindex="-1"
@@ -764,17 +767,32 @@
                   ondblclick={(e) => { e.stopPropagation(); startRenameFolder(folder); }}
                   ondragstart={(e) => {
                     dragFolderIdx = fi;
+                    overFolderName = null;
                     if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
                   }}
                   ondragover={(e) => {
                     e.preventDefault();
-                    if (dragFolderIdx === null) return;
-                    folderOverIdx = fi;
+                    if (dragFolderIdx === null) {
+                      // 笔记拖入文件夹：高亮目标
+                      folderDropIdx = null;
+                      if (draggingNoteIds?.length) overFolderName = folder;
+                      return;
+                    }
+                    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                    const base = e.clientY < rect.top + rect.height / 2 ? fi : fi + 1;
+                    folderDropIdx = dragFolderIdx < base ? base - 1 : base;
+                  }}
+                  ondragleave={() => {
+                    if (dragFolderIdx === null && overFolderName === folder) overFolderName = null;
                   }}
                   ondrop={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    if (dragFolderIdx !== null) { void commitFolderDrop(dragFolderIdx, fi); return; }
+                    if (dragFolderIdx !== null) {
+                      const toIdx = folderDropIdx ?? fi;
+                      void commitFolderDrop(dragFolderIdx, toIdx);
+                      return;
+                    }
                     // 笔记拖入文件夹 → 移动
                     if (draggingNoteIds?.length) {
                       void moveNotesToFolder(draggingNoteIds, folder);
@@ -909,12 +927,13 @@
               ondragstart={(e) => {
                 if (view === 'trash') { e.preventDefault(); return; }
                 draggingNoteIds = selectedIds.includes(item.id) ? [...selectedIds] : [item.id];
+                folderDropIdx = null;
                 if (e.dataTransfer) {
                   e.dataTransfer.effectAllowed = 'move';
                   e.dataTransfer.setData('text/plain', draggingNoteIds.join(','));
                 }
               }}
-              ondragend={() => { draggingNoteIds = null; overFolderName = null; dropLineIdx = null; }}
+              ondragend={() => { draggingNoteIds = null; overFolderName = null; dropLineIdx = null; folderDropIdx = null; }}
               ondragover={(e) => {
                 if (!draggingNoteIds || query) return;
                 e.preventDefault();
