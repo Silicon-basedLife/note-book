@@ -240,9 +240,11 @@ if (await evaluate('window.__ready()')) {
   // 8) 面板级联：默认图3 → 手柄展开/收回
   await evaluate(`[...document.querySelectorAll('.nav-item')].find((n) => n.textContent.includes('全部笔记')).click()`);
   check('点“全部笔记”滑出笔记列（图4）', await waitEval(`!!document.querySelector('.list-pane.open')`));
+  check('展开后内容宽度加宽（触发窗口缩放）', await evaluate(`document.querySelector('.app-shell').getBoundingClientRect().width >= 480`));
   // 手柄收回笔记列 → 图3
   await evaluate(`document.querySelector('.seam-a .seam-btn').click()`);
   check('手柄收回笔记列（图3）', await waitEval(`!document.querySelector('.list-pane.open') && !document.querySelector('.editor-pane.open')`));
+  check('收回后内容宽度≈侧栏', await evaluate(`document.querySelector('.app-shell').getBoundingClientRect().width < 260`));
   // 再展开笔记列
   await evaluate(`document.querySelector('.seam-a .seam-btn').click()`);
   check('手柄再次展开笔记列', await waitEval(`!!document.querySelector('.list-pane.open')`));

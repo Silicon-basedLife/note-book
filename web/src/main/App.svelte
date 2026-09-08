@@ -659,17 +659,19 @@
     if (editorOpen) w += SEAM_W + EDITOR_W;
     return w;
   }
-  async function syncWindowSize() {
+  async function applyWindowWidth(w: number) {
     if (!core || !isTauri()) return;
     try {
       // 用 CSS 像素（LogicalSize）设置宽度；高度保持当前逻辑像素，任意 DPI 下都正确
-      await getCurrentWindow().setSize(new LogicalSize(computeWidth(), window.innerHeight));
+      await getCurrentWindow().setSize(new LogicalSize(w, window.innerHeight));
     } catch { /* 忽略（如窗口被系统限制） */ }
   }
-
-  // 面板开合 → 窗口宽度随之变化
+  // 面板开合 → 窗口宽度随之变化。
+  // 关键：effect 里先调用 computeWidth()（读取 listOpen/editorOpen），确保 Svelte 建立响应式依赖，
+  // 否则首次运行时若 core 未就绪提前返回，后续开合就不会再触发缩放。
   $effect(() => {
-    void syncWindowSize();
+    const w = computeWidth();
+    void applyWindowWidth(w);
   });
 
   function registerActions() {
@@ -737,7 +739,7 @@
       core.on(() => refresh());
       ready = true;
       refresh();
-      void syncWindowSize(); // 初始收缩到“仅侧栏”（图3）宽度
+      void applyWindowWidth(computeWidth()); // 初始收缩到“仅侧栏”（图3）宽度
       // 默认保持图3（仅侧栏）；由用户点文件夹/点笔记逐级展开
     })();
     return () => {
