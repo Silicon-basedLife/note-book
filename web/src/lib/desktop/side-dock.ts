@@ -36,6 +36,7 @@ export class SideDock {
   private busy = false;
   private lastX = 0;
   private lastY = 0;
+  private lastReclaim = 0; // 上次“夺回宽度”时间（防与系统贴靠来回拉扯）
 
   /** 启动停靠管理（图3 侧栏态时调用） */
   activate(): void {
@@ -78,6 +79,7 @@ export class SideDock {
         await this.win.setSize(new LogicalSize(SIDEBAR_W, g.win.h));
         await this.win.setPosition(new LogicalPosition(x, y));
         this.docked = side;
+        this.lastReclaim = Date.now();
         await this.setTop(true);
         this.lastX = x;
         this.lastY = y;
@@ -90,14 +92,19 @@ export class SideDock {
         return;
       }
 
-      // 2.5) 已停靠：覆盖系统的“左/右半屏吸附”——把窗口强制拉回侧栏宽度并重居中
-      if (Math.abs(g.win.w - SIDEBAR_W) > 3) {
-        const x = snapX(this.docked, g.win, g.area);
-        const y = this.dockedY(g.area, g.win.h);
-        await this.win.setSize(new LogicalSize(SIDEBAR_W, g.win.h));
-        await this.win.setPosition(new LogicalPosition(x, y));
-        this.lastX = x;
-        this.lastY = y;
+      // 2.5) 已停靠：仅当系统（半屏）贴靠把窗口撑得明显过宽时才“夺回”一次（带冷却，
+      //      避免每帧 setSize/setPosition 与 DWM 来回拉扯导致窗口无限延长/抖动）
+      if (g.win.w > SIDEBAR_W + 120) {
+        const now = Date.now();
+        if (now - this.lastReclaim > 1500) {
+          this.lastReclaim = now;
+          const x = snapX(this.docked, g.win, g.area);
+          const y = this.dockedY(g.area, g.win.h);
+          await this.win.setSize(new LogicalSize(SIDEBAR_W, g.win.h));
+          await this.win.setPosition(new LogicalPosition(x, y));
+          this.lastX = x;
+          this.lastY = y;
+        }
       }
 
       // 3) 已停靠且稳定：依据鼠标位置管理缩进
