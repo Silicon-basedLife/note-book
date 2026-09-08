@@ -73,6 +73,9 @@
   let selectedIds = $state<string[]>([]);
   let selAnchor: string | null = null;
   let manualScope = $state<string | null>(null); // 当前列表手排作用域（null=时间序或非笔记视图）
+  // 面板级联开合：默认仅侧栏（图3）；点文件夹滑出笔记列（图4）；点笔记滑出编辑区（图5）
+  let listOpen = $state(false);
+  let editorOpen = $state(false);
   let searchEl = $state<HTMLInputElement | null>(null);
   let previewEl = $state<HTMLElement | null>(null);
 
@@ -82,11 +85,6 @@
   let dropLineIdx = $state<number | null>(null);     // 中间列表插入线位置
   let dragFolderIdx = $state<number | null>(null);   // 正在拖拽的文件夹下标
   let folderDropIdx = $state<number | null>(null);   // 文件夹排序插入位置（0..len）
-
-  // 收边窄条（QQ 式近似：CSS hover 滑出）
-  let rail = $state(false);
-  function setRail(v: boolean) { rail = v; }
-  function onRailLeave() { /* CSS hover 自行收回；点选导航项后整体关闭 */ }
 
   const registry = new ActionRegistry();
 
@@ -241,6 +239,10 @@
     };
     saveState = 'saved';
     lastSavedAt = null;
+    // 打开笔记 → 级联展开列表与编辑区（图4 → 图5）
+    listOpen = true;
+    editorOpen = true;
+    if (view === 'trash') { /* 保持回收站视图 */ }
   }
   function openNoteItem(it: ListItem) {
     if (it.deleted && view !== 'trash') {
@@ -251,14 +253,27 @@
     void openNote(it.id);
   }
   function goView(v: 'notes' | 'trash') {
-    if (v === view) return;
     closeCtx();
     selectionMode = false;
     selectedIds = [];
     view = v;
     query = '';
+    // 进入某视图：展开笔记列（图4），收起编辑区
+    listOpen = true;
+    editorOpen = false;
     refresh();
-    if (v === 'trash' && current && !current.deleted) { /* 保持当前打开 */ }
+  }
+  /** 侧栏 ↔ 笔记列 之间的手柄：图3 ⇄ 图4 */
+  function toggleList() {
+    closeCtx();
+    if (listOpen) { listOpen = false; editorOpen = false; }
+    else { listOpen = true; }
+    refresh();
+  }
+  /** 笔记列 ↔ 编辑区 之间的手柄：图4 ⇄ 图5 */
+  function toggleEditor() {
+    if (!listOpen) return;
+    editorOpen = !editorOpen;
   }
   async function newNote(targetFolder?: string) {
     await flush();
@@ -267,6 +282,9 @@
     currentId = doc.id;
     current = { id: doc.id, title: '', body: '', folder: doc.folder, updatedAt: doc.updatedAt };
     saveState = 'saved';
+    // 新建即进入图5（列表+编辑展开）
+    listOpen = true;
+    editorOpen = true;
     refresh();
     requestAnimationFrame(() => editorRef?.focus());
   }
@@ -374,6 +392,8 @@
       toggleSelection(item.id, e);
       return;
     }
+    // 再点当前已展开的笔记 → 收回编辑区（图5 → 图4）
+    if (item.id === currentId && editorOpen) { editorOpen = false; return; }
     openNoteItem(item);
   }
 
@@ -525,26 +545,38 @@
   function toggleFolder(folder: string) {
     closeCtx();
     if (view !== 'notes') view = 'notes';
-    if (activeFolder === folder) { activeFolder = null; }
-    else { activeFolder = folder; }
-    query = '';
+    // 再点同一个已展开的文件夹 → 收回笔记列（图4 → 图3）
+    if (listOpen && activeFolder === folder) {
+      listOpen = false;
+      editorOpen = false;
+    } else {
+      activeFolder = folder;
+      view = 'notes';
+      listOpen = true;      // 点文件夹 → 滑出笔记列（图4）
+      editorOpen = false;   // 切换文件夹收起编辑区（从图3/图4重新开始）
+      query = '';
+    }
     refresh();
   }
   function selectAllNotes() {
+    // “全部笔记”：打开全部视图并展开笔记列（图4）；不关闭（作视图锚点）
+    closeCtx();
     activeFolder = null;
     view = 'notes';
     query = '';
+    listOpen = true;
+    editorOpen = false;
     refresh();
   }
 
   // ---------- 排序（文件夹拖拽 / 笔记手排） ----------
-  /** folderDropIdx = 移除被拖项之后的“最终插入下标”；不变时拖放为 no-op */
+  /** folderDropIdx = 移除被拖项之后的“最终插入下标”；仅当不变时拖放为 no-op */
   async function commitFolderDrop(fromIdx: number, toIdx: number) {
     dragFolderIdx = null;
     folderDropIdx = null;
     overFolderName = null;
     if (toIdx < 0 || toIdx > folders.length) return;
-    if (toIdx === fromIdx || toIdx === fromIdx - 1) return;
+    if (toIdx === fromIdx) return; // 拖回原位
     const next = [...folders];
     const [moved] = next.splice(fromIdx, 1);
     next.splice(toIdx, 0, moved);
@@ -634,7 +666,6 @@
       if (confirm) { confirm = null; return; }
       if (renamingFolder) { renamingFolder = null; return; }
       if (selectionMode && selectedIds.length === 0) { selectionMode = false; return; }
-      if (rail) { rail = false; return; }
       return;
     }
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a' && selectionMode) {
@@ -677,7 +708,7 @@
       core.on(() => refresh());
       ready = true;
       refresh();
-      if (listItems[0]) await openNote(listItems[0].id);
+      // 默认保持图3（仅侧栏）；由用户点文件夹/点笔记逐级展开
     })();
     return () => {
       window.removeEventListener('keydown', onGlobalKey);
@@ -691,21 +722,8 @@
 {#if !ready}
   <div class="boot">正在打开本地笔记…</div>
 {:else}
-  {#if rail}
-    <!-- 收边窄条（hover 展开） -->
-    <div class="rail" onmouseleave={onRailLeave}>
-      <button class="rail-item" title="展开/收起侧栏" onclick={() => setRail(false)}><span class="rail-ico">»</span><span class="rail-text">侧栏</span></button>
-      <button class="rail-item" class:on={view === 'notes'} title="全部笔记" onclick={() => { setRail(false); selectAllNotes(); }}><span class="rail-ico">🗂️</span><span class="rail-text">全部笔记</span></button>
-      <button class="rail-item" class:on={view === 'trash'} title="回收站" onclick={() => { setRail(false); goView('trash'); }}><span class="rail-ico">🗑️</span><span class="rail-text">回收站</span></button>
-      <div class="rail-sep"></div>
-      {#each folders as folder (folder)}
-        <button class="rail-item" title={folder} onclick={() => { setRail(false); toggleFolder(folder); }}><span class="rail-ico">📁</span><span class="rail-text">{folder}</span></button>
-      {/each}
-    </div>
-  {/if}
-
-  <main class="app-shell" class:rail-on={rail}>
-    <!-- 左：文件夹 / 导航 -->
+  <main class="app-shell">
+    <!-- 左：文件夹 / 导航（图3 常态仅此栏，面板逐级滑出） -->
     <aside
       class="sidebar"
       oncontextmenu={onBlankCtx}
@@ -713,7 +731,6 @@
       <div class="sb-brand">
         <span class="logo">N</span>
         <div class="sb-brand-text"><strong>NoteApp</strong><small>本地 Markdown 笔记</small></div>
-        <button class="btn-icon sb-collapse" title="收边（QQ 式靠边收起）" onclick={() => setRail(true)}>◀</button>
       </div>
 
       <button class="btn-primary" onclick={() => void newNote()}>＋ 新建笔记</button>
@@ -831,8 +848,17 @@
       </div>
     </aside>
 
-    <!-- 中：搜索 + 笔记列表 -->
-    <section class="list-pane">
+    <!-- 手柄：侧栏 ⇄ 笔记列 -->
+    <button
+      class="seam seam-a" title="展开 / 收回笔记列"
+      aria-label={listOpen ? '收回笔记列' : '展开笔记列'}
+      onclick={toggleList}
+    >
+      <span class="seam-arrow">{listOpen ? '◀' : '▶'}</span>
+    </button>
+
+    <!-- 中：搜索 + 笔记列表（图4） -->
+    <section class="list-pane" class:open={listOpen}>
       <div class="list-head">
         <h2>{view === 'trash' ? '回收站' : (activeFolder ?? '全部笔记')}</h2>
         <div class="head-actions">
@@ -972,8 +998,18 @@
       </div>
     </section>
 
-    <!-- 右：编辑器 + 预览 -->
-    <section class="editor-pane">
+    <!-- 手柄：笔记列 ⇄ 编辑区 -->
+    <button
+      class="seam seam-b" class:closed={!listOpen}
+      title="展开 / 收回编辑区"
+      aria-label={editorOpen ? '收回编辑区' : '展开编辑区'}
+      onclick={toggleEditor}
+    >
+      <span class="seam-arrow">{editorOpen ? '◀' : '▶'}</span>
+    </button>
+
+    <!-- 右：编辑器 + 预览（图5） -->
+    <section class="editor-pane" class:open={editorOpen}>
       {#if current}
         {#if current.deleted}
           <div class="trash-banner">
@@ -1084,12 +1120,13 @@
         </tbody>
       </table>
       <ul class="help-tips">
+        <li>三栏是“级联收起/展开”：默认仅显示侧栏（图3）；点文件夹滑出笔记列（图4）；点笔记滑出编辑区（图5）。</li>
+        <li>再点一次当前文件夹/笔记可逐级收回；栏与栏之间的手柄 ◀ / ▶ 也可展开或收回。</li>
         <li>右键文件夹/空白区/笔记行打开上下文菜单；双击文件夹名重命名。</li>
         <li>拖拽文件夹可排序；拖拽笔记到文件夹即移动，拖到回收站即删除；列表内拖动可手动排序。</li>
         <li>「选择」模式（或 Ctrl/Shift+点击）多选后可批量移入回收站 / 还原 / 彻底删除。</li>
         <li>删除的笔记与文件夹先进回收站，可整组还原；“清空回收站”才会物理删除。</li>
         <li>全局搜索包含回收站命中（带 🗑️ 标记，点击转入回收站查看）。</li>
-        <li>左侧 ◀ 可将侧栏收成窄条（QQ 式靠边），悬停自动滑出。</li>
       </ul>
       <button class="btn-primary" onclick={() => (helpOpen = false)}>知道了</button>
     </div>

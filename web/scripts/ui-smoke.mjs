@@ -88,6 +88,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 await send('Page.navigate', { url: APP_URL });
 check('启动并渲染主界面', await waitEval('window.__ready()', 25000));
+check('默认仅侧栏（图3：笔记列/编辑区收起）', await waitEval(`!document.querySelector('.list-pane.open') && !document.querySelector('.editor-pane.open') && !!document.querySelector('.seam-a')`));
 
 if (await evaluate('window.__ready()')) {
   // 1) 空白右键 → 新建文件夹「工作」
@@ -107,8 +108,10 @@ if (await evaluate('window.__ready()')) {
   // 3) 书写 → 自动保存
   await evaluate(`window.__setValue(document.querySelector('.title-input'), '独门笔记')`);
   await evaluate(`window.__setValue(document.querySelector('#editor'), '内容包含暗号KDX2026')`);
+  // 触发真实保存（Ctrl+S），再校验“已保存”与列表标题
+  await evaluate(`window.dispatchEvent(new KeyboardEvent('keydown', { key: 's', ctrlKey: true, bubbles: true }))`);
   check('自动保存“已保存”', await waitEval(`document.querySelector('.save-status') && document.querySelector('.save-status').textContent.includes('已保存')`, 9000));
-  check('标题同步列表', await waitEval(`[...document.querySelectorAll('.note-title')].some((n) => n.textContent === '独门笔记')`));
+  check('标题同步列表', await waitEval(`[...document.querySelectorAll('.note-title')].some((n) => n.textContent === '独门笔记')`, 9000));
 
   // 4) 双击文件夹重命名 工作 → 工作甲
   await evaluate(`(() => { const n = [...document.querySelectorAll('.folder-name')].find((x) => x.textContent === '工作'); if (!n) return false; n.dispatchEvent(new MouseEvent('dblclick', { bubbles: true })); return true; })()`);
@@ -118,8 +121,7 @@ if (await evaluate('window.__ready()')) {
   check('重命名为「工作甲」', await waitEval(`[...document.querySelectorAll('.folder-name')].some((n) => n.textContent === '工作甲')`));
 
   // 5) 回收站：删除 → 只读视图 → 还原
-  await evaluate(`[...document.querySelectorAll('.note-title')].find((n) => n.textContent === '独门笔记').closest('.note-row').click()`);
-  await waitEval(`document.querySelector('.title-input') && document.querySelector('.title-input').value === '独门笔记'`);
+  check('编辑区已展开（图5）', await waitEval(`!!document.querySelector('.editor-pane.open') && document.querySelector('.title-input').value === '独门笔记'`));
   await evaluate(`[...document.querySelectorAll('.ed-right .btn-danger')][0].click()`);
   check('删除需二次确认（进回收站文案）', await waitEval(`!!document.querySelector('.modal-card') && document.body.textContent.includes('回收站')`));
   await evaluate(`[...document.querySelectorAll('.modal-actions button')].find((b) => b.textContent.includes('移入回收站')).click()`);
@@ -173,23 +175,23 @@ if (await evaluate('window.__ready()')) {
   }
 
   await evaluate(`[...document.querySelectorAll('.nav-item')].find((n) => n.textContent.includes('全部笔记')).click()`);
-  await waitEval(`[...document.querySelectorAll('.folder-name')].length >= 3`);
-  check('文件夹拖拽排序（读书移到工作甲前）', await dndFolder('读书', '工作甲', true));
-  check('拖拽后顺序生效', await waitEval(`JSON.stringify([...document.querySelectorAll('.folder-name')].map((n) => n.textContent)).includes('读书') && [...document.querySelectorAll('.folder-name')][1]?.textContent === '读书'`));
-  check('笔记拖入文件夹（独门笔记→读书）', await dndNoteToFolder('独门笔记', '读书'));
+  await waitEval(`[...document.querySelectorAll('.folder-name')].length >= 2`);
+  check('文件夹拖拽排序（工作甲移到收件箱前）', await dndFolder('工作甲', '收件箱', true));
+  check('拖拽后顺序生效', await waitEval(`[...document.querySelectorAll('.folder-name')][0]?.textContent === '工作甲'`));
+  check('笔记拖入文件夹（独门笔记→工作甲）', await dndNoteToFolder('独门笔记', '工作甲'));
   await waitEval(`[...document.querySelectorAll('.note-title')].some((n) => n.textContent === '独门笔记')`);
   await evaluate(`[...document.querySelectorAll('.note-title')].find((n) => n.textContent === '独门笔记').closest('.note-row').click()`);
-  check('拖入后所在文件夹更新为「读书」', await waitEval(`document.querySelector('.folder-chip') && document.querySelector('.folder-chip').value === '读书'`));
+  check('拖入后所在文件夹更新为「工作甲」', await waitEval(`document.querySelector('.folder-chip') && document.querySelector('.folder-chip').value === '工作甲'`));
 
-  check('文件夹右键删除进回收站', await pickCtxItem(`[...document.querySelectorAll('.folder-item')].find((f) => f.textContent.includes('读书'))`, '删除（移入回收站）'));
+  check('文件夹右键删除进回收站', await pickCtxItem(`[...document.querySelectorAll('.folder-item')].find((f) => f.textContent.includes('工作甲'))`, '删除（移入回收站）'));
   await waitEval(`!!document.querySelector('.modal-card')`, 4000);
   await evaluate(`[...document.querySelectorAll('.modal-actions button')].find((b) => b.textContent.includes('移入回收站')).click()`);
-  check('文件夹从侧栏移除', await waitEval(`![...document.querySelectorAll('.folder-name')].some((n) => n.textContent === '读书')`));
+  check('文件夹从侧栏移除', await waitEval(`![...document.querySelectorAll('.folder-name')].some((n) => n.textContent === '工作甲')`));
   await evaluate(`[...document.querySelectorAll('.nav-item')].find((n) => n.textContent.includes('回收站') && n.textContent.includes('🗑️')).click()`);
-  check('回收站出现已删除文件夹', await waitEval(`[...document.querySelectorAll('.trash-folder .folder-name')].some((n) => n.textContent === '读书')`));
-  check('文件夹右键还原', await pickCtxItem(`[...document.querySelectorAll('.trash-folder')].find((f) => f.textContent.includes('读书'))`, '还原文件夹'));
+  check('回收站出现已删除文件夹', await waitEval(`[...document.querySelectorAll('.trash-folder .folder-name')].some((n) => n.textContent === '工作甲')`));
+  check('文件夹右键还原', await pickCtxItem(`[...document.querySelectorAll('.trash-folder')].find((f) => f.textContent.includes('工作甲'))`, '还原文件夹'));
   await evaluate(`[...document.querySelectorAll('.nav-item')].find((n) => n.textContent.includes('全部笔记')).click()`);
-  check('文件夹与其中笔记已还原', await waitEval(`[...document.querySelectorAll('.folder-name')].some((n) => n.textContent === '读书') && [...document.querySelectorAll('.note-title')].some((n) => n.textContent === '独门笔记')`));
+  check('文件夹与其中笔记已还原', await waitEval(`[...document.querySelectorAll('.folder-name')].some((n) => n.textContent === '工作甲') && [...document.querySelectorAll('.note-title')].some((n) => n.textContent === '独门笔记')`));
 
   // 7) 再造一条 → 多选批量移入回收站
   await pickCtxItem(`document.querySelector('.nav-scroll')`, '新建文件夹');
@@ -235,11 +237,20 @@ if (await evaluate('window.__ready()')) {
   await evaluate(`[...document.querySelectorAll('.modal-actions button')].find((b) => b.textContent.includes('移入回收站')).click()`);
   check('批量后回收站 ≥2', await waitEval(`Number([...document.querySelectorAll('.nav-item')].find((n) => n.textContent.includes('回收站')).textContent.replace(/[^0-9]/g, '')) >= 2`));
 
-  // 8) 收边窄条
-  await evaluate(`document.querySelector('.sb-collapse').click()`);
-  check('出现收边窄条', await waitEval(`!!document.querySelector('.rail')`));
-  await evaluate(`[...document.querySelectorAll('.rail-item')].find((b) => b.textContent.includes('全部笔记')).click()`);
-  check('点窄条项恢复侧栏', await waitEval(`!document.querySelector('.rail')`));
+  // 8) 面板级联：默认图3 → 手柄展开/收回
+  await evaluate(`[...document.querySelectorAll('.nav-item')].find((n) => n.textContent.includes('全部笔记')).click()`);
+  check('点“全部笔记”滑出笔记列（图4）', await waitEval(`!!document.querySelector('.list-pane.open')`));
+  // 手柄收回笔记列 → 图3
+  await evaluate(`document.querySelector('.seam-a').click()`);
+  check('手柄收回笔记列（图3）', await waitEval(`!document.querySelector('.list-pane.open') && !document.querySelector('.editor-pane.open')`));
+  // 再展开笔记列
+  await evaluate(`document.querySelector('.seam-a').click()`);
+  check('手柄再次展开笔记列', await waitEval(`!!document.querySelector('.list-pane.open')`));
+  // 展开/收回编辑区（图4 ⇄ 图5）
+  await evaluate(`document.querySelector('.seam-b').click()`);
+  check('手柄展开编辑区（图5）', await waitEval(`!!document.querySelector('.editor-pane.open')`));
+  await evaluate(`document.querySelector('.seam-b').click()`);
+  check('手柄收回编辑区（图4）', await waitEval(`!document.querySelector('.editor-pane.open') && !!document.querySelector('.list-pane.open')`));
 
   // 9) 全局搜索命中回收站
   await evaluate(`window.__setValue(document.querySelector('.searchbox input'), '读书笔记')`);

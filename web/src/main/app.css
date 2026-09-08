@@ -315,3 +315,25 @@ input, select, textarea { font: inherit; color: inherit; }
 .help-tips { margin: 10px 0 4px; padding-left: 18px; color: var(--text-2); font-size: 12.5px; }
 .help-tips li { margin: 3px 0; }
 
+/* ===== 面板级联收起/展开（图3 ⇄ 图4 ⇄ 图5） ===== */
+.app-shell { display: flex; align-items: stretch; }
+.sidebar { flex: 0 0 224px; width: 224px; }
+.list-pane {
+  flex: 0 0 0; min-width: 0; overflow: hidden; border-right: 0;
+  transition: flex-basis 0.2s ease, min-width 0.2s ease;
+}
+.list-pane.open { flex: 0 0 288px; min-width: 288px; }
+.editor-pane {
+  flex: 0 0 0; min-width: 0; overflow: hidden; opacity: 0;
+  transition: flex-basis 0.2s ease, min-width 0.2s ease, opacity 0.18s ease;
+}
+.editor-pane.open { flex: 1 1 0; min-width: 320px; opacity: 1; }
+.seam {
+  flex: 0 0 10px; width: 10px; align-self: stretch; padding: 0;
+  display: grid; place-content: center; background: #eef1f5;
+  border-right: 1px solid var(--border); color: var(--text-2);
+}
+.seam:hover { background: #e2e8f0; color: var(--accent); }
+.seam-arrow { font-size: 10px; }
+.seam-b.closed { flex: 0 0 0; width: 0; overflow: hidden; border: none; }
+
