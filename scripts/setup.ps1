@@ -64,6 +64,10 @@ Pass "npm dependencies ready"
 #    github.com, which this network refuses). If NOTEAPP_BUNDLE=1 and github is
 #    reachable, also build MSI/NSIS installers afterwards.
 Write-Host "Building desktop app (first cargo run downloads crates, may take a while)..." -ForegroundColor Cyan
+
+# Close any running NoteApp first, otherwise its exe is locked and cargo cannot overwrite it.
+Get-Process -Name noteapp -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+
 npm run desktop:exe
 if ($LASTEXITCODE -ne 0) { throw "tauri build failed - see messages above" }
 
