@@ -83,9 +83,13 @@
   // 拖拽状态
   let draggingNoteIds = $state<string[] | null>(null);
   let overFolderName = $state<string | null>(null);  // 侧栏高亮的目标文件夹
+  let overTrash = $state(false);                     // 拖到回收站入口高亮
   let dropLineIdx = $state<number | null>(null);     // 中间列表插入线位置
   let dragFolderIdx = $state<number | null>(null);   // 正在拖拽的文件夹下标
   let folderDropIdx = $state<number | null>(null);   // 文件夹排序插入位置（0..len）
+  // 指针拖拽（鼠标按下→移动→松开），不依赖 HTML5 拖放
+  let ptDown: { kind: 'note' | 'folder'; ids: string[]; fromIdx: number | null; x: number; y: number; active: boolean } | null = null;
+  let suppressClick = false;
 
   const registry = new ActionRegistry();
 
@@ -388,6 +392,7 @@
   function isSelected(id: string) { return selectedIds.includes(id); }
 
   async function onRowClick(item: ListItem, e: MouseEvent) {
+    if (suppressClick) { suppressClick = false; return; }
     if (selectionMode || e.ctrlKey || e.metaKey || e.shiftKey) {
       if (!selectionMode && (e.ctrlKey || e.metaKey)) enterSelection();
       toggleSelection(item.id, e);
@@ -570,7 +575,7 @@
     refresh();
   }
 
-  // ---------- 排序（文件夹拖拽 / 笔记手排） ----------
+  // ---------- 排序与拖放（文件夹拖拽 / 笔记移动与手排） ----------
   /** folderDropIdx = 移除被拖项之后的“最终插入下标”；仅当不变时拖放为 no-op */
   async function commitFolderDrop(fromIdx: number, toIdx: number) {
     dragFolderIdx = null;
@@ -585,51 +590,151 @@
     if (!r.ok) toast(r.reason ?? '排序失败');
     refresh();
   }
-  async function commitNoteReorder() {
-    if (!draggingNoteIds?.length || dropLineIdx === null) { draggingNoteIds = null; dropLineIdx = null; return; }
-    const scope = currentScope;
-    const ids = draggingNoteIds;
-    draggingNoteIds = null;
-    dropLineIdx = null;
-    if (!scope) return;
+  /** 按插入下标把笔记写入手排（scope = 文件夹名 或 'all'）；未手排的作用域跳过 */
+  async function commitReorderWith(scope: string, ids: string[], insertIdx: number) {
     const currentIds = listItems.map((it) => it.id);
-    let insertAt = dropLineIdx;
-    // 移除被拖动的 id（它们在原列表中的位置）；按 dropLineIdx 相对删除后的序列插回
-    let removed = 0;
-    let insertPos = insertAt;
+    let insertPos = insertIdx;
     const rest: string[] = [];
     for (let i = 0; i < currentIds.length; i++) {
       const id = currentIds[i];
-      if (ids.includes(id)) { removed += 1; if (i < insertAt) insertPos -= 1; continue; }
+      if (ids.includes(id)) { if (i < insertIdx) insertPos -= 1; continue; }
       rest.push(id);
     }
-    void removed;
-    const toInsert = ids.filter((id) => rest.includes(id) || currentIds.includes(id));
-    const final = [...rest];
-    final.splice(Math.max(0, Math.min(insertPos, final.length)), 0, ...toInsert);
-    await core.setNoteOrder(scope, final);
+    const toInsert = ids.filter((id) => currentIds.includes(id));
+    if (toInsert.length === 0) return;
+    rest.splice(Math.max(0, Math.min(insertPos, rest.length)), 0, ...toInsert);
+    await core.setNoteOrder(scope, rest);
     refresh();
   }
 
   async function moveNotesToFolder(ids: string[], folder: string) {
+    if (!folder) return;
     for (const id of ids) {
       const doc = core.getNote(id);
       if (doc && doc.folder !== folder) await core.updateNote(id, { folder });
     }
     if (current && ids.includes(current.id)) current.folder = folder;
-    overFolderName = null;
-    draggingNoteIds = null;
-    dropLineIdx = null;
+    clearDragUI();
     refresh();
   }
   async function trashNotesDrop(ids: string[]) {
     await core.deleteNotes(ids);
-    draggingNoteIds = null;
-    overFolderName = null;
-    dropLineIdx = null;
     if (currentId && ids.includes(currentId)) { currentId = null; current = null; }
+    clearDragUI();
     refresh();
     toast(`已将 ${ids.length} 条笔记移入回收站`);
+  }
+
+  // ---------- 指针拖拽实现（鼠标按下 → 移动 → 松开） ----------
+  let dragBound = false;
+  function clearDragUI() {
+    draggingNoteIds = null;
+    overFolderName = null;
+    overTrash = false;
+    dropLineIdx = null;
+    dragFolderIdx = null;
+    folderDropIdx = null;
+    document.body.classList.remove('is-dragging');
+  }
+  function releasePointer() {
+    if (dragBound) {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
+      dragBound = false;
+    }
+  }
+  function bindPointerListeners() {
+    if (!dragBound) {
+      window.addEventListener('pointermove', onPointerMove);
+      window.addEventListener('pointerup', onPointerUp);
+      window.addEventListener('pointercancel', onPointerUp);
+      dragBound = true;
+    }
+  }
+  function beginPotentialNoteDrag(e: PointerEvent, ids: string[]) {
+    if (e.button !== 0) return;
+    if (view === 'trash') return;
+    if ((e.target as HTMLElement).closest('.row-check, input, select, .ctx-menu')) return;
+    ptDown = { kind: 'note', ids: [...ids], fromIdx: null, x: e.clientX, y: e.clientY, active: false };
+    bindPointerListeners();
+  }
+  function beginPotentialFolderDrag(e: PointerEvent, fi: number) {
+    if (e.button !== 0) return;
+    ptDown = { kind: 'folder', ids: [], fromIdx: fi, x: e.clientX, y: e.clientY, active: false };
+    bindPointerListeners();
+  }
+  function onPointerMove(e: PointerEvent) {
+    if (!ptDown) return;
+    if (!ptDown.active) {
+      const dx = Math.abs(e.clientX - ptDown.x);
+      const dy = Math.abs(e.clientY - ptDown.y);
+      if (Math.max(dx, dy) < 5) return; // 拖拽阈值
+      ptDown.active = true;
+      suppressClick = true; // 拖拽后不再当作点击
+      document.body.classList.add('is-dragging');
+      if (ptDown.kind === 'note') draggingNoteIds = [...ptDown.ids];
+      else dragFolderIdx = ptDown.fromIdx;
+    }
+    const el = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null;
+    overTrash = !!el?.closest?.('.trash-entry');
+    if (ptDown.kind === 'note') {
+      const folderMain = el?.closest?.('.folder-main') as HTMLElement | null;
+      if (folderMain) {
+        overFolderName = folderMain.dataset.folder ?? null;
+        dropLineIdx = null;
+      } else if (el?.closest?.('.note-list')) {
+        overFolderName = null;
+        dropLineIdx = nearestRowIndex('.note-list .note-row', e.clientY);
+      } else {
+        overFolderName = null;
+        dropLineIdx = null;
+      }
+    } else {
+      folderDropIdx = el?.closest?.('#folder-list, .nav-scroll')
+        ? nearestRowIndex('.folder-item .folder-main', e.clientY)
+        : null;
+    }
+  }
+  function onPointerUp(e: PointerEvent) {
+    if (!ptDown) return;
+    const p = ptDown;
+    const wasDrag = p.active;
+    const targetEl = wasDrag ? (document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null) : null;
+    const folderToIdx = folderDropIdx;   // 在 clear 前取值
+    const listDropIdx = dropLineIdx;
+    const folderFromIdx = dragFolderIdx;
+    releasePointer();
+    const kind = p.kind;
+    const ids = [...p.ids];
+    const fromIdx = p.fromIdx;
+    ptDown = null;
+    if (!wasDrag) return; // 轻点：交给 click 处理
+    clearDragUI();
+    if (kind === 'folder') {
+      if (folderFromIdx !== null && folderToIdx !== null) void commitFolderDrop(folderFromIdx, folderToIdx);
+      else if (folderFromIdx !== null) void commitFolderDrop(folderFromIdx, folderFromIdx);
+      return;
+    }
+    // note：优先目标文件夹 / 回收站，否则列表内手排
+    const folderMain = targetEl?.closest?.('.folder-main') as HTMLElement | null;
+    if (folderMain && ids.length) { void moveNotesToFolder(ids, folderMain.dataset.folder ?? ''); return; }
+    if (targetEl?.closest?.('.trash-entry') && ids.length) { void trashNotesDrop(ids); return; }
+    const scope = currentScope;
+    if (scope && ids.length && listDropIdx !== null) {
+      void commitReorderWith(scope, ids, listDropIdx);
+    } else {
+      refresh();
+    }
+  }
+  function nearestRowIndex(selector: string, y: number): number | null {
+    const rows = [...document.querySelectorAll(selector)];
+    if (rows.length === 0) return null;
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i]!.getBoundingClientRect();
+      if (y < r.top + r.height / 2) return i;
+    }
+    return rows.length;
   }
 
   // ---------- 搜索 / 排序切换 ----------
@@ -746,6 +851,7 @@
       window.removeEventListener('keydown', onGlobalKey);
       window.removeEventListener('beforeunload', flushTimer);
       window.removeEventListener('blur', flushTimer);
+      releasePointer();
       if (saveTimer) clearTimeout(saveTimer);
     };
   });
@@ -810,43 +916,12 @@
               >
                 <span class="folder-arrow" class:open={view === 'notes' && activeFolder === folder}>▶</span>
                 <button
-                  class="folder-main"
-                  draggable="true"
+                  class="folder-main grab"
+                  data-folder={folder}
+                  title="拖拽可调整文件夹顺序；也可把笔记拖到这里移动"
                   onclick={() => toggleFolder(folder)}
                   ondblclick={(e) => { e.stopPropagation(); startRenameFolder(folder); }}
-                  ondragstart={(e) => {
-                    dragFolderIdx = fi;
-                    overFolderName = null;
-                    if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
-                  }}
-                  ondragover={(e) => {
-                    e.preventDefault();
-                    if (dragFolderIdx === null) {
-                      // 笔记拖入文件夹：高亮目标
-                      folderDropIdx = null;
-                      if (draggingNoteIds?.length) overFolderName = folder;
-                      return;
-                    }
-                    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                    const base = e.clientY < rect.top + rect.height / 2 ? fi : fi + 1;
-                    folderDropIdx = dragFolderIdx < base ? base - 1 : base;
-                  }}
-                  ondragleave={() => {
-                    if (dragFolderIdx === null && overFolderName === folder) overFolderName = null;
-                  }}
-                  ondrop={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (dragFolderIdx !== null) {
-                      const toIdx = folderDropIdx ?? fi;
-                      void commitFolderDrop(dragFolderIdx, toIdx);
-                      return;
-                    }
-                    // 笔记拖入文件夹 → 移动
-                    if (draggingNoteIds?.length) {
-                      void moveNotesToFolder(draggingNoteIds, folder);
-                    }
-                  }}
+                  onpointerdown={(e) => beginPotentialFolderDrag(e, fi)}
                 >
                   <span class="nav-ico">📁</span><span class="folder-name">{folder}</span>
                   <span class="nav-count fcount">{counts[folder] ?? 0}</span>
@@ -867,6 +942,7 @@
         <button
           class="nav-item trash-entry"
           class:active={view === 'trash'}
+          class:drop={overTrash}
           onclick={() => goView('trash')}
         >
           <span class="nav-ico">🗑️</span>回收站
@@ -880,12 +956,15 @@
       </div>
     </aside>
 
-    <!-- 手柄：侧栏 ⇄ 笔记列（仅顶部小按钮可点，避免误触与滚动条重叠） -->
-    <div class="seam seam-a">
-      <button class="seam-btn" title="展开 / 收回笔记列" aria-label={listOpen ? '收回笔记列' : '展开笔记列'} onclick={toggleList}>
-        <span class="seam-arrow">{listOpen ? '◀' : '▶'}</span>
-      </button>
-    </div>
+    <!-- 手柄：侧栏 ⇄ 笔记列（整条竖线可点击展开/收回，视觉为细条+小箭头） -->
+    <button
+      class="seam seam-a"
+      title="展开 / 收回笔记列"
+      aria-label={listOpen ? '收回笔记列' : '展开笔记列'}
+      onclick={toggleList}
+    >
+      <span class="seam-arrow">{listOpen ? '◀' : '▶'}</span>
+    </button>
 
     <!-- 中：搜索 + 笔记列表（图4） -->
     <section class="list-pane" class:open={listOpen}>
@@ -972,33 +1051,17 @@
         {:else}
           {#each listItems as item, i (item.id)}
             <div
-              class="note-row"
+              class="note-row grab"
               class:active={item.id === currentId && !isSelected(item.id)}
               class:selected={isSelected(item.id)}
               class:drop-line-top={dropLineIdx === i}
               class:drop-line-bottom={dropLineIdx === i + 1}
-              draggable="true"
+              title="点击打开；拖拽可移动到文件夹或手动排序"
               oncontextmenu={(e) => onNoteRowCtx(e, item)}
               onclick={(e) => void onRowClick(item, e)}
-              ondragstart={(e) => {
-                if (view === 'trash') { e.preventDefault(); return; }
-                draggingNoteIds = selectedIds.includes(item.id) ? [...selectedIds] : [item.id];
-                folderDropIdx = null;
-                if (e.dataTransfer) {
-                  e.dataTransfer.effectAllowed = 'move';
-                  e.dataTransfer.setData('text/plain', draggingNoteIds.join(','));
-                }
-              }}
-              ondragend={() => { draggingNoteIds = null; overFolderName = null; dropLineIdx = null; folderDropIdx = null; }}
-              ondragover={(e) => {
-                if (!draggingNoteIds || query) return;
-                e.preventDefault();
-                const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                dropLineIdx = e.clientY < rect.top + rect.height / 2 ? i : i + 1;
-              }}
-              ondrop={(e) => {
-                e.preventDefault();
-                void commitNoteReorder();
+              onpointerdown={(e) => {
+                const ids = selectionMode && selectedIds.includes(item.id) ? [...selectedIds] : [item.id];
+                beginPotentialNoteDrag(e, ids);
               }}
             >
               <div class="note-row-top">
@@ -1029,11 +1092,14 @@
     </section>
 
     <!-- 手柄：笔记列 ⇄ 编辑区 -->
-    <div class="seam seam-b" class:closed={!listOpen}>
-      <button class="seam-btn" title="展开 / 收回编辑区" aria-label={editorOpen ? '收回编辑区' : '展开编辑区'} onclick={toggleEditor}>
-        <span class="seam-arrow">{editorOpen ? '◀' : '▶'}</span>
-      </button>
-    </div>
+    <button
+      class="seam seam-b" class:closed={!listOpen}
+      title="展开 / 收回编辑区"
+      aria-label={editorOpen ? '收回编辑区' : '展开编辑区'}
+      onclick={toggleEditor}
+    >
+      <span class="seam-arrow">{editorOpen ? '◀' : '▶'}</span>
+    </button>
 
     <!-- 右：编辑器 + 预览（图5） -->
     <section class="editor-pane" class:open={editorOpen}>

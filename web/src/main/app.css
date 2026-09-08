@@ -330,16 +330,19 @@ input, select, textarea { font: inherit; color: inherit; }
 .editor-pane.open { flex: 0 0 680px; width: 680px; opacity: 1; }
 .seam {
   flex: 0 0 8px; width: 8px; align-self: stretch; padding: 0;
-  background: #eef1f5; border-right: 1px solid var(--border);
-}
-.seam-btn {
-  width: 8px; height: 26px; margin-left: -1px; padding: 0;
   display: grid; place-content: center; cursor: pointer;
-  color: var(--text-2); border-radius: 0 0 6px 6px;
+  background: #eef1f5; border-right: 1px solid var(--border); color: var(--text-2);
 }
-.seam-btn:hover { background: #e2e8f0; color: var(--accent); }
+.seam:hover { background: #e2e8f0; color: var(--accent); }
 .seam-arrow { font-size: 9px; }
 .seam-b.closed { flex: 0 0 0; width: 0; overflow: hidden; border: none; }
+
+/* 拖拽中禁止选中文本；回收站入口悬停高亮 */
+body.is-dragging { user-select: none; }
+.trash-entry.drop { background: #fdecee; color: var(--danger); box-shadow: inset 0 0 0 1px var(--danger); }
+.note-row.grab, .folder-main.grab { cursor: grab; }
+body.is-dragging .note-row, body.is-dragging .folder-main { cursor: grabbing; }
+
 /* 侧栏/列表/预览滚轮条细微化，避免与手柄视觉重叠 */
 .sidebar .nav-scroll::-webkit-scrollbar, .note-list::-webkit-scrollbar, .preview::-webkit-scrollbar {
   width: 5px; height: 5px;

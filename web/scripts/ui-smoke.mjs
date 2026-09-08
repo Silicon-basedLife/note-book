@@ -147,29 +147,31 @@ if (await evaluate('window.__ready()')) {
   // 6.5) 拖拽：文件夹排序、笔记拖入文件夹、文件夹删除进回收站并还原
   async function dndFolder(fromName, toName, yTop) {
     return await evaluate(`(() => {
-      const from = [...document.querySelectorAll('.folder-main .folder-name')].find((n) => n.textContent === ${JSON.stringify(fromName)})?.closest('.folder-main');
-      const to = [...document.querySelectorAll('.folder-main .folder-name')].find((n) => n.textContent === ${JSON.stringify(toName)})?.closest('.folder-main');
-      if (!from || !to) return false;
-      const dt = new DataTransfer();
-      from.dispatchEvent(new DragEvent('dragstart', { bubbles: true, cancelable: true, dataTransfer: dt }));
-      const r = to.getBoundingClientRect();
-      to.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, clientX: r.left + r.width / 2, clientY: r.top + (${yTop} ? 2 : r.height - 2), dataTransfer: dt }));
-      to.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, clientX: r.left + r.width / 2, clientY: r.top + (${yTop} ? 2 : r.height - 2), dataTransfer: dt }));
-      from.dispatchEvent(new DragEvent('dragend', { bubbles: true, dataTransfer: dt }));
+      const src = [...document.querySelectorAll('.folder-main')].find((b) => b.textContent.includes(${JSON.stringify(fromName)}));
+      const dst = [...document.querySelectorAll('.folder-main')].find((b) => b.textContent.includes(${JSON.stringify(toName)}));
+      if (!src || !dst) return false;
+      const sr = src.getBoundingClientRect(); const dr = dst.getBoundingClientRect();
+      const sx = sr.left + sr.width / 2, sy = sr.top + sr.height / 2;
+      src.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, clientX: sx, clientY: sy, pointerId: 1 }));
+      window.dispatchEvent(new PointerEvent('pointermove', { clientX: sx + 24, clientY: sy + 12, pointerId: 1 }));
+      const tx = dr.left + dr.width / 2, ty = dr.top + (${yTop} ? 2 : dr.height - 2);
+      window.dispatchEvent(new PointerEvent('pointermove', { clientX: tx, clientY: ty, pointerId: 1 }));
+      window.dispatchEvent(new PointerEvent('pointerup', { clientX: tx, clientY: ty, pointerId: 1 }));
       return true;
     })()`);
   }
   async function dndNoteToFolder(noteTitle, folderName) {
     return await evaluate(`(() => {
-      const row = [...document.querySelectorAll('.note-title')].find((n) => n.textContent === ${JSON.stringify(noteTitle)})?.closest('.note-row');
-      const to = [...document.querySelectorAll('.folder-main .folder-name')].find((n) => n.textContent === ${JSON.stringify(folderName)})?.closest('.folder-main');
-      if (!row || !to) return false;
-      const dt = new DataTransfer();
-      row.dispatchEvent(new DragEvent('dragstart', { bubbles: true, cancelable: true, dataTransfer: dt }));
-      const r = to.getBoundingClientRect();
-      to.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, clientX: r.left + r.width / 2, clientY: r.top + 2, dataTransfer: dt }));
-      to.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, clientX: r.left + r.width / 2, clientY: r.top + 2, dataTransfer: dt }));
-      row.dispatchEvent(new DragEvent('dragend', { bubbles: true, dataTransfer: dt }));
+      const row = [...document.querySelectorAll('.note-row')].find((r) => r.textContent.includes(${JSON.stringify(noteTitle)}));
+      const dst = [...document.querySelectorAll('.folder-main')].find((b) => b.textContent.includes(${JSON.stringify(folderName)}));
+      if (!row || !dst) return false;
+      const rr = row.getBoundingClientRect(); const dr = dst.getBoundingClientRect();
+      const sx = rr.left + rr.width / 2, sy = rr.top + rr.height / 2;
+      row.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, clientX: sx, clientY: sy, pointerId: 1 }));
+      window.dispatchEvent(new PointerEvent('pointermove', { clientX: sx + 24, clientY: sy + 12, pointerId: 1 }));
+      const tx = dr.left + dr.width / 2, ty = dr.top + 2;
+      window.dispatchEvent(new PointerEvent('pointermove', { clientX: tx, clientY: ty, pointerId: 1 }));
+      window.dispatchEvent(new PointerEvent('pointerup', { clientX: tx, clientY: ty, pointerId: 1 }));
       return true;
     })()`);
   }
@@ -213,12 +215,14 @@ if (await evaluate('window.__ready()')) {
   const rowDrag = await evaluate(`(() => {
     const rows = [...document.querySelectorAll('.note-row')];
     if (rows.length < 2) return false;
-    const dt = new DataTransfer();
-    rows[1].dispatchEvent(new DragEvent('dragstart', { bubbles: true, cancelable: true, dataTransfer: dt }));
-    const r = rows[0].getBoundingClientRect();
-    rows[0].dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, clientX: r.left + r.width / 2, clientY: r.top + 2, dataTransfer: dt }));
-    rows[0].dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, clientX: r.left + r.width / 2, clientY: r.top + 2, dataTransfer: dt }));
-    rows[1].dispatchEvent(new DragEvent('dragend', { bubbles: true, dataTransfer: dt }));
+    const r1 = rows[1].getBoundingClientRect();
+    const r0 = rows[0].getBoundingClientRect();
+    const sx = r1.left + r1.width / 2, sy = r1.top + r1.height / 2;
+    rows[1].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, clientX: sx, clientY: sy, pointerId: 1 }));
+    window.dispatchEvent(new PointerEvent('pointermove', { clientX: sx + 24, clientY: sy + 12, pointerId: 1 }));
+    const tx = r0.left + r0.width / 2, ty = r0.top + 2;
+    window.dispatchEvent(new PointerEvent('pointermove', { clientX: tx, clientY: ty, pointerId: 1 }));
+    window.dispatchEvent(new PointerEvent('pointerup', { clientX: tx, clientY: ty, pointerId: 1 }));
     return true;
   })()`);
   check('列表内拖拽发生', !!rowDrag);
@@ -242,16 +246,16 @@ if (await evaluate('window.__ready()')) {
   check('点“全部笔记”滑出笔记列（图4）', await waitEval(`!!document.querySelector('.list-pane.open')`));
   check('展开后内容宽度加宽（触发窗口缩放）', await evaluate(`document.querySelector('.app-shell').getBoundingClientRect().width >= 480`));
   // 手柄收回笔记列 → 图3
-  await evaluate(`document.querySelector('.seam-a .seam-btn').click()`);
+  await evaluate(`document.querySelector('.seam-a').click()`);
   check('手柄收回笔记列（图3）', await waitEval(`!document.querySelector('.list-pane.open') && !document.querySelector('.editor-pane.open')`));
   check('收回后内容宽度≈侧栏', await evaluate(`document.querySelector('.app-shell').getBoundingClientRect().width < 260`));
   // 再展开笔记列
-  await evaluate(`document.querySelector('.seam-a .seam-btn').click()`);
+  await evaluate(`document.querySelector('.seam-a').click()`);
   check('手柄再次展开笔记列', await waitEval(`!!document.querySelector('.list-pane.open')`));
   // 展开/收回编辑区（图4 ⇄ 图5）
-  await evaluate(`document.querySelector('.seam-b .seam-btn').click()`);
+  await evaluate(`document.querySelector('.seam-b').click()`);
   check('手柄展开编辑区（图5）', await waitEval(`!!document.querySelector('.editor-pane.open')`));
-  await evaluate(`document.querySelector('.seam-b .seam-btn').click()`);
+  await evaluate(`document.querySelector('.seam-b').click()`);
   check('手柄收回编辑区（图4）', await waitEval(`!document.querySelector('.editor-pane.open') && !!document.querySelector('.list-pane.open')`));
 
   // 9) 全局搜索命中回收站
