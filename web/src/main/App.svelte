@@ -3,6 +3,7 @@
   // P0 功能 + 增强版交互：文件夹右键菜单/悬停删除/拖拽排序、笔记多选批量进回收站、
   // 笔记拖拽移动/手排、回收站（还原/彻底删除/清空）、左侧收边窄条。
   import { onMount } from 'svelte';
+  import { getCurrentWindow, LogicalSize } from '@tauri-apps/api/window';
   import ContextMenu from './ui/ContextMenu.svelte';
   import { createCore, displayTitle, excerptOf } from '../shared/core-client.ts';
   import { renderMarkdown } from '../lib/core/markdown.ts';
@@ -643,6 +644,34 @@
   }
 
   // ---------- 快捷键 ----------
+  // ---------- 窗口随面板开合自适应（桌面 Tauri；Web 预览下为 no-op） ----------
+  const SIDEBAR_W = 224;
+  const LIST_W = 300;
+  const EDITOR_W = 680;
+  const SEAM_W = 8;
+
+  function isTauri() {
+    return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+  }
+  function computeWidth(): number {
+    let w = SIDEBAR_W + SEAM_W; // 侧栏 + 手柄A
+    if (listOpen) w += SEAM_W + LIST_W; // 笔记列 + 手柄B
+    if (editorOpen) w += SEAM_W + EDITOR_W;
+    return w;
+  }
+  async function syncWindowSize() {
+    if (!core || !isTauri()) return;
+    try {
+      const cur = await getCurrentWindow().outerSize();
+      await getCurrentWindow().setSize(new LogicalSize(computeWidth(), cur.height));
+    } catch { /* 忽略（如窗口被系统限制） */ }
+  }
+
+  // 面板开合 → 窗口宽度随之变化
+  $effect(() => {
+    void syncWindowSize();
+  });
+
   function registerActions() {
     registry.register({ id: 'new-note', label: '新建笔记', shortcut: { key: 'n', alt: true }, run: () => { if (ready) void newNote(); } });
     registry.register({ id: 'focus-search', label: '聚焦搜索', shortcut: { key: 'k', ctrl: true }, run: () => { if (ready) searchEl?.focus(); } });
@@ -708,6 +737,7 @@
       core.on(() => refresh());
       ready = true;
       refresh();
+      void syncWindowSize(); // 初始收缩到“仅侧栏”（图3）宽度
       // 默认保持图3（仅侧栏）；由用户点文件夹/点笔记逐级展开
     })();
     return () => {
