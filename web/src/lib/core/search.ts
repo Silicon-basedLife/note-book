@@ -1,4 +1,4 @@
-﻿// search.ts —— 内存全文搜索（标题 + 正文），接口与 docs/TECH_DESIGN.md §3.3 对齐：
+// search.ts —— 内存全文搜索（标题 + 正文），接口与 docs/TECH_DESIGN.md §3.3 对齐：
 // search(query, folder?) → 命中列表；未来笔记量大后换 SQLite FTS5 只换后端、接口不变。
 import { escapeHtml } from './html.ts';
 import type { IndexEntry, SearchHit } from './types.ts';
@@ -49,6 +49,7 @@ function hit(entry: IndexEntry, where: 'title' | 'body', q: string): SearchHit {
     updatedAt: entry.updatedAt,
     where,
     snippet,
+    deleted: entry.deleted ?? false,
   };
 }
 

@@ -1,12 +1,15 @@
 // frontmatter.ts —— .md 文件 frontmatter 解析与序列化
 // 对应 docs/TECH_DESIGN.md §3.1：文件名为稳定 ID（<id>.md），
 // 文件夹/title/tags/pinned 等写入 frontmatter；未知扩展字段原样保留往返。
+// 回收站软删除标记（deleted / deletedAt）同样写入 frontmatter，文件自身可自解释。
 
 import { DEFAULT_FOLDER, type FrontmatterEntry, type NoteDoc } from './types.ts';
 
 const DELIM = '---';
 
-const KNOWN_KEYS = ['id', 'folder', 'title', 'tags', 'pinned', 'createdAt', 'updatedAt'] as const;
+const KNOWN_KEYS = [
+  'id', 'folder', 'title', 'tags', 'pinned', 'createdAt', 'updatedAt', 'deleted', 'deletedAt',
+] as const;
 
 /** 解析 tags 值（"[]" / JSON 字符串数组），失败回退空数组 */
 function parseTags(value: string): string[] {
@@ -80,6 +83,7 @@ export function docFromContent(
     const v = (raw || '').trim();
     return v && !Number.isNaN(Date.parse(v)) ? v : fallback;
   };
+  const deleted = (map.get('deleted') || '').trim() === 'true';
   return {
     id,
     folder: (map.get('folder') || '').trim() || DEFAULT_FOLDER,
@@ -90,6 +94,9 @@ export function docFromContent(
     updatedAt: isoOr(map.get('updatedAt'), nowIso),
     body,
     extra,
+    ...(deleted
+      ? { deleted: true as const, deletedAt: isoOr(map.get('deletedAt'), nowIso) }
+      : {}),
   };
 }
 
@@ -97,7 +104,8 @@ function escapeLine(value: string): string {
   return value.replace(/[\r\n]+/g, ' ').trim();
 }
 
-/** 序列化 NoteDoc → 完整 .md 文件内容（正文逐字节保留）。 */
+/** 序列化 NoteDoc → 完整 .md 文件内容（正文逐字节保留）。
+ *  未删除的笔记不写 deleted 字段，保持既有文件布局干净。 */
 export function serializeDoc(doc: NoteDoc): string {
   const head: FrontmatterEntry[] = [];
   head.push({ key: 'id', value: escapeLine(doc.id) });
@@ -107,6 +115,10 @@ export function serializeDoc(doc: NoteDoc): string {
   head.push({ key: 'pinned', value: String(doc.pinned) });
   head.push({ key: 'createdAt', value: doc.createdAt });
   head.push({ key: 'updatedAt', value: doc.updatedAt });
+  if (doc.deleted) {
+    head.push({ key: 'deleted', value: 'true' });
+    if (doc.deletedAt) head.push({ key: 'deletedAt', value: doc.deletedAt });
+  }
   for (const e of doc.extra) {
     if (!(KNOWN_KEYS as readonly string[]).includes(e.key)) head.push(e);
   }

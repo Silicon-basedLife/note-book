@@ -116,20 +116,42 @@ test('updateNote：仅移动文件夹不刷新 updatedAt', async () => {
   assert.equal(after.updatedAt, before.updatedAt);
 });
 
-test('deleteNote：删除文件、清索引、广播事件', async () => {
+test('deleteNote：移入回收站（软删除），可还原与彻底删除', async () => {
   const files = { 'n-d1.md': contentWith('n-d1', '收件箱', '待删', 'x', '2025-01-01T00:00:00.000Z') };
   const mem = storage(files);
   const core = new NoteCore(mem, { now: clock });
   await core.init();
   const events = [];
-  core.on((e) => { if (e.type === 'note' && e.op === 'deleted') events.push(e.note.id); });
+  core.on((e) => { if (e.type === 'note') events.push(`${e.op}:${e.note.id}`); });
   assert.equal(await core.deleteNote('n-d1'), true);
+  // 文件保留，frontmatter 写入 deleted: true
+  const raw = await mem.readNoteFile('n-d1.md');
+  assert.ok(raw.includes('deleted: true'));
+  const inTrash = core.getNote('n-d1');
+  assert.equal(inTrash.deleted, true);
+  assert.ok(inTrash.deletedAt);
+  // 活跃列表/计数/搜索默认不含回收站
+  assert.equal(core.listNotes().length, 0);
+  assert.equal(core.counts()['收件箱'], 0);
+  assert.equal(core.search('待删').length, 0);
+  assert.equal(core.countsTrash().notes, 1);
+  assert.equal(core.listTrashNotes().length, 1);
+  assert.deepEqual(events, ['deleted:n-d1']);
+  // 已删除再删无效
+  assert.equal(await core.deleteNote('n-d1'), false);
+  // 还原
+  assert.equal(await core.restoreNote('n-d1'), true);
+  assert.equal(core.getNote('n-d1').deleted, undefined);
+  assert.equal(core.listNotes().length, 1);
+  assert.equal(core.countsTrash().notes, 0);
+  assert.ok((await mem.readNoteFile('n-d1.md')).includes('title: 待删'));
+  assert.ok(!(await mem.readNoteFile('n-d1.md')).includes('deleted: true'));
+  // 再删后彻底删除
+  await core.deleteNote('n-d1');
+  assert.equal(await core.purgeNote('n-d1'), true);
   assert.equal(await mem.readNoteFile('n-d1.md'), null);
   assert.equal(core.getNote('n-d1'), undefined);
-  assert.equal(core.listNotes().length, 0);
-  assert.equal(core.search('待删').length, 0);
-  assert.deepEqual(events, ['n-d1']);
-  assert.equal(await core.deleteNote('n-d1'), false);
+  assert.equal(await core.purgeNote('n-d1'), false);
 });
 
 test('toggleTask：勾选回写并落盘，无效偏移不动', async () => {
@@ -143,7 +165,7 @@ test('toggleTask：勾选回写并落盘，无效偏移不动', async () => {
   assert.equal(await core.toggleTask('n-t1', 99), false);
 });
 
-test('文件夹：新建/重命名/删除与笔记联动持久化', async () => {
+test('文件夹：新建/重命名持久化；删除文件夹整组进回收站并可再生还原', async () => {
   const mem = storage();
   const core = new NoteCore(mem, { now: clock });
   await core.init();
@@ -156,19 +178,28 @@ test('文件夹：新建/重命名/删除与笔记联动持久化', async () => 
   await core.renameFolder('读书', '阅读');
   assert.equal(core.getNote(note.id).folder, '阅读');
   assert.ok(core.listFolders().includes('阅读') && !core.listFolders().includes('读书'));
-  // 删除文件夹 → 笔记归入收件箱
+  // 删除文件夹 → 整组（含笔记）进回收站，保留原始结构
   await core.createNote({ folder: '阅读', title: '第二本', body: 'y' });
   await core.deleteFolder('阅读');
-  const moved = core.listNotes('收件箱');
-  assert.equal(moved.length, 2);
   assert.deepEqual(core.listFolders(), ['收件箱', '工作']);
+  assert.equal(core.countsTrash().notes, 2);
+  assert.equal(core.countsTrash().folders, 1);
+  const tf = core.listTrashFolders();
+  assert.equal(tf.length, 1);
+  assert.equal(tf[0].name, '阅读');
+  assert.equal(tf[0].noteCount, 2);
+  // 还原文件夹 → 笔记回到活跃列表与文件夹
+  assert.equal((await core.restoreFolder('阅读')).ok, true);
+  assert.deepEqual(core.listFolders(), ['收件箱', '工作', '阅读']);
+  assert.equal(core.listNotes('阅读').length, 2);
+  assert.equal(core.countsTrash().folders, 0);
   // 默认文件夹不可删除
   assert.equal((await core.deleteFolder('收件箱')).ok, false);
   // 重启恢复
   const core2 = new NoteCore(mem, { now: clock });
   await core2.init();
-  assert.deepEqual(core2.listFolders(), ['收件箱', '工作']);
-  assert.equal(core2.listNotes('收件箱').length, 2);
+  assert.deepEqual(core2.listFolders(), ['收件箱', '工作', '阅读']);
+  assert.equal(core2.listNotes('阅读').length, 2);
 });
 
 test('重启恢复：新 Core 实例从同一存储读到全部笔记（验收：重启后内容仍在）', async () => {
