@@ -856,14 +856,6 @@
     window.addEventListener('beforeunload', flushTimer);
     window.addEventListener('blur', flushTimer);
 
-    const onMouseIn = () => dock?.setMouseInside(true);
-    const onMouseOut = () => dock?.setMouseInside(false);
-    if (isTauri()) {
-      // 桌面：跟踪鼠标是否停留在窗口内（停靠后 3 秒无鼠标则缩进）
-      window.addEventListener('pointermove', onMouseIn);
-      window.addEventListener('mouseleave', onMouseOut);
-    }
-
     void (async () => {
       core = await createCore();
       core.on(() => refresh());
@@ -880,8 +872,6 @@
       window.removeEventListener('keydown', onGlobalKey);
       window.removeEventListener('beforeunload', flushTimer);
       window.removeEventListener('blur', flushTimer);
-      window.removeEventListener('pointermove', onMouseIn);
-      window.removeEventListener('mouseleave', onMouseOut);
       releasePointer();
       dock?.destroy();
       if (saveTimer) clearTimeout(saveTimer);

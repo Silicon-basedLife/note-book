@@ -7,21 +7,23 @@ import {
 
 const area = { x: 0, y: 0, w: 1920, h: 1040 };
 
-test('nearSnap：接触(=0)或超出屏幕边缘即吸附，内侧仍保留磁吸', () => {
-  assert.equal(nearSnap({ x: 12, y: 100, w: 232, h: 760 }, area, 24), 'left');
-  assert.equal(nearSnap({ x: 1920 - 232 - 14, y: 100, w: 232, h: 760 }, area, 24), 'right');
-  assert.equal(nearSnap({ x: 300, y: 100, w: 232, h: 760 }, area, 24), null);
-  // 距左 10px、距右 20px → 选左
-  assert.equal(nearSnap({ x: 10, y: 0, w: 1920 - 20 - 10, h: 100 }, area, 24), 'left');
-  // 接触边界（0px）
-  assert.equal(nearSnap({ x: 0, y: 0, w: 232, h: 100 }, area, 24), 'left');
-  assert.equal(nearSnap({ x: 1920 - 232, y: 0, w: 232, h: 100 }, area, 24), 'right');
-  // 已超出左侧 → 左
-  assert.equal(nearSnap({ x: -80, y: 0, w: 232, h: 100 }, area, 24), 'left');
-  assert.equal(nearSnap({ x: -400, y: 0, w: 232, h: 100 }, area, 24), 'left');
-  // 已超出右侧 → 右
-  assert.equal(nearSnap({ x: 1920 - 232 + 60, y: 0, w: 232, h: 100 }, area, 24), 'right');
-  assert.equal(nearSnap({ x: 1920 + 200, y: 0, w: 232, h: 100 }, area, 24), 'right');
+test('nearSnap：仅越界/接触边缘才吸附（无屏内磁吸）', () => {
+  // 屏幕内侧不吸附
+  assert.equal(nearSnap({ x: 12, y: 100, w: 232, h: 760 }, area), null);
+  assert.equal(nearSnap({ x: 300, y: 100, w: 232, h: 760 }, area), null);
+  assert.equal(nearSnap({ x: 1920 - 232 - 14, y: 100, w: 232, h: 760 }, area), null);
+  // 接触边界（0px）→ 吸附
+  assert.equal(nearSnap({ x: 0, y: 0, w: 232, h: 100 }, area), 'left');
+  assert.equal(nearSnap({ x: 1920 - 232, y: 0, w: 232, h: 100 }, area), 'right');
+  // 已越过左侧 → 左
+  assert.equal(nearSnap({ x: -80, y: 0, w: 232, h: 100 }, area), 'left');
+  assert.equal(nearSnap({ x: -400, y: 0, w: 232, h: 100 }, area), 'left');
+  // 已越过右侧 → 右
+  assert.equal(nearSnap({ x: 1920 - 232 + 60, y: 0, w: 232, h: 100 }, area), 'right');
+  assert.equal(nearSnap({ x: 1920 + 200, y: 0, w: 232, h: 100 }, area), 'right');
+  // 两侧同时越过 → 取越界更远的一侧
+  const wide = { x: -50, y: 0, w: 2100, h: 100 }; // 左侧越 50，右侧越 180-？ => 右越界更多
+  assert.equal(nearSnap(wide, area), 'right');
 });
 
 test('snapX：左贴边/右贴边', () => {
