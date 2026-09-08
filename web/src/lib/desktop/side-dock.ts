@@ -5,7 +5,7 @@
 //   - 停靠后通过“全局鼠标位置”判断鼠标离开窗口满 3 秒 → 平滑滑出屏幕（隐藏）；
 //   - 光标进入停靠侧屏幕边缘热区 → 平滑滑回显示；
 //   - 窗口被拖离边缘超过容差 → 取消停靠（并关闭置顶）。
-import { currentMonitor, cursorPosition, getCurrentWindow, LogicalPosition } from '@tauri-apps/api/window';
+import { currentMonitor, cursorPosition, getCurrentWindow, LogicalPosition, LogicalSize } from '@tauri-apps/api/window';
 import {
   type DockSide,
   type Rect,
@@ -21,6 +21,8 @@ const POLL_MS = 100;         // 位置/光标轮询周期
 const HOT_ZONE_PX = 14;      // 屏幕边缘唤出热区宽度
 const UNHOOK_TOL = 80;       // 停靠后拖离多少判定为取消停靠
 const MOVE_TOL = 1;          // 判定窗口是否仍在移动（拖拽中不缩进）
+/** 停靠时强制回拉的侧栏宽度（= 图3 内容宽度：侧栏 224 + 手柄 8） */
+const SIDEBAR_W = 232;
 
 export class SideDock {
   private win = getCurrentWindow();
@@ -67,15 +69,18 @@ export class SideDock {
       if (!g) return;
       this.area = g.area;
 
-      // 1) 未停靠：边框接触/越过屏幕边界 → 吸附
+      // 1) 未停靠：边框接触/越过屏幕边界 → 吸附（拉到侧栏宽度 + 垂直居中）
       if (!this.docked) {
         const side = nearSnap(g.win, g.area);
         if (!side) return;
-        await this.win.setPosition(new LogicalPosition(snapX(side, g.win, g.area), g.win.y));
+        const x = snapX(side, g.win, g.area);
+        const y = this.dockedY(g.area, g.win.h);
+        await this.win.setSize(new LogicalSize(SIDEBAR_W, g.win.h));
+        await this.win.setPosition(new LogicalPosition(x, y));
         this.docked = side;
         await this.setTop(true);
-        this.lastX = snapX(side, g.win, g.area);
-        this.lastY = g.win.y;
+        this.lastX = x;
+        this.lastY = y;
         return;
       }
 
@@ -83,6 +88,16 @@ export class SideDock {
       if (unhooked(g.win, this.docked, g.area, UNHOOK_TOL)) {
         await this.undock();
         return;
+      }
+
+      // 2.5) 已停靠：覆盖系统的“左/右半屏吸附”——把窗口强制拉回侧栏宽度并重居中
+      if (Math.abs(g.win.w - SIDEBAR_W) > 3) {
+        const x = snapX(this.docked, g.win, g.area);
+        const y = this.dockedY(g.area, g.win.h);
+        await this.win.setSize(new LogicalSize(SIDEBAR_W, g.win.h));
+        await this.win.setPosition(new LogicalPosition(x, y));
+        this.lastX = x;
+        this.lastY = y;
       }
 
       // 3) 已停靠且稳定：依据鼠标位置管理缩进
@@ -184,7 +199,13 @@ export class SideDock {
     this.hidden = false;
     if (this.hideTimer) { clearTimeout(this.hideTimer); this.hideTimer = null; }
     const x = snapX(this.docked, g.win, area);
-    await this.slideX(x, g.win.y);
+    const y = this.dockedY(area, g.win.h);
+    await this.slideX(x, y);
+  }
+
+  /** 停靠时的垂直位置：沿屏幕高度居中（避免贴到顶部/底部） */
+  private dockedY(area: Rect, winH: number): number {
+    return Math.max(area.y, area.y + Math.max(0, (area.h - winH) / 2));
   }
 
   private clearHideTimer(): void {
