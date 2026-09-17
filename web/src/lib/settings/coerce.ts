@@ -1,5 +1,6 @@
 // settings/coerce.ts —— 设置读取归一化 + 写回时保留未知字段（向前兼容）
 import type { Shortcut } from '../core/actions.ts';
+import { ACTIONS } from './catalog.ts';
 import {
   AUTO_SAVE_RANGE,
   DEFAULT_SETTINGS,
@@ -95,7 +96,9 @@ function mergeGroup(prev: unknown, next: unknown): Obj {
   return { ...asObject(prev), ...asObject(next) };
 }
 
-/** 写回时把新设置合并到原始 JSON 上：未知字段（未来版本 / 手工添加）不被丢弃 */
+/** 写回时把新设置合并到原始 JSON 上：未知字段（未来版本 / 手工添加）不被丢弃。
+ *  注意：shortcuts 是“当前覆盖集合”，删除（点“默认”）必须生效，
+ *  因此只保留旧文件中当前版本不认识的动作 id，其余以新值为准。 */
 export function preservedMerge(previousRaw: unknown, next: AppSettings): Obj {
   const prev = asObject(previousRaw);
   const merged: Obj = { ...prev };
@@ -103,7 +106,12 @@ export function preservedMerge(previousRaw: unknown, next: AppSettings): Obj {
   merged.general = mergeGroup(prev.general, next.general);
   merged.editor = mergeGroup(prev.editor, next.editor);
   merged.dock = mergeGroup(prev.dock, next.dock);
-  merged.shortcuts = mergeGroup(prev.shortcuts, next.shortcuts);
+  const knownIds = new Set(ACTIONS.map((a) => a.id));
+  const carriedUnknown: Obj = {};
+  for (const [id, value] of Object.entries(asObject(prev.shortcuts))) {
+    if (!knownIds.has(id)) carriedUnknown[id] = value;
+  }
+  merged.shortcuts = { ...carriedUnknown, ...next.shortcuts };
   if (next.lastPanels) merged.lastPanels = { ...asObject(prev.lastPanels), ...next.lastPanels };
   else delete merged.lastPanels;
   return merged;

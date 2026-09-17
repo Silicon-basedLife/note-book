@@ -21,6 +21,7 @@
     getStorageInfo,
     migrateNotes,
     openPath,
+    pickFolder,
     storageAdminAvailable,
     type StorageInfo,
   } from '../lib/settings/storage-admin.ts';
@@ -106,6 +107,22 @@
   async function refreshStorage() {
     if (!storageAdminAvailable()) return;
     try { storage = await getStorageInfo(); } catch (err) { migrateMsg = { kind: 'error', text: String(err) }; }
+  }
+  async function doOpen(path: string) {
+    try {
+      await openPath(path);
+      migrateMsg = { kind: 'info', text: '已在文件管理器中打开：' + path };
+    } catch (err) {
+      migrateMsg = { kind: 'error', text: '打开目录失败：' + (err instanceof Error ? err.message : String(err)) };
+    }
+  }
+  async function doPickFolder() {
+    try {
+      const picked = await pickFolder();
+      if (picked) { migratePath = picked; migrateMsg = null; }
+    } catch (err) {
+      migrateMsg = { kind: 'error', text: '选择目录失败：' + (err instanceof Error ? err.message : String(err)) };
+    }
   }
   async function doMigrate() {
     migrateMsg = null;
@@ -209,16 +226,17 @@
         {:else if storage}
           <section class="card">
             <div class="row"><div class="row-main"><label>当前笔记目录</label><p class="hint mono">{storage.notesDir}</p></div>
-              <button class="btn-ghost small" onclick={() => void openPath(storage!.notesDir)}>打开</button></div>
+              <button class="btn-ghost small" onclick={() => void doOpen(storage!.notesDir)}>打开</button></div>
             <div class="row"><div class="row-main"><label>应用数据目录</label><p class="hint mono">{storage.dataDir}</p></div>
-              <button class="btn-ghost small" onclick={() => void openPath(storage!.dataDir)}>打开</button></div>
+              <button class="btn-ghost small" onclick={() => void doOpen(storage!.dataDir)}>打开</button></div>
             <div class="row"><div class="row-main"><label>设置文件</label><p class="hint mono">{storage.settingsFile}</p></div></div>
           </section>
           <section class="card">
             <div class="row-main"><label>更改存储位置（迁移）</label>
               <p class="hint">把现有笔记与 meta.json 复制到新目录并切换；建议选择<b>空目录</b>。原目录内容会保留作为备份。</p></div>
             <div class="migrate-row">
-              <input type="text" placeholder="例如 D:\NoteAppData" value={migratePath} oninput={(e) => (migratePath = (e.target as HTMLInputElement).value)} />
+              <input type="text" placeholder="点击“浏览…”选择，或直接输入 例如 D:\NoteAppData" value={migratePath} oninput={(e) => (migratePath = (e.target as HTMLInputElement).value)} />
+              <button class="btn-ghost" onclick={() => void doPickFolder()}>浏览…</button>
               <button class="btn-primary" disabled={!migratePath.trim()} onclick={doMigrate}>验证并迁移</button>
             </div>
             {#if migrateMsg}<p class:err={migrateMsg.kind === 'error'} class="msg">{migrateMsg.text}</p>{/if}
@@ -226,6 +244,7 @@
           </section>
         {:else}
           <p class="hint">正在读取存储信息…</p>
+          {#if migrateMsg}<p class="err">{migrateMsg.text}</p>{/if}
         {/if}
       {/if}
 
@@ -293,7 +312,7 @@
         <section class="card">
           <div class="row"><div class="row-main"><label>NoteApp</label><p class="hint">本地 Markdown 笔记 · 版本 {storage?.appVersion ?? '0.1.0'}</p></div></div>
           <div class="row"><div class="row-main"><label>数据位置</label><p class="hint mono">{storage?.notesDir ?? '（浏览器预览模式）'}</p></div>
-            {#if storage}<button class="btn-ghost small" onclick={() => void openPath(storage!.dataDir)}>打开数据目录</button>{/if}
+            {#if storage}<button class="btn-ghost small" onclick={() => void doOpen(storage!.dataDir)}>打开数据目录</button>{/if}
           </div>
           <div class="row"><div class="row-main"><label>快捷键入口</label><p class="hint">⌘/Ctrl + , 可随时打开本设置窗口</p></div></div>
         </section>

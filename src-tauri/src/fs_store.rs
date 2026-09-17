@@ -211,7 +211,12 @@ pub fn get_storage_info(app: AppHandle) -> Result<StorageInfo, String> {
 fn open_in_file_manager(path: &Path) -> std::io::Result<()> {
     #[cfg(target_os = "windows")]
     {
-        std::process::Command::new("explorer").arg(path).spawn().map(|_| ())
+        // `cmd /C start "" "<path>"` 比直接 explorer 更稳（explorer 的返回码/前台行为不统一）
+        std::process::Command::new("cmd")
+            .args(["/C", "start", ""])
+            .arg(path)
+            .spawn()
+            .map(|_| ())
     }
     #[cfg(target_os = "macos")]
     {
@@ -232,9 +237,18 @@ fn open_in_file_manager(path: &Path) -> std::io::Result<()> {
 pub fn open_path(path: String) -> Result<(), String> {
     let p = PathBuf::from(path.trim());
     if !p.exists() {
-        return Err("路径不存在".into());
+        return Err(format!("路径不存在：{}", p.to_string_lossy()));
     }
     open_in_file_manager(&p).map_err(|e| format!("打开目录失败: {e}"))
+}
+
+/// 弹出系统原生的“选择文件夹”对话框；用户取消时返回 None
+#[tauri::command]
+pub fn pick_folder() -> Result<Option<String>, String> {
+    let picked = rfd::FileDialog::new()
+        .set_title("选择笔记存储目录")
+        .pick_folder();
+    Ok(picked.map(|p| p.to_string_lossy().to_string()))
 }
 
 /// 迁移笔记目录：把当前 notes 下的 .md 与 meta.json 复制到目标目录，成功后写入 storage.json。

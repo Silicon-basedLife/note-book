@@ -64,6 +64,21 @@ test('preservedMerge：未知字段（未来版本/手工添加）不被丢弃',
   assert.equal(merged.editor.autoSaveMs, 900);
 });
 
+test('preservedMerge：删除（点“默认”）必须生效，仅保留未知动作 id', () => {
+  const prev = {
+    shortcuts: {
+      'save-now': { key: 'S', ctrl: true, shift: true }, // 已知动作，且新值里已删除 → 必须消失
+      'future-action': { key: 'j', ctrl: true },          // 当前版本不认识 → 保留
+    },
+  };
+  // 用户在设置里点了“默认”：save-now 的覆盖被删除（next 中不存在）
+  const next = coerceSettings({ shortcuts: {} });
+  assert.equal('save-now' in next.shortcuts, false);
+  const merged = preservedMerge(prev, next);
+  assert.equal('save-now' in merged.shortcuts, false);      // 不再回弹
+  assert.deepEqual(merged.shortcuts['future-action'], { key: 'j', ctrl: true });
+});
+
 test('preservedMerge：lastPanels 可写可清', () => {
   const base = coerceSettings({});
   const withPanels = preservedMerge({}, { ...base, lastPanels: { listOpen: true, editorOpen: false, folder: '工作' } });

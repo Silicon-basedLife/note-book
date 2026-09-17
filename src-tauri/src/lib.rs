@@ -17,6 +17,7 @@ pub fn run() {
             fs_store::write_settings,
             fs_store::get_storage_info,
             fs_store::open_path,
+            fs_store::pick_folder,
             fs_store::migrate_notes,
         ])
         .run(tauri::generate_context!())
