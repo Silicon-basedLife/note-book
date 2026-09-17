@@ -13,6 +13,11 @@ pub fn run() {
             fs_store::read_meta,
             fs_store::write_meta,
             fs_store::remove_meta,
+            fs_store::read_settings,
+            fs_store::write_settings,
+            fs_store::get_storage_info,
+            fs_store::open_path,
+            fs_store::migrate_notes,
         ])
         .run(tauri::generate_context!())
         .expect("运行 NoteApp 失败");
