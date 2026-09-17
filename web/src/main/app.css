@@ -236,7 +236,8 @@ input, select, textarea { font: inherit; color: inherit; }
 .folder-main { position: relative; flex: 1; min-width: 0; }
 .nav-item.folder-item > .folder-main { padding: 7px 6px 7px 4px; border-radius: 8px; display: flex; align-items: center; gap: 6px; text-align: left; }
 .fcount { flex: none; }
-.fdel { display: none; flex: none; padding: 0 6px; color: var(--danger); font-size: 12px; font-weight: 700; }
+.fdel { display: none; flex: none; margin-left: auto; padding: 0 6px; color: var(--danger); font-size: 12px; font-weight: 700; }
+.nav-item.folder-item .folder-name { flex: 1; min-width: 0; }
 .folder-item:hover .fcount { display: none; }
 .folder-item:hover .fdel { display: inline-block; }
 .folder-item:hover { background: #eef1f5; }
