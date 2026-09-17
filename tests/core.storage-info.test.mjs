@@ -47,3 +47,13 @@ test('Rust StorageInfo 契约：camelCase 序列化且字段名与前端一致',
     assert.ok(block.includes(field + ':'), `StorageInfo 应包含字段 ${field}`);
   }
 });
+
+test('Rust 路径展示：剥离 verbatim 前缀，且存储信息/迁移指针统一走 display_path', async () => {
+  const rust = await readFile(resolve(ROOT, 'src-tauri/src/fs_store.rs'), 'utf8');
+  assert.ok(rust.includes('fn clean_verbatim'), '应有 clean_verbatim 去掉 \\\\?\\ 前缀');
+  assert.ok(rust.includes('fn display_path'), '应有 display_path 包装');
+  assert.ok(rust.includes('data_dir: display_path(&base)'), 'data_dir 应经 display_path');
+  assert.ok(rust.includes('notes_dir: display_path(&notes)'), 'notes_dir 应经 display_path');
+  assert.ok(rust.includes('display_path(&dest_abs)'), '迁移写入的 notesDir 应为普通绝对路径');
+  assert.ok(rust.includes('fn same_path'), '应能判断指针是否指向默认目录（清理冗余 storage.json）');
+});

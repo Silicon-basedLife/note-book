@@ -24,6 +24,21 @@ fn base_dir(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(dir)
 }
 
+/// 去掉 Windows canonicalize 带来的 `\\?\`（verbatim）前缀，保证展示与写回的路径是普通形式
+fn clean_verbatim(s: &str) -> String {
+    if let Some(rest) = s.strip_prefix(r"\\?\UNC\") {
+        format!(r"\\{rest}")
+    } else if let Some(rest) = s.strip_prefix(r"\\?\") {
+        rest.to_string()
+    } else {
+        s.to_string()
+    }
+}
+
+fn display_path(p: &Path) -> String {
+    clean_verbatim(&p.to_string_lossy())
+}
+
 /// 用户在设置里指定的自定义笔记目录（storage.json 中的 notesDir）
 fn read_storage_override(app: &AppHandle) -> Option<PathBuf> {
     let path = base_dir(app).ok()?.join(STORAGE_FILE);
@@ -34,18 +49,30 @@ fn read_storage_override(app: &AppHandle) -> Option<PathBuf> {
         .and_then(|v| v.as_str())
         .map(str::trim)
         .filter(|s| !s.is_empty())
-        .map(PathBuf::from)
+        .map(|s| PathBuf::from(clean_verbatim(s)))
 }
 
 /// 当前笔记根目录：自定义优先，否则默认 <数据目录>/notes；
+/// 指针若指向默认目录则视为“未自定义”（并清掉冗余 storage.json）；
 /// 同时把历史版本遗留在数据目录根部的 meta.json 迁移进 notes 目录（一次性兼容）。
 fn notes_root(app: &AppHandle) -> Result<PathBuf, String> {
     let base = base_dir(app)?;
+    let default_dir = base.join(NOTES_DIR);
+    fs::create_dir_all(&default_dir).map_err(|e| format!("创建笔记目录失败: {e}"))?;
     let dir = match read_storage_override(app) {
-        Some(custom) => custom,
-        None => base.join(NOTES_DIR),
+        Some(custom) => {
+            if same_path(&custom, &default_dir) {
+                // 指针只是指向默认目录（例如迁移后又切回默认）→ 清理冗余配置
+                let _ = fs::remove_file(base.join(STORAGE_FILE));
+                default_dir
+            } else {
+                custom
+            }
+        }
+        None => default_dir,
     };
     fs::create_dir_all(&dir).map_err(|e| format!("创建笔记目录失败: {e}"))?;
+    // 旧版本把 meta.json 放在数据目录根部（base）：只要目标不是 base 就把遗留文件搬进笔记目录
     if dir != base {
         let legacy = base.join(META_FILE);
         let target = dir.join(META_FILE);
@@ -54,6 +81,14 @@ fn notes_root(app: &AppHandle) -> Result<PathBuf, String> {
         }
     }
     Ok(dir)
+}
+
+/// 判断两个路径是否指向同一位置（尽量用 canonicalize，失败则退化比较）
+fn same_path(a: &Path, b: &Path) -> bool {
+    match (fs::canonicalize(a), fs::canonicalize(b)) {
+        (Ok(x), Ok(y)) => x == y,
+        _ => a == b,
+    }
 }
 
 /// 文件名白名单：仅允许普通文件名（拒绝路径分隔符/相对路径），防止目录穿越。
@@ -196,10 +231,10 @@ fn storage_info(app: &AppHandle) -> Result<StorageInfo, String> {
     let notes = notes_root(app)?;
     Ok(StorageInfo {
         app_version: env!("CARGO_PKG_VERSION").to_string(),
-        data_dir: base.to_string_lossy().to_string(),
-        notes_dir: notes.to_string_lossy().to_string(),
-        default_notes_dir: base.join(NOTES_DIR).to_string_lossy().to_string(),
-        settings_file: base.join(SETTINGS_FILE).to_string_lossy().to_string(),
+        data_dir: display_path(&base),
+        notes_dir: display_path(&notes),
+        default_notes_dir: display_path(&base.join(NOTES_DIR)),
+        settings_file: display_path(&base.join(SETTINGS_FILE)),
         is_custom: read_storage_override(app).is_some(),
     })
 }
@@ -263,6 +298,14 @@ pub fn migrate_notes(app: AppHandle, target: String) -> Result<StorageInfo, Stri
     let current = notes_root(&app)?;
     let dest = PathBuf::from(trimmed);
     fs::create_dir_all(&dest).map_err(|e| format!("创建目标目录失败: {e}"))?;
+    // 存储指针写绝对路径（普通形式，不带 \\?\ 前缀）
+    let dest_abs = if dest.is_absolute() {
+        dest.clone()
+    } else {
+        std::env::current_dir()
+            .map_err(|e| format!("无法解析相对路径: {e}"))?
+            .join(&dest)
+    };
 
     let cur_key = fs::canonicalize(&current).unwrap_or_else(|_| current.clone());
     let dst_key = fs::canonicalize(&dest).unwrap_or_else(|_| dest.clone());
@@ -293,7 +336,7 @@ pub fn migrate_notes(app: AppHandle, target: String) -> Result<StorageInfo, Stri
     }
     let _ = copied;
 
-    let pointer = serde_json::json!({ "notesDir": dst_key.to_string_lossy() });
+    let pointer = serde_json::json!({ "notesDir": display_path(&dest_abs) });
     let text = serde_json::to_string_pretty(&pointer).map_err(|e| format!("写入存储配置失败: {e}"))?;
     fs::write(base_dir(&app)?.join(STORAGE_FILE), text).map_err(|e| format!("保存存储配置失败: {e}"))?;
 
