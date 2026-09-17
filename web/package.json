@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "serve:dist": "node scripts/serve-dist.mjs",
-    "smoke": "node scripts/ui-smoke.mjs"
+    "smoke": "node scripts/ui-smoke.mjs",
+    "smoke:settings": "node scripts/settings-smoke.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.5.0",

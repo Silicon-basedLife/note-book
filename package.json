@@ -15,6 +15,7 @@
     "typecheck": "npm --prefix web run typecheck",
     "serve:dist": "npm --prefix web run serve:dist",
     "smoke": "npm --prefix web run smoke",
+    "smoke:settings": "npm --prefix web run smoke:settings",
     "tauri": "tauri",
     "desktop:dev": "tauri dev",
     "desktop:build": "tauri build",

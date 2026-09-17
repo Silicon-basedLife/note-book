@@ -64,6 +64,11 @@ npm run desktop:setup     # = scripts/setup.ps1：装 Rust(如缺) → 装依赖
 - **文件夹**：▶/▼ 展开箭头与手风琴（再点收回）、悬停时笔记数变 ✕ 快捷删除、双击/右键重命名
 - **面板级联**：默认仅侧栏（图3）且**桌面窗口收缩到侧栏宽度**（无右侧空白）；点文件夹滑出笔记列（图4，窗口加宽），点笔记滑出编辑区（图5）；再点同类或边缘手柄逐级收回，窗口随开合自动缩放（Tauri `setSize`；Web 预览仅内容自适应，不缩放浏览器窗口）
 - **侧边吸附（桌面，QQ 式）**：图3 态拖到屏幕左/右边缘自动贴边并置顶；鼠标离开窗口 3 秒后缩进屏幕外，光标靠近该侧屏幕边缘即滑回；一旦展开到图4/图5 自动取消停靠。“吸附/缩进/唤出”以本机桌面实测为准可再调阈值
+- **设置（独立窗口，首版）**：
+  - 入口：侧栏底部「⚙️ 设置」或快捷键 `Ctrl + ,`；桌面为独立窗口（`settings.html`），Web 预览为新浏览器窗口
+  - 分类：通用（启动布局 / 记住面板）、快捷键（改键 / 冲突提示 / 恢复默认）、存储（路径展示 / 打开目录 / **更改位置并迁移**）、编辑器（默认视图 / 自动保存去抖 / 拼写检查）、窗口与吸附（开关 / 吸附侧 / 缩进延迟 / 置顶 / 热区宽度 / 仅侧栏生效）、关于（版本与数据位置）
+  - 存储：设置存 `settings.json`（应用配置目录）；存储位置指针存 `storage.json`；笔记与 `meta.json` 随笔记目录一起迁移，原目录保留作备份；目标目录须为空或仅含 `.md`/`meta.json`
+  - 兼容：设置文件带 `version`，读取时未知字段原样保留（向后兼容）
 
 ## 技术栈与架构（对齐 TECH_DESIGN）
 
@@ -71,7 +76,7 @@ npm run desktop:setup     # = scripts/setup.ps1：装 Rust(如缺) → 装依赖
 UI 层（Svelte 5 + TS）  web/src/main/*、web/src/shared/core-client.ts
 Core 层（TS 同构实现）  web/src/lib/core/*   —— 文件读写、frontmatter、索引、搜索、事件、动作注册表
 存储端口（可插拔）      web/src/lib/core/storage/*（TauriStorage / memory / IndexedDB）
-Tauri 薄壳（Rust）      src-tauri/*           —— notes 目录真实文件读写 + meta.json KV（8 命令）
+Tauri 薄壳（Rust）      src-tauri/*           —— notes 目录真实文件读写 + meta.json KV + 设置/存储迁移命令
 ```
 
 - `NoteCore`（[store.ts](web/src/lib/core/store.ts)）是**唯一事实源**：启动扫描建索引，所有读写/索引/搜索集中在 Core，UI 通过事件订阅同一份数据 —— 对应技术方案「数据层与 UI 解耦」。
@@ -105,13 +110,14 @@ npm run build          # 生产构建到 web/dist
 node web/scripts/serve-dist.mjs            # http://127.0.0.1:5174/
 # 3) 带 CDP 调试端口的 headless Chrome（独立临时 profile）：
 chrome --headless=new --user-data-dir=%TEMP%\na-smoke-profile --remote-debugging-port=9222 about:blank
-# 4) 跑冒烟（42 项断言：右键菜单/文件夹拖拽排序/笔记拖拽移动与手排/回收站还原与批量/多选/收边/搜索等）：
+# 4) 跑冒烟（主窗口 51 项 + 设置窗口 14 项）：
 SMOKE_URL=http://127.0.0.1:5174/ node web/scripts/ui-smoke.mjs
+SMOKE_URL=http://127.0.0.1:5174/ node web/scripts/settings-smoke.mjs
 ```
 
 人工验收参考（与冒烟断言一致）：右键文件夹/空白/笔记行出上下文菜单；拖拽文件夹调整顺序、
 拖拽笔记到文件夹即移动、列表内拖动即手动排序（可“恢复时间序”）；删除的笔记/文件夹进入
-回收站可整组还原；多选批量操作；点击 ◀ 收边为窄条、悬停展开。
+回收站可整组还原；多选批量操作；面板级联展开/收回；设置窗口改键与冲突提示、存储位置迁移（桌面）。
 
 ## 目录结构
 
@@ -120,9 +126,12 @@ docs/                     # 产品路线图 + 技术方案（需求来源）
 src-tauri/                # Tauri 2 薄壳：文件/KV 命令、窗口配置、图标、bundle
 web/
   src/lib/core/           # 核心逻辑（TS 同构；未来可逐步下沉到 Rust core）
+  src/lib/settings/       # 设置模型/读写/快捷键（主窗口与设置窗口共用）
+  src/lib/desktop/        # 桌面能力：侧边吸附（dock-core 纯逻辑 + side-dock 运行时）
   src/shared/             # core-client（UI 装配入口，按环境选存储适配器）
   src/main/               # 主窗口（App.svelte + app.css + main.ts）
-  scripts/                # serve-dist.mjs（静态托管）、ui-smoke.mjs（CDP 冒烟）
+  src/settings/           # 独立设置窗口（Settings.svelte + main.ts）
+  scripts/                # serve-dist.mjs、ui-smoke.mjs、settings-smoke.mjs（CDP 冒烟）
 scripts/                  # setup.ps1（桌面一键构建）
 tests/                    # node:test 套件：core.* 迁移基线 + demo 回归
 demo/                     # 纯前端原型（参照保留）
@@ -130,6 +139,6 @@ demo/                     # 纯前端原型（参照保留）
 
 ## 验证状态
 
-- 单元/集成测试：全绿（`npm test`，84 项，见各 `tests/*.test.mjs`）；
-- `tsc --noEmit` 通过；`vite build` 通过；
-- 真实 Chrome 端到端冒烟 47/47 通过（默认仅侧栏 / 面板级联展开收回 & 手柄 / 右键菜单 / 拖拽排序移动 / 手排 / 回收站还原批量 / 多选 / 含回收站搜索 / 无控制台错误）。
+- 单元/集成测试：全绿（`npm test`，97 项，见各 `tests/*.test.mjs`）；
+- `tsc --noEmit` 通过；`vite build` 通过（双页产物：主窗口 + 设置窗口）；
+- 真实 Chrome 端到端冒烟：主窗口 51/51、设置窗口 14/14 通过（默认仅侧栏 / 面板级联与手柄 / 右键菜单 / 拖拽排序移动 / 手排 / 回收站还原批量 / 多选 / 含回收站搜索 / 设置改键与冲突 / 无控制台错误）。
