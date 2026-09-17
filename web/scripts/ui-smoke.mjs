@@ -87,6 +87,14 @@ async function pickCtxItem(exprText, itemText) {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 await send('Page.navigate', { url: APP_URL });
+// 确定性前置：清空设置与本地数据库，避免上一次运行残留影响默认态断言
+await waitEval(`!!document.body`, 8000);
+await evaluate(`(async () => {
+  try { localStorage.clear(); } catch {}
+  await new Promise((res) => { const r = indexedDB.deleteDatabase('noteapp'); r.onsuccess = r.onerror = r.onblocked = () => res(); });
+  return true;
+})()`);
+await send('Page.reload', { ignoreCache: true });
 check('启动并渲染主界面', await waitEval('window.__ready()', 25000));
 check('默认仅侧栏（图3：笔记列/编辑区收起）', await waitEval(`!document.querySelector('.list-pane.open') && !document.querySelector('.editor-pane.open') && !!document.querySelector('.seam-a')`));
 

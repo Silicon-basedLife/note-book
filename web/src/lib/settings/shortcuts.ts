@@ -27,9 +27,10 @@ export function formatShortcut(s?: Shortcut | null): string {
 export function effectiveShortcuts(overrides: Record<string, Shortcut | null>): Record<string, Shortcut | null> {
   const out: Record<string, Shortcut | null> = {};
   for (const action of ACTIONS) {
-    out[action.id] = Object.prototype.hasOwnProperty.call(overrides, action.id)
-      ? overrides[action.id] ?? null
-      : action.defaultShortcut;
+    // 注意：直接读取属性值（而非 hasOwnProperty），以便 Svelte 建立响应式依赖，
+    // 新增/删除自定义键位时界面才会刷新。
+    const override = overrides[action.id];
+    out[action.id] = override === undefined ? action.defaultShortcut : override;
   }
   return out;
 }

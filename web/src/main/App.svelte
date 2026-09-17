@@ -4,6 +4,7 @@
   // 笔记拖拽移动/手排、回收站（还原/彻底删除/清空）、左侧收边窄条。
   import { onMount } from 'svelte';
   import { getCurrentWindow, LogicalSize } from '@tauri-apps/api/window';
+  import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
   import ContextMenu from './ui/ContextMenu.svelte';
   import { SideDock } from '../lib/desktop/side-dock.ts';
   import { createCore, displayTitle, excerptOf } from '../shared/core-client.ts';
@@ -14,8 +15,10 @@
   import { ActionRegistry, type ActionDef, type Shortcut } from '../lib/core/actions.ts';
   import type { NoteCore } from '../lib/core/store.ts';
   import type { NoteDoc, SearchHit, TrashFolderInfo } from '../lib/core/types.ts';
-
-  const AUTO_SAVE_MS = 600;
+  import { DEFAULT_SETTINGS, type AppSettings } from '../lib/settings/types.ts';
+  import { ACTIONS as ACTION_CATALOG } from '../lib/settings/catalog.ts';
+  import { effectiveShortcuts } from '../lib/settings/shortcuts.ts';
+  import { loadSettings, saveSettings, subscribeSettings } from '../lib/settings/store.ts';
 
   // ---------- 类型 ----------
   interface ListItem {
@@ -93,7 +96,11 @@
   let ptDown: { kind: 'note' | 'folder'; ids: string[]; fromIdx: number | null; x: number; y: number; active: boolean } | null = null;
   let suppressClick = false;
 
-  const registry = new ActionRegistry();
+  // 应用设置（桌面：settings.json；Web：localStorage）
+  let settings = $state<AppSettings>(structuredClone(DEFAULT_SETTINGS));
+  let registry = $state<ActionRegistry>(new ActionRegistry());
+  let unsubSettings: (() => void) | undefined;
+  let panelsSaveTimer: ReturnType<typeof setTimeout> | undefined;
 
   // ---------- 计算 ----------
   const isDeletedCurrent = $derived(!!current?.deleted);
@@ -162,7 +169,7 @@
     if (current?.deleted) return;
     saveState = 'dirty';
     if (saveTimer) clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => { saveTimer = undefined; scheduleSave(); }, AUTO_SAVE_MS);
+    saveTimer = setTimeout(() => { saveTimer = undefined; scheduleSave(); }, Math.max(100, settings.editor.autoSaveMs));
   }
   async function flush() {
     if (saveTimer) { clearTimeout(saveTimer); saveTimer = undefined; }
@@ -787,19 +794,92 @@
     void applyWindowWidth(w);
   });
 
-  // 侧边吸附仅在“图3 侧栏态”生效：展开面板 → 取消停靠；回到侧栏态 → 恢复启用
+  // 侧边吸附：按设置决定是否启用；onlySidebar=true 时仅在“图3 侧栏态”生效
   $effect(() => {
-    const fig3 = ready && !listOpen && !editorOpen;
+    const sidebarOnly = settings.dock.onlySidebar;
+    const layoutOk = sidebarOnly ? (!listOpen && !editorOpen) : true;
+    const allow = ready && settings.dock.enabled && layoutOk;
     if (!dock || !core) return;
-    if (fig3) dock.activate();
+    if (allow) dock.activate();
     else dock.deactivate();
   });
 
-  function registerActions() {
-    registry.register({ id: 'new-note', label: '新建笔记', shortcut: { key: 'n', alt: true }, run: () => { if (ready) void newNote(); } });
-    registry.register({ id: 'focus-search', label: '聚焦搜索', shortcut: { key: 'k', ctrl: true }, run: () => { if (ready) searchEl?.focus(); } });
-    registry.register({ id: 'save-now', label: '立即保存', shortcut: { key: 's', ctrl: true }, run: () => { if (ready) void flush(); } });
-    registry.register({ id: 'help', label: '快捷键帮助', shortcut: { key: '?', shift: true }, run: () => { helpOpen = !helpOpen; } });
+  // 面板状态记忆（设置开启时）
+  $effect(() => {
+    if (!ready || !settings.general.rememberPanels) return;
+    const snapshotPanels = { listOpen, editorOpen, folder: activeFolder };
+    if (panelsSaveTimer) clearTimeout(panelsSaveTimer);
+    panelsSaveTimer = setTimeout(() => { panelsSaveTimer = undefined; void persistPanels(snapshotPanels); }, 400);
+  });
+
+  async function persistPanels(panels: NonNullable<AppSettings['lastPanels']>): Promise<void> {
+    if (!settings.general.rememberPanels) return;
+    if (
+      settings.lastPanels &&
+      settings.lastPanels.listOpen === panels.listOpen &&
+      settings.lastPanels.editorOpen === panels.editorOpen &&
+      settings.lastPanels.folder === panels.folder
+    ) {
+      return;
+    }
+    settings.lastPanels = panels;
+    await saveSettings($state.snapshot(settings) as AppSettings);
+  }
+
+  /** 打开独立设置窗口（桌面）；Web 预览用浏览器新窗口 */
+  async function openSettingsWindow(): Promise<void> {
+    if (isTauri()) {
+      try {
+        const w = await WebviewWindow.getByLabel('settings');
+        if (w) {
+          await w.show();
+          await w.setFocus();
+          return;
+        }
+      } catch { /* 找不到则忽略 */ }
+      return;
+    }
+    window.open('/settings.html', 'noteapp-settings', 'width=860,height=640');
+  }
+
+  /** 启动布局：按设置停在图3/图4/图5，或沿用上次面板状态 */
+  function applyStartLayout(cfg: AppSettings): void {
+    const remembered = cfg.general.rememberPanels ? cfg.lastPanels : undefined;
+    if (remembered) {
+      listOpen = remembered.listOpen;
+      editorOpen = remembered.editorOpen;
+      activeFolder = remembered.folder;
+    } else if (cfg.general.startLayout === 'fig4') {
+      listOpen = true; editorOpen = false;
+    } else if (cfg.general.startLayout === 'fig5') {
+      listOpen = true; editorOpen = true;
+    } else {
+      listOpen = false; editorOpen = false;
+    }
+    refresh();
+    if (editorOpen && !currentId && listItems[0]) void openNote(listItems[0].id);
+  }
+
+  // 动作运行体（与设置窗口的键位目录一一对应）
+  const ACTION_RUN: Record<string, () => void> = {
+    'new-note': () => { if (ready) void newNote(); },
+    'focus-search': () => { if (ready) searchEl?.focus(); },
+    'save-now': () => { if (ready) void flush(); },
+    'open-settings': () => { void openSettingsWindow(); },
+    'help': () => { helpOpen = !helpOpen; },
+  };
+
+  /** 依据设置中的键位（含自定义覆盖/禁用）重新注册全部动作 */
+  function registerActions(cfg: AppSettings) {
+    const effective = effectiveShortcuts(cfg.shortcuts);
+    const next = new ActionRegistry();
+    for (const meta of ACTION_CATALOG) {
+      const run = ACTION_RUN[meta.id];
+      if (!run) continue;
+      const shortcut = effective[meta.id] ?? undefined;
+      next.register({ id: meta.id, label: meta.label, ...(shortcut ? { shortcut } : {}), run });
+    }
+    registry = next;
   }
   function onGlobalKey(e: KeyboardEvent) {
     if (ctx) {
@@ -850,30 +930,41 @@
   }
 
   onMount(() => {
-    registerActions();
     window.addEventListener('keydown', onGlobalKey);
     const flushTimer = () => { if (saveState !== 'idle') void flush(); };
     window.addEventListener('beforeunload', flushTimer);
     window.addEventListener('blur', flushTimer);
 
     void (async () => {
+      const loaded = await loadSettings();
+      settings = loaded;
+      registerActions(loaded);
       core = await createCore();
       core.on(() => refresh());
       ready = true;
       refresh();
-      void applyWindowWidth(computeWidth()); // 初始收缩到“仅侧栏”（图3）宽度
+      applyStartLayout(loaded);
+      void applyWindowWidth(computeWidth());
       if (isTauri()) {
         dock = new SideDock();
-        if (!listOpen && !editorOpen) dock.activate();
+        dock.setConfig({ ...loaded.dock });
+        const layoutOk = loaded.dock.onlySidebar ? (!listOpen && !editorOpen) : true;
+        if (loaded.dock.enabled && layoutOk) dock.activate();
       }
-      // 默认保持图3（仅侧栏）；由用户点文件夹/点笔记逐级展开
+      unsubSettings = subscribeSettings((next) => {
+        settings = next;
+        registerActions(next);
+        dock?.setConfig({ ...next.dock });
+      });
     })();
     return () => {
       window.removeEventListener('keydown', onGlobalKey);
       window.removeEventListener('beforeunload', flushTimer);
       window.removeEventListener('blur', flushTimer);
       releasePointer();
+      unsubSettings?.();
       dock?.destroy();
+      if (panelsSaveTimer) clearTimeout(panelsSaveTimer);
       if (saveTimer) clearTimeout(saveTimer);
     };
   });
@@ -973,6 +1064,7 @@
       </div>
 
       <div class="sb-foot">
+        <button class="btn-ghost" onclick={() => void openSettingsWindow()}>⚙️ 设置</button>
         <button class="btn-ghost" onclick={() => (helpOpen = true)}>⌨️ 快捷键</button>
         <span class="sb-storage">存储：{core ? (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window ? '本机文件' : '本机（IndexedDB）') : ''}</span>
       </div>
@@ -1147,7 +1239,7 @@
               </select>
             {/if}
             <input
-              class="title-input" type="text" placeholder="无标题笔记…" spellcheck="false"
+              class="title-input" type="text" placeholder="无标题笔记…" spellcheck={settings.editor.spellcheck}
               value={current.title}
               readonly={current.deleted}
               oninput={onTitleInput}
@@ -1174,7 +1266,7 @@
               id="editor"
               bind:this={editorRef}
               class="editor" placeholder="开始书写…（支持 Markdown：# 标题、- [ ] 待办、``` 代码块）"
-              spellcheck="false"
+              spellcheck={settings.editor.spellcheck}
               value={current.body}
               readonly={current.deleted}
               oninput={onBodyInput}

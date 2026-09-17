@@ -16,16 +16,25 @@ import {
   unhooked,
 } from './dock-core.ts';
 
-const HIDE_DELAY_MS = 3000;  // 鼠标离开窗口后多久缩进
 const POLL_MS = 100;         // 位置/光标轮询周期
-const HOT_ZONE_PX = 14;      // 屏幕边缘唤出热区宽度
 const UNHOOK_TOL = 80;       // 停靠后拖离多少判定为取消停靠
 const MOVE_TOL = 1;          // 判定窗口是否仍在移动（拖拽中不缩进）
 /** 停靠时强制回拉的侧栏宽度（= 图3 内容宽度：侧栏 224 + 手柄 8） */
 const SIDEBAR_W = 232;
 
+export interface DockConfig {
+  enabled: boolean;
+  side: 'both' | 'left' | 'right';
+  hideDelayMs: number;
+  topmost: boolean;
+  hotZonePx: number;
+}
+
+const DEFAULT_CONFIG: DockConfig = { enabled: true, side: 'both', hideDelayMs: 3000, topmost: true, hotZonePx: 14 };
+
 export class SideDock {
   private win = getCurrentWindow();
+  private cfg: DockConfig = { ...DEFAULT_CONFIG };
   private active = false;
   private docked: DockSide | null = null;
   private hidden = false;
@@ -59,6 +68,12 @@ export class SideDock {
     this.deactivate();
   }
 
+  /** 应用设置中的停靠参数；enabled=false 时立即取消停靠 */
+  setConfig(patch: Partial<DockConfig>): void {
+    this.cfg = { ...this.cfg, ...patch };
+    if (!this.cfg.enabled) this.deactivate();
+  }
+
   // ---------- 内部 ----------
 
   private async tick(): Promise<void> {
@@ -74,6 +89,7 @@ export class SideDock {
       if (!this.docked) {
         const side = nearSnap(g.win, g.area);
         if (!side) return;
+        if (this.cfg.side !== 'both' && side !== this.cfg.side) return; // 设置里限制了吸附侧
         const x = snapX(side, g.win, g.area);
         const y = this.dockedY(g.area, g.win.h);
         await this.win.setSize(new LogicalSize(SIDEBAR_W, g.win.h));
@@ -118,7 +134,7 @@ export class SideDock {
         this.hideTimer = setTimeout(() => {
           this.hideTimer = null;
           void this.slideOut();
-        }, HIDE_DELAY_MS);
+        }, this.cfg.hideDelayMs);
       }
     } finally {
       this.busy = false;
@@ -192,7 +208,7 @@ export class SideDock {
     try {
       const cp = await cursorPosition();
       const cur = { x: cp.x / this.scale, y: cp.y / this.scale };
-      if (inHotZone(cur, this.docked, this.area, HOT_ZONE_PX)) {
+      if (inHotZone(cur, this.docked, this.area, this.cfg.hotZonePx)) {
         await this.slideBack();
       }
     } catch { /* 光标读取失败则静默重试 */ }
@@ -220,7 +236,8 @@ export class SideDock {
   }
 
   private async setTop(on: boolean): Promise<void> {
-    try { await this.win.setAlwaysOnTop(on); } catch { /* ignore */ }
+    const next = on && this.cfg.topmost;
+    try { await this.win.setAlwaysOnTop(next); } catch { /* ignore */ }
   }
 
   private async undock(): Promise<void> {
