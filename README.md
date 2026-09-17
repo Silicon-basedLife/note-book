@@ -120,6 +120,31 @@ SMOKE_URL=http://127.0.0.1:5174/ node web/scripts/settings-smoke.mjs
 拖拽笔记到文件夹即移动、列表内拖动即手动排序（可“恢复时间序”）；删除的笔记/文件夹进入
 回收站可整组还原；多选批量操作；面板级联展开/收回；设置窗口改键与冲突提示、存储位置迁移（桌面）。
 
+## 发布 Release（GitHub）
+
+远端：`https://github.com/Silicon-basedLife/note-book.git`
+
+当前版本 `v0.1.0` 的发布说明见 [docs/RELEASE_NOTES_v0.1.0.md](docs/RELEASE_NOTES_v0.1.0.md)。
+**注意：本版本不含“快速便签 / 悬浮窗”**（全局热键、托盘常驻属 P1 规划）。
+
+三种发布方式：
+
+1. **GitHub Actions 自动构建并发布（推荐）**——推送 tag 即自动跑测试 + 构建 MSI/NSIS/免安装 exe 并创建 Release：
+   ```bash
+   git push origin master
+   git tag -a v0.1.0 -m "NoteApp 0.1.0"
+   git push origin v0.1.0
+   ```
+   工作流：[.github/workflows/release.yml](.github/workflows/release.yml)；也可在 Actions 页面手动 Run workflow 并填入 tag。
+2. **本地一键脚本**（在能访问 github.com 的普通终端执行）：
+   ```powershell
+   npm run release          # 测试 → 构建 exe → 推送 master 与 tag → 用 gh 创建 Release
+   npm run release:draft    # 同上，但先建草稿 Release
+   $env:NOTEAPP_BUNDLE='1'; npm run release   # 额外构建 MSI/NSIS（需能访问 github.com 下载 NSIS/WiX）
+   ```
+   脚本会附上 `NoteApp.exe`（若已构建安装包则一并附上）；未安装 `gh` 时会打印手动创建 Release 的步骤。
+3. **纯手动**：`git push origin master` + 推送 tag，然后在 GitHub「Releases → Draft a new release」选择 tag 并上传 `src-tauri\target\release\NoteApp.exe`（或 `bundle\msi\*.msi`、`bundle\nsis\*-setup.exe`）。
+
 ## 目录结构
 
 ```

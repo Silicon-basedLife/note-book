@@ -125,6 +125,7 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
 3. **迁移完整流程**：选一个空目录 → 验证并迁移 → 提示成功、三个路径刷新、重启应用后仍是新目录、原目录文件保留。
 4. **侧边吸附手感**（最近改动未确认）：拖到屏幕左/右越界即吸、垂直居中、置顶；鼠标移开 3 秒平滑滑出；光标贴近屏幕边缘滑回。若与系统“半屏贴靠”仍打架或手感不对，记录现象（越界多少才吸？滑出快慢？热区宽窄？）再调 `side-dock.ts` 顶部常量。
 5. 顺带确认上一轮已修的：快捷键点“默认”不再回弹；设置窗口关闭后能再次打开。
+6. **发布确认**：按 §8 推送并创建 Release（`v0.1.0`，说明中已注明“不含快速便签/悬浮窗”），确认 Release 里能看到 `NoteApp.exe`（用 Actions 构建则还有 MSI/NSIS）。
 
 ---
 
@@ -214,6 +215,7 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
 | Rust 命令 | `src-tauri/src/fs_store.rs`（所有命令）、`src-tauri/src/lib.rs`（注册） |
 | 权限/窗口配置 | `src-tauri/capabilities/default.json`、`src-tauri/tauri.conf.json` |
 | 构建脚本 | `scripts/setup.ps1`、根 `package.json` 脚本 |
+| 发布 | `scripts/release.ps1`、`.github/workflows/release.yml`、`docs/RELEASE_NOTES_v0.1.0.md`（详见 §8） |
 
 ---
 
@@ -253,3 +255,23 @@ $env:SMOKE_URL='http://127.0.0.1:5174/'; node web/scripts/settings-smoke.mjs  # 
 # 桌面构建与自测（用户本机）
 npm run desktop:setup     # 产出 src-tauri\target\release\NoteApp.exe
 ```
+
+---
+
+## 8. 发布到 GitHub（Release）
+
+- 远端：`https://github.com/Silicon-basedLife/note-book.git`（分支 `master`）
+- 当前版本：`0.1.0`（`package.json` / `web/package.json` / `src-tauri/tauri.conf.json` / `Cargo.toml` 一致）；tag 用 `v0.1.0`
+- **本沙箱无法推送**：GitHub 不可达，且沙箱禁止 git 的辅助进程管道（`couldn't create signal pipe`）+ 无凭据。**必须由用户在有网终端执行**。
+- 已就绪的发布脚手架：
+  - 发布说明：`docs/RELEASE_NOTES_v0.1.0.md`（首屏即声明“本版本不含快速便签/悬浮窗”）
+  - Actions 工作流：`.github/workflows/release.yml` —— 推 `v*` tag 或手动 dispatch，在 windows runner 上跑单测/typecheck → `tauri-action` 构建 MSI+NSIS+exe → 自动创建 Release 并上传产物（**推荐**，runner 可正常下载 NSIS/WiX）
+  - 本地脚本：`scripts/release.ps1`（根脚本 `npm run release` / `release:draft`）—— 测试 → 构建 exe（`NOTEAPP_BUNDLE=1` 时连安装包）→ `git push master` + tag → 有 `gh` 则自动建 Release，否则打印手动步骤
+- 命令（用户终端）：
+  ```powershell
+  git push origin master
+  git tag -a v0.1.0 -m "NoteApp 0.1.0"
+  git push origin v0.1.0          # 之后由 Actions 自动出 Release（含安装包）
+  # 或本地一键：npm run release（需要 gh CLI 才会自动创建 Release）
+  ```
+- 下一个对话注意：**不要尝试在沙箱内 push**；如用户报告 Actions 失败，先看 workflow 日志（常见点：`npm ci` 锁文件不同步、tauri-action 版本、bundle 目标）。

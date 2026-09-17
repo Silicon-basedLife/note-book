@@ -1,0 +1,79 @@
+# 发布工作流：打 tag（v*）或手动触发时，在 Windows runner 上跑测试并构建
+# Tauri 安装包（MSI/NSIS）+ 免安装 exe，然后自动创建 GitHub Release 并上传产物。
+#
+# 用法（推荐）：
+#   1. 本地提交全部改动并推送 master
+#   2. 打 tag 并推送： git tag -a v0.1.0 -m "NoteApp 0.1.0" && git push origin v0.1.0
+#   3. Actions 自动构建并生成 Release
+# 也可在 Actions 页面手动 Run workflow，填入已存在的 tag（如 v0.1.0）。
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g. v0.1.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build and release (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install npm dependencies (root + web)
+        run: |
+          npm ci
+          npm ci --prefix web
+
+      - name: Unit tests
+        run: node --test --test-isolation=none "tests/**/*.test.mjs"
+
+      - name: Type check
+        run: npm --prefix web run typecheck
+
+      - name: Build app and create GitHub Release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ inputs.tag || github.ref_name }}
+          releaseName: 'NoteApp __VERSION__'
+          releaseBody: |
+            NoteApp desktop release (Tauri 2 + Svelte + TypeScript), pure local Markdown storage.
+
+            **This release does NOT include the quick-capture floating window**
+            (global hotkey / floating quick note), which is planned for a later version.
+
+            Highlights: three-pane cascade UI, autosave, full-text search, folders,
+            trash with restore, multi-select, drag & drop ordering, todo checkbox
+            write-back, code highlighting, QQ-style edge dock, standalone settings
+            window with customizable shortcuts and storage migration.
+
+            Full release notes: see `docs/RELEASE_NOTES_v0.1.0.md` in the repository.
+          releaseDraft: false
+          prerelease: false
