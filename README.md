@@ -5,6 +5,7 @@
 - 定位：**Windows 桌面软件（Tauri 2 + Svelte + TypeScript）**，纯本地存储，每条笔记一个 `.md` 文件。
 - 当前里程碑：P0 MVP 全部功能 + P1 架构预留（见下文「范围与预留」）。
 - 质量约定：遵循 [AGENTS.md](AGENTS.md) —— 每次改动一个 Git commit；功能落地同步测试且全绿后交付。
+- **进度与交接**：见 [docs/PROGRESS.md](docs/PROGRESS.md)（已完成 / 待确认 / 未完成 / 下一步指示 / 环境命令速查）。
 
 ## 桌面版（Windows，Tauri 2）
 
