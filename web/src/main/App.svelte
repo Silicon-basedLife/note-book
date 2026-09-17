@@ -830,13 +830,28 @@
   async function openSettingsWindow(): Promise<void> {
     if (isTauri()) {
       try {
-        const w = await WebviewWindow.getByLabel('settings');
-        if (w) {
-          await w.show();
-          await w.setFocus();
-          return;
+        let w = await WebviewWindow.getByLabel('settings');
+        if (!w) {
+          // 窗口已被销毁（例如被系统关闭）时按需重建
+          w = new WebviewWindow('settings', {
+            url: 'settings.html',
+            title: '设置 - NoteApp',
+            width: 820,
+            height: 620,
+            minWidth: 680,
+            minHeight: 480,
+            resizable: true,
+            center: true,
+          });
+          await new Promise<void>((resolve) => {
+            void w!.once('tauri://created', () => resolve());
+            void w!.once('tauri://error', () => resolve());
+          });
         }
-      } catch { /* 找不到则忽略 */ }
+        await w.show();
+        await w.setFocus();
+        return;
+      } catch { /* 忽略：创建或显示失败时保持静默 */ }
       return;
     }
     window.open('/settings.html', 'noteapp-settings', 'width=860,height=640');
