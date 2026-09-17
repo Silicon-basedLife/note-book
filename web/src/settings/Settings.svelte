@@ -109,6 +109,7 @@
     try { storage = await getStorageInfo(); } catch (err) { migrateMsg = { kind: 'error', text: String(err) }; }
   }
   async function doOpen(path: string) {
+    if (!path) { migrateMsg = { kind: 'error', text: '目录路径为空，无法打开（请确认已正确读取存储信息）' }; return; }
     try {
       await openPath(path);
       migrateMsg = { kind: 'info', text: '已在文件管理器中打开：' + path };
@@ -225,11 +226,11 @@
           <p class="hint">当前为浏览器预览模式，存储位置管理仅在桌面版可用。</p>
         {:else if storage}
           <section class="card">
-            <div class="row"><div class="row-main"><label>当前笔记目录</label><p class="hint mono">{storage.notesDir}</p></div>
-              <button class="btn-ghost small" onclick={() => void doOpen(storage!.notesDir)}>打开</button></div>
-            <div class="row"><div class="row-main"><label>应用数据目录</label><p class="hint mono">{storage.dataDir}</p></div>
-              <button class="btn-ghost small" onclick={() => void doOpen(storage!.dataDir)}>打开</button></div>
-            <div class="row"><div class="row-main"><label>设置文件</label><p class="hint mono">{storage.settingsFile}</p></div></div>
+            <div class="row"><div class="row-main"><label>当前笔记目录</label><p class="hint mono">{storage.notesDir || '（未获取到路径）'}</p></div>
+              <button class="btn-ghost small" disabled={!storage.notesDir} onclick={() => void doOpen(storage!.notesDir)}>打开</button></div>
+            <div class="row"><div class="row-main"><label>应用数据目录</label><p class="hint mono">{storage.dataDir || '（未获取到路径）'}</p></div>
+              <button class="btn-ghost small" disabled={!storage.dataDir} onclick={() => void doOpen(storage!.dataDir)}>打开</button></div>
+            <div class="row"><div class="row-main"><label>设置文件</label><p class="hint mono">{storage.settingsFile || '（未获取到路径）'}</p></div></div>
           </section>
           <section class="card">
             <div class="row-main"><label>更改存储位置（迁移）</label>

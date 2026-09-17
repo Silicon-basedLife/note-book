@@ -181,6 +181,7 @@ pub fn write_settings(app: AppHandle, content: String) -> Result<(), String> {
 // ---------- 存储位置管理 ----------
 
 #[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct StorageInfo {
     app_version: String,
     data_dir: String,
