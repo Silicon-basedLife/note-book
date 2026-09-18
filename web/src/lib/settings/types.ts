@@ -4,12 +4,21 @@ import type { Shortcut } from '../core/actions.ts';
 export type StartLayout = 'fig3' | 'fig4' | 'fig5';
 export type DockSidePref = 'both' | 'left' | 'right';
 export type EditorMode = 'edit' | 'split' | 'preview';
+/** 主题：浅色 / 深色 / 跟随系统 */
+export type ThemeMode = 'light' | 'dark' | 'system';
+
+/** 主题可选值（归一化与设置页共用同一份，避免两处漂移） */
+export const THEME_MODES: readonly ThemeMode[] = ['light', 'dark', 'system'] as const;
+/** 判定“跟随系统”时用的媒体查询（theme.ts 运行时复用同一常量） */
+export const DARK_QUERY = '(prefers-color-scheme: dark)';
 
 export interface GeneralSettings {
   /** 启动时停在哪一态（图3 仅侧栏 / 图4 列表 / 图5 完整） */
   startLayout: StartLayout;
   /** 是否记住上次的面板开合与所在文件夹 */
   rememberPanels: boolean;
+  /** 外观主题；默认浅色（保持既有观感，不因系统深色而静默变脸） */
+  theme: ThemeMode;
 }
 
 export interface EditorSettings {
@@ -46,7 +55,7 @@ export const SETTINGS_VERSION = 1;
 
 export const DEFAULT_SETTINGS: AppSettings = {
   version: SETTINGS_VERSION,
-  general: { startLayout: 'fig3', rememberPanels: false },
+  general: { startLayout: 'fig3', rememberPanels: false, theme: 'light' },
   editor: { defaultMode: 'split', autoSaveMs: 600, spellcheck: false },
   dock: { enabled: true, side: 'both', hideDelayMs: 3000, topmost: true, hotZonePx: 14, onlySidebar: true },
   shortcuts: {},

@@ -75,6 +75,18 @@ check('通用页出现启动布局下拉', await waitEval(`!!document.querySelec
 await evaluate(`(() => { const sel = document.querySelector('.settings-body select'); sel.value = 'fig5'; sel.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
 check('启动布局写入 localStorage', await waitEval(`(localStorage.getItem('noteapp.settings.v1') || '').includes('fig5')`));
 
+// 通用：主题（浅 / 深 / 跟随系统）→ 立即应用 + 持久化
+await evaluate(`window.__bg = () => getComputedStyle(document.body).backgroundColor`);
+await evaluate(`(() => { const b = document.querySelector('[data-theme-choice="dark"]'); if (!b) return false; b.click(); return true; })()`);
+check('选择深色后 html[data-theme=dark]', await waitEval(`document.documentElement.dataset.theme === 'dark'`));
+check('深色立即生效（页面底色变暗）', await waitEval(`(() => { const m = window.__bg().match(/\\d+/g); return !!m && Number(m[0]) < 120; })()`));
+check('深色选择写入 localStorage', await waitEval(`(localStorage.getItem('noteapp.settings.v1') || '').includes('"dark"')`));
+await evaluate(`(() => { const b = document.querySelector('[data-theme-choice="system"]'); if (!b) return false; b.click(); return true; })()`);
+check('跟随系统：data-theme 与系统偏好一致', await waitEval(`document.documentElement.dataset.theme === (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')`));
+check('跟随系统写入 localStorage', await waitEval(`(localStorage.getItem('noteapp.settings.v1') || '').includes('"system"')`));
+await evaluate(`(() => { const b = document.querySelector('[data-theme-choice="light"]'); if (!b) return false; b.click(); return true; })()`);
+check('切回浅色立即生效', await waitEval(`document.documentElement.dataset.theme === 'light'`));
+
 // 编辑器：自动保存去抖
 await evaluate(`[...document.querySelectorAll('.nav-btn')].find((b) => b.textContent.includes('编辑器')).click()`);
 check('编辑器页出现数值输入', await waitEval(`!!document.querySelector('.settings-body input[type=number]')`));

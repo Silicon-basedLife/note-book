@@ -4,6 +4,25 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>NoteApp</title>
+    <!-- 首屏主题引导：在任何样式生效前定下 data-theme，避免深色用户看到白屏闪烁（FOUC）。
+         只读本地设置快照，绝不写回；读不到就不写 data-theme，交给 app.css 的
+         @media (prefers-color-scheme: dark) 兜底。顶层脚本，不依赖打包器。 -->
+    <script>
+      (function () {
+        try {
+          var raw = localStorage.getItem('noteapp.settings.v1');
+          if (!raw) return;
+          var mode = (JSON.parse(raw) || {}).general;
+          mode = mode && mode.theme;
+          if (mode !== 'light' && mode !== 'dark' && mode !== 'system') return;
+          var dark = mode === 'dark' ||
+            (mode === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          var t = dark ? 'dark' : 'light';
+          document.documentElement.dataset.theme = t;
+          document.documentElement.style.colorScheme = t;
+        } catch (e) { /* 引导失败不影响启动，后续由 JS 应用主题 */ }
+      })();
+    </script>
   </head>
   <body>
     <div id="app"></div>

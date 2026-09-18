@@ -6,9 +6,12 @@
     AUTO_SAVE_RANGE,
     HIDE_DELAY_RANGE,
     HOT_ZONE_RANGE,
+    THEME_MODES,
     type AppSettings,
     type Shortcut,
+    type ThemeMode,
   } from '../lib/settings/types.ts';
+  import { applyThemeMode, systemPrefersDark } from '../lib/desktop/theme.ts';
   import { ACTIONS } from '../lib/settings/catalog.ts';
   import {
     effectiveShortcuts,
@@ -48,6 +51,24 @@
   let lastEcho = '';
 
   const effective = $derived(effectiveShortcuts(s.shortcuts));
+  /** 设置窗口自身也跟随主题（与主窗口共用 settings.json / localStorage） */
+  $effect(() => {
+    applyThemeMode(s.general.theme);
+  });
+  /** “跟随系统”时给出当前解析结果，便于用户判断（不随主题变化而失效） */
+  const themeDetail = $derived(
+    s.general.theme === 'system'
+      ? (systemPrefersDark() ? '当前系统为深色' : '当前系统为浅色')
+      : (s.general.theme === 'dark' ? '始终使用深色' : '始终使用浅色')
+  );
+  const THEME_LABEL: Record<ThemeMode, string> = { light: '浅色', dark: '深色', system: '跟随系统' };
+
+  function setTheme(mode: ThemeMode) {
+    s.general.theme = mode;
+    // 立即应用，不等去抖保存（与窗口内的视觉反馈保持一致）
+    applyThemeMode(mode);
+    scheduleSave();
+  }
 
   let saveTimer: ReturnType<typeof setTimeout> | undefined;
   function scheduleSave() {
@@ -142,6 +163,7 @@
       s = await loadSettings();
       lastEcho = snapshotKey(s);
       ready = true;
+      applyThemeMode(s.general.theme);
       await refreshStorage();
       unsub = subscribeSettings((next) => {
         if (snapshotKey(next) === lastEcho) return; // 自己保存触发的回声
@@ -178,6 +200,23 @@
       {#if tab === 'general'}
         <h2>通用</h2>
         <section class="card">
+          <div class="row">
+            <div class="row-main">
+              <label>主题</label>
+              <p class="hint">浅色 / 深色 / 跟随系统；{themeDetail}（主窗口与设置窗口同时生效）</p>
+            </div>
+            <div class="theme-preview">
+              {#each THEME_MODES as m (m)}
+                <button
+                  class="theme-chip" class:active={s.general.theme === m}
+                  data-theme-choice={m}
+                  onclick={() => setTheme(m)}
+                >
+                  <span class="theme-swatch {m}"></span>{THEME_LABEL[m]}
+                </button>
+              {/each}
+            </div>
+          </div>
           <div class="row">
             <div class="row-main">
               <label>启动布局</label>
@@ -324,19 +363,19 @@
 
 <style>
   .settings-shell { display: grid; grid-template-columns: 176px minmax(0, 1fr); height: 100vh; background: var(--bg); }
-  .settings-nav { display: flex; flex-direction: column; gap: 2px; padding: 12px 10px; background: #fafbfc; border-right: 1px solid var(--border); }
+  .settings-nav { display: flex; flex-direction: column; gap: 2px; padding: 12px 10px; background: var(--panel-alt); border-right: 1px solid var(--border); }
   .nav-brand { display: flex; align-items: center; gap: 8px; padding: 4px 6px 12px; font-size: 15px; }
-  .nav-brand .logo { width: 26px; height: 26px; border-radius: 7px; display: grid; place-content: center; background: linear-gradient(135deg, #2f6feb, #6f42c1); color: #fff; font-weight: 700; font-size: 14px; }
+  .nav-brand .logo { width: 26px; height: 26px; border-radius: 7px; display: grid; place-content: center; background: linear-gradient(135deg, var(--brand-a), var(--brand-b)); color: var(--brand-text); font-weight: 700; font-size: 14px; }
   .nav-btn { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 9px; border-radius: 8px; text-align: left; color: var(--text); font-size: 13px; }
-  .nav-btn:hover { background: #eef1f5; }
+  .nav-btn:hover { background: var(--hover); }
   .nav-btn.active { background: var(--accent-weak); color: var(--accent); font-weight: 600; }
   .nav-foot { margin-top: auto; padding: 8px 6px; }
   .save-ind { font-size: 12px; color: var(--ok); }
-  .save-ind.dirty { color: #b08800; }
+  .save-ind.dirty { color: var(--warn); }
   .settings-body { padding: 20px 24px 40px; overflow-y: auto; }
   .settings-body h2 { margin: 0 0 12px; font-size: 18px; }
-  .card { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 6px 14px; margin-bottom: 14px; }
-  .row { display: flex; align-items: center; gap: 14px; padding: 10px 0; border-bottom: 1px solid #f0f2f5; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 6px 14px; margin-bottom: 14px; }
+  .row { display: flex; align-items: center; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--divider); }
   .row:last-child { border-bottom: none; }
   .row-main { flex: 1; min-width: 0; }
   .row-main label { font-size: 13.5px; }
@@ -345,15 +384,26 @@
   .err { color: var(--danger); font-size: 12.5px; margin: 6px 0; }
   .msg { font-size: 12.5px; color: var(--ok); margin: 8px 0 2px; }
   .msg.err { color: var(--danger); }
-  .row select, .row input[type='number'] { min-width: 140px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 7px; }
+  .row select, .row input[type='number'] { min-width: 140px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 7px; background: var(--field); color: var(--text); }
+  .theme-preview { display: flex; gap: 6px; }
+  .theme-chip {
+    display: flex; align-items: center; gap: 6px; padding: 5px 10px; border: 1px solid var(--border);
+    border-radius: 7px; background: var(--panel); color: var(--text-2); font-size: 12px;
+  }
+  .theme-chip:hover { border-color: var(--accent); color: var(--accent); }
+  .theme-chip.active { border-color: var(--accent); background: var(--accent-weak); color: var(--accent); font-weight: 600; }
+  .theme-swatch { width: 12px; height: 12px; border-radius: 50%; border: 1px solid var(--border); flex: none; }
+  .theme-swatch.light { background: #ffffff; }
+  .theme-swatch.dark { background: #1e2228; }
+  .theme-swatch.system { background: linear-gradient(135deg, #ffffff 50%, #1e2228 50%); }
   .keycap {
     min-width: 132px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 7px;
-    background: #fff; font-family: var(--mono); font-size: 12px; color: var(--text);
+    background: var(--panel); font-family: var(--mono); font-size: 12px; color: var(--text);
   }
   .keycap:hover { border-color: var(--accent); color: var(--accent); }
   .keycap.capturing { border-color: var(--accent); color: var(--accent); background: var(--accent-weak); }
   .migrate-row { display: flex; gap: 8px; margin-top: 8px; }
-  .migrate-row input { flex: 1; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; }
+  .migrate-row input { flex: 1; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--field); color: var(--text); }
   .btn-ghost.small, .btn-primary.small { padding: 4px 10px; font-size: 12px; }
   .boot { height: 100vh; display: grid; place-content: center; color: var(--text-2); }
 </style>

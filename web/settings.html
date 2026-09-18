@@ -4,6 +4,23 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>设置 - NoteApp</title>
+    <!-- 首屏主题引导（与 index.html 同一份逻辑）：设置窗口与主窗口共用同一主题快照 -->
+    <script>
+      (function () {
+        try {
+          var raw = localStorage.getItem('noteapp.settings.v1');
+          if (!raw) return;
+          var mode = (JSON.parse(raw) || {}).general;
+          mode = mode && mode.theme;
+          if (mode !== 'light' && mode !== 'dark' && mode !== 'system') return;
+          var dark = mode === 'dark' ||
+            (mode === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          var t = dark ? 'dark' : 'light';
+          document.documentElement.dataset.theme = t;
+          document.documentElement.style.colorScheme = t;
+        } catch (e) { /* 引导失败不影响启动，后续由 JS 应用主题 */ }
+      })();
+    </script>
   </head>
   <body>
     <div id="settings-app"></div>

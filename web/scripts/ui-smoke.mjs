@@ -98,6 +98,18 @@ await send('Page.reload', { ignoreCache: true });
 check('启动并渲染主界面', await waitEval('window.__ready()', 25000));
 check('默认仅侧栏（图3：笔记列/编辑区收起）', await waitEval(`!document.querySelector('.list-pane.open') && !document.querySelector('.editor-pane.open') && !!document.querySelector('.seam-a')`));
 
+// 0) 主题：默认浅色 → 深色持久化并可渲染
+const BG = `getComputedStyle(document.body).backgroundColor`;
+check('默认主题为浅色（data-theme=light）', await waitEval(`document.documentElement.dataset.theme === 'light'`));
+check('浅色下页面底色为亮色', await evaluate(`(() => { const m = (${BG}).match(/\\d+/g); return !!m && Number(m[0]) > 200; })()`));
+await evaluate(`(() => { localStorage.setItem('noteapp.settings.v1', JSON.stringify({ version: 1, general: { theme: 'dark' } })); return true; })()`);
+await send('Page.reload', { ignoreCache: true });
+check('深色主题重载后仍生效', await waitEval(`window.__ready() && document.documentElement.dataset.theme === 'dark'`, 25000));
+check('深色下页面底色变暗', await evaluate(`(() => { const m = (${BG}).match(/\\d+/g); return !!m && Number(m[0]) < 120; })()`));
+await evaluate(`(() => { localStorage.removeItem('noteapp.settings.v1'); return true; })()`);
+await send('Page.reload', { ignoreCache: true });
+check('清除设置后回到浅色默认', await waitEval(`window.__ready() && document.documentElement.dataset.theme === 'light'`, 25000));
+
 if (await evaluate('window.__ready()')) {
   // 1) 空白右键 → 新建文件夹「工作」
   await evaluate(`(() => { const el = document.querySelector('.nav-scroll'); if (!el) return false; window.__ctxAt(el); return true; })()`);

@@ -1,8 +1,8 @@
 # NoteApp 进度与交接（PROGRESS / HANDOFF）
 
 > 用途：上下文交接。新对话请先读本文件，再读 `AGENTS.md`、`README.md`、`docs/ROADMAP.md`、`docs/TECH_DESIGN.md`。
-> 记录时间：HEAD = `dfbf888`（工作树干净）。
-> 一句话现状：**P0 MVP 全部完成并已在你的 Windows 桌面端跑通**；在此之上完成了大量增强（回收站、拖拽、多选、面板级联、独立设置窗口、存储迁移、QQ 式侧边吸附）。当前**只差你在本机重新构建一次并确认最新两处修复 + 桌面交互手感**。
+> 记录时间：HEAD = `518875e`（v0.1.0 发布脚手架）+ 本轮主题功能（见 §1.6；提交后此处的 HEAD 以 `git log -1` 为准）。
+> 一句话现状：**P0 MVP 全部完成并已在你的 Windows 桌面端跑通**；在此之上完成了大量增强（回收站、拖拽、多选、面板级联、独立设置窗口、存储迁移、QQ 式侧边吸附、**主题**）。当前**只差你在本机重新构建一次并确认 §2 的清单（含主题观感）**。
 
 ---
 
@@ -100,19 +100,47 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
 - 关于：版本、数据位置
 - 设置文件 `version` + 未知字段原样保留（向前兼容）
 
-### 1.4 桌面壳与构建
+### 1.6 主题（浅色 / 深色 / 跟随系统）（本轮新增）
+
+| 事项 | 实现位置 |
+|---|---|
+| 设置模型：`general.theme`（`'light' \| 'dark' \| 'system'`，默认 `light`） | `web/src/lib/settings/types.ts`（`THEME_MODES` / `DARK_QUERY` 与运行时共用同一份常量） |
+| 归一化：非法/缺省值回退 `light`，未知字段照旧保留 | `web/src/lib/settings/coerce.ts`（`pickEnum(g.theme, THEME_MODES, …)`） |
+| 主题运行时：`resolveTheme`（纯函数）/ `applyTheme` / `applyCachedTheme` / `applyThemeMode` | `web/src/lib/desktop/theme.ts` |
+| 配色变量：`:root[data-theme='light']` 与 `:root[data-theme='dark']` 两档同构变量集（各 40+ 个 token）+ `color-scheme` | `web/src/main/app.css` |
+| 系统深色兜底：脚本执行前 `@media (prefers-color-scheme: dark)` 只覆盖大面积底色 | `web/src/main/app.css`（`:root:not([data-theme])`） |
+| 首屏防闪：两个入口 HTML 的 head 内联引导脚本（读 localStorage 快照 → 写 `data-theme`） | `web/index.html`、`web/settings.html` |
+| 挂载前同步应用 + 读到设置后精确应用 + 跨窗口同步 | `web/src/main/main.ts`、`web/src/settings/main.ts`、`App.svelte`（loadSettings / subscribeSettings）、`Settings.svelte`（`$effect` + 选择器） |
+| 设置页 UI：通用 → 主题三项 chip（含当前解析结果提示） | `web/src/settings/Settings.svelte`（`data-theme-choice` 供冒烟定位） |
+| 测试 | `tests/core.theme.test.mjs`（9 项：归一化/解析/DOM 应用/快照容错）、`tests/theme.css.test.mjs`（5 项：两档变量同构、无硬编码色、引导脚本就位） |
+| 冒烟断言 | 主窗口 3 项（默认浅色 → 深色重载保持 → 清设置回浅色）、设置窗口 5 项（选深色立即生效 + 持久化、跟随系统与系统偏好一致、切回浅色） |
+
+设计取舍（下次改主题请先看）：
+- 默认 `light` 而不是 `system`：不因系统深色让既有用户“静默变脸”；要改默认值只需动 `DEFAULT_SETTINGS.general.theme`。
+- 主题只做“解析 + 应用”，**不监听 `matchMedia` 变化**：窗口加载/收到设置变更时重算即可，避免遗留监听器；因此“跟随系统”在系统主题切换后需重开窗口（或改一次设置）才更新。
+- 代码块高亮配色与深色代码底色固定，不随主题切换（GitHub Dark 风格，深浅两档下都可读）。
+- `theme.css.test.mjs` 会拦下任何新增的硬编码颜色：新增颜色请先加到两档变量里（白名单只有 `--mono` 这类与主题无关的 token）。
+
+### 1.7 桌面壳与构建
 
 - Rust 薄壳：`list/read/write/remove_note_file`、`read/write/remove_meta`、`read/write_settings`、`get_storage_info`、`open_path`、`pick_folder`、`migrate_notes`
 - 权限、双窗口配置、应用图标（`src-tauri/icons/`）
 - `scripts/setup.ps1`：ASCII 化（避免 PowerShell 5.1 编码问题）、自动结束运行中的 `noteapp.exe`（避免 exe 被占用）、`--no-bundle` 默认产出可运行 exe
 - README 全量说明；`demo/` 保留为原型（另有一次提交 `a1cba63` 把它升级成文件夹+笔记双实体 + IndexedDB，并带自己的测试）
 
-### 1.5 验证现状（本沙箱）
+### 1.8 验证现状（本沙箱；主题落地前的历史基线）
 
-- **单元/集成测试：102 项全绿**（`npm test`）
-- **真实 Chrome 冒烟：主窗口 51/51、设置窗口 14/14**
+- 单元/集成测试：102 项全绿（`npm test`）
+- 真实 Chrome 冒烟：主窗口 51/51、设置窗口 14/14
 - `tsc --noEmit` 通过；`vite build` 通过（双页产物）
 - 覆盖点：frontmatter 往返、回收站全流程、手排/文件夹排序、搜索转义、Markdown/XSS、动作注册表、设置归一化/冲突/未知字段、存储字段契约、QQ 吸附纯计算、UI 面板宽度断言
+
+### 1.9 验证现状（本沙箱，主题改动后）
+
+- **单元/集成测试：116 项全绿**（`npm test`；102 → 116，新增 `core.theme` 9 项 + `theme.css` 5 项）
+- **真实 Chrome 冒烟：主窗口 56/56、设置窗口 20/20**（主题新增：主窗口 3 项、设置窗口 5 项）
+- `tsc --noEmit` 通过；`vite build` 通过（双页产物，含 head 内联主题引导脚本）
+- 环境提示：本沙箱里 `vite build` 与 headless Chrome 都必须以 `danger-full-access` 升级执行（esbuild spawn / Chrome mojo 命名管道）；冒烟脚本要放到后台作业里跑，避免前台超时被中断导致误判
 
 ---
 
@@ -125,7 +153,13 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
 3. **迁移完整流程**：选一个空目录 → 验证并迁移 → 提示成功、三个路径刷新、重启应用后仍是新目录、原目录文件保留。
 4. **侧边吸附手感**（最近改动未确认）：拖到屏幕左/右越界即吸、垂直居中、置顶；鼠标移开 3 秒平滑滑出；光标贴近屏幕边缘滑回。若与系统“半屏贴靠”仍打架或手感不对，记录现象（越界多少才吸？滑出快慢？热区宽窄？）再调 `side-dock.ts` 顶部常量。
 5. 顺带确认上一轮已修的：快捷键点“默认”不再回弹；设置窗口关闭后能再次打开。
-6. **发布确认**：按 §8 推送并创建 Release（`v0.1.0`，说明中已注明“不含快速便签/悬浮窗”），确认 Release 里能看到 `NoteApp.exe`（用 Actions 构建则还有 MSI/NSIS）。
+6. **本轮主题**（前端改动，本沙箱已用真实 Chrome 验证逻辑与配色变量，但**桌面端观感需你本机确认**）：
+   - 设置 → 通用 → 主题：切「深色」应立即变暗，**主窗口与设置窗口同时变**；
+   - 重启应用后仍是深色（`settings.json` 持久化）；
+   - 切「跟随系统」后：把 Windows 主题在深/浅之间切换 → 重开一次窗口（或再切一次主题）应跟随；`data-theme` 与系统一致；
+   - 首屏不闪白：深色下重启，启动那一瞬不应出现刺眼白底；
+   - 细看深色下的**打印/预览排版**：代码块固定深底、表格/引用/待办删除线是否可读；有不对的请截图或说明位置。
+7. **发布确认**：按 §8 推送并创建 Release（`v0.1.0`，说明中已注明“不含快速便签/悬浮窗”），确认 Release 里能看到 `NoteApp.exe`（用 Actions 构建则还有 MSI/NSIS）。
 
 ---
 
@@ -135,7 +169,7 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
 
 | 功能 | 备注 |
 |---|---|
-| 主题（浅色/深色/跟随系统） | CSS 变量已具备条件；这是设置里最容易补的一项 |
+| ~~主题（浅色/深色/跟随系统）~~ | **已完成**，见 §1.6 |
 | 标签系统 / 笔记置顶（pin） | frontmatter 已预留 `tags`/`pinned` 字段并可无损往返 |
 | 多级目录 | 目前一级 |
 | 待办聚合视图（汇总所有未完成） | |
@@ -167,26 +201,26 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
 ## 4. 下一个对话的指示（直接照着做）
 
 ### Step 0：恢复上下文
-1. `git status` 确认干净；`git log --oneline -5` 确认 HEAD（交接时是 `dfbf888`）。
+1. `git status` 确认干净；`git log --oneline -5` 确认 HEAD（本次交接提交后以 `git log -1` 为准；此前为 `518875e`）。
 2. 读 `docs/PROGRESS.md`（本文件）→ `AGENTS.md` → `README.md`。
-3. 跑一遍基线：`node --test --test-isolation=none "tests/**/*.test.mjs"`（应 102 通过）。
+3. 跑一遍基线：`node --test --test-isolation=none "tests/**/*.test.mjs"`（应 116 通过）。
 
 ### Step 1：先收口“待确认项”
-- 让用户执行 `npm run desktop:setup`，按 §2 的 1–5 条逐项确认。
+- 让用户执行 `npm run desktop:setup`，按 §2 的 1–7 条逐项确认（含主题观感）。
 - 有报错就修；Rust 报错优先看 `src-tauri/src/fs_store.rs` 与实际 cargo 输出。
 
 ### Step 2：按优先级做新功能（每次一项，走完整闭环）
 建议顺序（先易后难、先低风险）：
-1. **主题（浅/深/跟随系统）**：`settings/coerce.ts` 加 `general.theme`，`app.css` 变量化 + `prefers-color-scheme`，设置页加选项，用冒烟断言切主题后 `document.documentElement.dataset.theme`。
-2. **启动校验 + 迁移前 zip 备份**（§3.2）：Rust 加 `validate_storage`/`backup_notes` 命令，设置页给开关；补单测（纯逻辑）+ 更新 README。
-3. **命令面板 + 全局热键**：动作注册表扩展，Tauri `global-shortcut` 插件 + 设置页热键页签；冲突检测复用 `findShortcutConflict`。
-4. **悬浮速记/快搜窗**：以设置窗口为样板加第三窗口 + tray（`tauri-plugin-*` 需新增依赖，注意让用户本机构建验证）。
-5. **导出 HTML / 字数统计 / 标签 / 置顶** 等按需推进。
+1. **启动校验 + 迁移前 zip 备份**（§3.2）：Rust 加 `validate_storage`/`backup_notes` 命令，设置页给开关；补单测（纯逻辑）+ 更新 README。
+2. **命令面板 + 全局热键**：动作注册表扩展，Tauri `global-shortcut` 插件 + 设置页热键页签；冲突检测复用 `findShortcutConflict`。
+3. **悬浮速记/快搜窗**：以设置窗口为样板加第三窗口 + tray（`tauri-plugin-*` 需新增依赖，注意让用户本机构建验证）。
+4. **标签 / 置顶 / 多级目录 / 导出 HTML / 字数统计** 等按需推进（frontmatter 已预留字段）。
+5. 主题的后续小项（可选）：系统主题变化时自动跟随（给 `theme.ts` 加 matchMedia 监听并在窗口卸载时移除）、主题跟随代码块，或再加“高对比”档（新增一档变量即可，注意 `theme.css.test.mjs` 的同构断言）。
 
 ### Step 3：每项改动的固定动作（AGENTS.md 要求）
 1. 先写/改测试（core 纯逻辑放 `tests/core.*.test.mjs`；设置相关放 `tests/core.settings.test.mjs`/`core.storage-info.test.mjs`）。
 2. 跑：`node --test --test-isolation=none "tests/**/*.test.mjs"` + `npm --prefix web run typecheck`（都应为 0）。
-3. 若动前端：`npm --prefix web run build`（需 `danger-full-access` 升级）→ 起 `serve-dist.mjs` + headless Chrome(9222) → 跑 `ui-smoke.mjs`、`settings-smoke.mjs`；必要时给冒烟**加断言**再跑。
+3. 若动前端：`npm --prefix web run build`（需 `danger-full-access` 升级）→ 起 `serve-dist.mjs` + headless Chrome（也需升级；建议换个端口如 `--remote-debugging-port=9244`）→ **把两个冒烟放到后台作业里跑**（前台容易被超时中断而误判失败）→ 必要时给冒烟**加断言**再跑。
 4. 若动 Rust：明确告诉用户需要重建，并在答复里列出“请确认项”。
 5. **提交 Git**（消息写清动机与验证结果；不要 `git add` `src-tauri/target`、`src-tauri/gen`，已在 `.gitignore`）。
 
@@ -212,6 +246,7 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
 | 设置窗口 UI | `web/src/settings/Settings.svelte` |
 | 存储信息契约 | `web/src/lib/settings/storage-info.ts`（后端字段 camelCase 契约） |
 | 侧边吸附 | `web/src/lib/desktop/side-dock.ts`（常量在文件顶部）、`dock-core.ts`（纯计算+单测） |
+| 主题 | `web/src/lib/desktop/theme.ts`（解析/应用/首屏引导）、`web/src/main/app.css` 顶部两档变量、`web/index.html`+`web/settings.html` 内联引导、`tests/theme.css.test.mjs`（样式契约） |
 | Rust 命令 | `src-tauri/src/fs_store.rs`（所有命令）、`src-tauri/src/lib.rs`（注册） |
 | 权限/窗口配置 | `src-tauri/capabilities/default.json`、`src-tauri/tauri.conf.json` |
 | 构建脚本 | `scripts/setup.ps1`、根 `package.json` 脚本 |
@@ -231,13 +266,14 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
 - 设置面板形态：**独立窗口**
 - 存储位置：**首版就要能更改并迁移**
 - 每次改动：**Git commit + 测试全绿**（AGENTS.md）
+- 主题：**三档（浅色 / 深色 / 跟随系统），默认浅色**；不做系统主题实时监听（重开窗口或改一次设置即生效）
 
 ---
 
 ## 7. 复现验证的最短命令
 
 ```powershell
-# 单测（102）
+# 单测（116）
 node --test --test-isolation=none "tests/**/*.test.mjs"
 
 # 类型检查
@@ -246,11 +282,11 @@ npm --prefix web run typecheck
 # 构建（需 danger-full-access 升级：esbuild 要 spawn）
 npm --prefix web run build
 
-# Web 冒烟（两个窗口）
-node web/scripts/serve-dist.mjs                      # 终端 A：5174
-chrome --headless=new --user-data-dir=%TEMP%\na-smoke --remote-debugging-port=9222 about:blank   # 终端 B
-$env:SMOKE_URL='http://127.0.0.1:5174/'; node web/scripts/ui-smoke.mjs        # 51 项
-$env:SMOKE_URL='http://127.0.0.1:5174/'; node web/scripts/settings-smoke.mjs  # 14 项
+# Web 冒烟（两个窗口；Chrome 同样需 danger-full-access 升级，且建议换端口避免旧实例干扰）
+node web/scripts/serve-dist.mjs 5180                 # 终端 A：5180
+chrome --headless=new --user-data-dir=%TEMP%\na-smoke --remote-debugging-port=9244 about:blank   # 终端 B
+$env:CDP_PORT='9244'; $env:SMOKE_URL='http://127.0.0.1:5180/'; node web/scripts/ui-smoke.mjs        # 56 项
+$env:CDP_PORT='9244'; $env:SMOKE_URL='http://127.0.0.1:5180/'; node web/scripts/settings-smoke.mjs  # 20 项
 
 # 桌面构建与自测（用户本机）
 npm run desktop:setup     # 产出 src-tauri\target\release\NoteApp.exe

@@ -7,10 +7,12 @@ import {
   HIDE_DELAY_RANGE,
   HOT_ZONE_RANGE,
   SETTINGS_VERSION,
+  THEME_MODES,
   type AppSettings,
   type DockSidePref,
   type EditorMode,
   type StartLayout,
+  type ThemeMode,
 } from './types.ts';
 
 type Obj = Record<string, unknown>;
@@ -73,6 +75,7 @@ export function coerceSettings(raw: unknown): AppSettings {
     general: {
       startLayout: pickEnum<StartLayout>(g.startLayout, ['fig3', 'fig4', 'fig5'], DEFAULT_SETTINGS.general.startLayout),
       rememberPanels: pickBool(g.rememberPanels, DEFAULT_SETTINGS.general.rememberPanels),
+      theme: pickEnum<ThemeMode>(g.theme, THEME_MODES, DEFAULT_SETTINGS.general.theme),
     },
     editor: {
       defaultMode: pickEnum<EditorMode>(e.defaultMode, ['edit', 'split', 'preview'], DEFAULT_SETTINGS.editor.defaultMode),

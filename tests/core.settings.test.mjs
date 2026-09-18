@@ -16,13 +16,14 @@ test('coerceSettings：空/垃圾输入回退默认', () => {
 test('coerceSettings：非法枚举与越界数值被纠正', () => {
   const s = coerceSettings({
     version: 99,
-    general: { startLayout: 'fig9', rememberPanels: 'yes' },
+    general: { startLayout: 'fig9', rememberPanels: 'yes', theme: 'fig9' },
     editor: { defaultMode: 'x', autoSaveMs: 99999, spellcheck: true },
     dock: { enabled: false, side: 'up', hideDelayMs: 10, topmost: false, hotZonePx: 999, onlySidebar: false },
   });
   assert.equal(s.version, DEFAULT_SETTINGS.version); // 版本号以当前为准
   assert.equal(s.general.startLayout, 'fig3');
   assert.equal(s.general.rememberPanels, false);
+  assert.equal(s.general.theme, 'light'); // 非法主题回退默认（浅色）
   assert.equal(s.editor.defaultMode, 'split');
   assert.equal(s.editor.autoSaveMs, 2000); // 夹到上限
   assert.equal(s.editor.spellcheck, true);

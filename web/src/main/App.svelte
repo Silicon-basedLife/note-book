@@ -19,6 +19,7 @@
   import { ACTIONS as ACTION_CATALOG } from '../lib/settings/catalog.ts';
   import { effectiveShortcuts } from '../lib/settings/shortcuts.ts';
   import { loadSettings, saveSettings, subscribeSettings } from '../lib/settings/store.ts';
+  import { applyThemeMode } from '../lib/desktop/theme.ts';
 
   // ---------- 类型 ----------
   interface ListItem {
@@ -953,6 +954,7 @@
     void (async () => {
       const loaded = await loadSettings();
       settings = loaded;
+      applyThemeMode(loaded.general.theme);
       registerActions(loaded);
       core = await createCore();
       core.on(() => refresh());
@@ -968,6 +970,7 @@
       }
       unsubSettings = subscribeSettings((next) => {
         settings = next;
+        applyThemeMode(next.general.theme);
         registerActions(next);
         dock?.setConfig({ ...next.dock });
       });
