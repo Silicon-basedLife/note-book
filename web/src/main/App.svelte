@@ -12,6 +12,7 @@
   import { plainTextOf } from '../lib/core/index.ts';
   import { relativeTime } from '../lib/core/format.ts';
   import { SCOPE_ALL } from '../lib/core/store.ts';
+  import { collectTodos, countTodos, filterTodos, type TodoItem } from '../lib/core/todos.ts';
   import {
     countTags, hasTag, mergeTags, normalizeTag, parseTagInput, removeTag, type TagCount,
   } from '../lib/core/tags.ts';
@@ -65,7 +66,12 @@
   let folders = $state<string[]>([]);
   let counts = $state<Record<string, number>>({});
   let activeFolder = $state<string | null>(null); // null = 全部
-  let view = $state<'notes' | 'trash'>('notes');
+  let view = $state<'notes' | 'trash' | 'todos'>('notes');
+  /** 待办聚合视图：是否连带显示已完成 */
+  let showDoneTodos = $state(false);
+  /** 从聚合视图跳转到某条任务后，短暂高亮该行 */
+  let todoHighlight = $state<{ id: string; offset: number } | null>(null);
+  let todoHighlightTimer: ReturnType<typeof setTimeout> | undefined;
   let trashCounts = $state<{ notes: number; folders: number }>({ notes: 0, folders: 0 });
   let trashFolders = $state<TrashFolderInfo[]>([]);
   let query = $state('');
@@ -139,6 +145,11 @@
   const pinnedCount = $derived(listItems.filter((it) => it.pinned).length);
   /** 置顶分区可能存在：此时禁止跨分区拖拽排序（否则手排会与置顶分区互相打架） */
   const hasPinnedInList = $derived(pinnedCount > 0);
+  /** 待办聚合结果与角标（refresh 里更新） */
+  let todoItems = $state<TodoItem[]>([]);
+  let todoCounts = $state<{ open: number; done: number }>({ open: 0, done: 0 });
+  /** 聚合视图里实际渲染的清单（受“显示已完成”与搜索框影响） */
+  const visibleTodos = $derived(filterTodos(todoItems, query));
 
   // 诊断钩子：仅在 Web 预览（非 Tauri）下挂到 window，便于冒烟/排障观察派生状态
   if (!isTauri()) {
@@ -227,7 +238,17 @@
     trashFolders = core.listTrashFolders();
     const q = query.trim();
 
-    if (view === 'trash') {
+    if (view === 'todos') {
+      // 待办聚合：读所有活跃笔记的正文，按行扫描汇总（未完成默认在前；showDoneTodos 时带上已完成）
+      const docs = core.listNotes();
+      const sources = docs.map((n) => ({
+        id: n.id, title: n.title, folder: n.folder, updatedAt: n.updatedAt, body: n.body,
+      }));
+      todoItems = collectTodos(sources, { includeDone: showDoneTodos });
+      todoCounts = countTodos(sources);
+      listItemsBase = [];
+      manualScope = null;
+    } else if (view === 'trash') {
       const items: ListItem[] = q
         ? ((core.search(q, null, { includeTrash: true }) ?? []).filter((h) => h.deleted)).map((h) => rowFromHit(h))
         : core.listTrashNotes().map((n) => ({
@@ -324,12 +345,13 @@
     }
     void openNote(it.id);
   }
-  function goView(v: 'notes' | 'trash') {
+  function goView(v: 'notes' | 'trash' | 'todos') {
     closeCtx();
     selectionMode = false;
     selectedIds = [];
     view = v;
     query = '';
+    todoHighlight = null;
     // 进入某视图：展开笔记列（图4），收起编辑区
     listOpen = true;
     editorOpen = false;
@@ -663,6 +685,45 @@
       saveState = 'saved';
       refresh();
     }
+  }
+
+  // ---------- 待办聚合 ----------
+
+  /** 切换“显示已完成”（重算聚合结果） */
+  function toggleShowDoneTodos() {
+    showDoneTodos = !showDoneTodos;
+    refresh();
+  }
+
+  /** 在聚合视图里勾选/取消勾选：回写源文，然后重算（未完成项勾掉后会从清单消失） */
+  async function toggleTodo(item: TodoItem) {
+    const ok = await core.toggleTask(item.noteId, item.offset);
+    if (!ok) { toast('勾选失败：任务行可能已被修改'); refresh(); return; }
+    if (current && current.id === item.noteId) {
+      const doc = core.getNote(item.noteId);
+      if (doc) { current.body = doc.body; current.updatedAt = doc.updatedAt; }
+      saveState = 'saved';
+    }
+    refresh();
+  }
+
+  /** 从聚合视图跳到任务所在笔记，并在编辑器里定位/短暂高亮该行 */
+  async function openTodoSource(item: TodoItem) {
+    await openNote(item.noteId);
+    todoHighlight = { id: item.noteId, offset: item.offset };
+    if (todoHighlightTimer) clearTimeout(todoHighlightTimer);
+    todoHighlightTimer = setTimeout(() => { todoHighlight = null; }, 1800);
+    // 等编辑区渲染出来再滚动定位（文本域按比例估算行位置）
+    requestAnimationFrame(() => {
+      const ta = editorRef;
+      const body = current?.body ?? '';
+      if (!ta || !body) return;
+      const line = body.slice(0, item.offset).split('\n').length - 1;
+      const totalLines = body.split('\n').length;
+      const ratio = totalLines > 1 ? line / (totalLines - 1) : 0;
+      ta.scrollTop = Math.max(0, ratio * ta.scrollHeight - ta.clientHeight / 2);
+      try { ta.focus({ preventScroll: true }); } catch { /* 忽略聚焦失败 */ }
+    });
   }
 
   // ---------- 文件夹 ----------
@@ -1144,6 +1205,7 @@
       releasePointer();
       unsubSettings?.();
       themeFollower.stop();
+      if (todoHighlightTimer) clearTimeout(todoHighlightTimer);
       dock?.destroy();
       if (panelsSaveTimer) clearTimeout(panelsSaveTimer);
       if (saveTimer) clearTimeout(saveTimer);
@@ -1234,10 +1296,20 @@
         <!-- 回收站入口（常驻底部独立区域） -->
         <p class="nav-label trash-label">其它</p>
         <button
+          class="nav-item todo-entry"
+          class:active={view === 'todos'}
+          onclick={() => goView('todos')}
+          title="汇总所有笔记里未完成的待办"
+        >
+          <span class="nav-ico">☑️</span>待办
+          <span class="nav-count">{todoCounts.open}</span>
+        </button>
+        <button
           class="nav-item trash-entry"
           class:active={view === 'trash'}
           class:drop={overTrash}
           onclick={() => goView('trash')}
+          title="拖拽笔记到这里可移入回收站"
         >
           <span class="nav-ico">🗑️</span>回收站
           <span class="nav-count">{trashCounts.notes + trashCounts.folders}</span>
@@ -1264,11 +1336,13 @@
     <!-- 中：搜索 + 笔记列表（图4） -->
     <section class="list-pane" class:open={listOpen}>
       <div class="list-head">
-        <h2>{view === 'trash' ? '回收站' : tagFilter ? `#${tagFilterLabel}` : (activeFolder ?? '全部笔记')}</h2>
+        <h2>{view === 'todos' ? '待办' : view === 'trash' ? '回收站' : tagFilter ? `#${tagFilterLabel}` : (activeFolder ?? '全部笔记')}</h2>
         <div class="head-actions">
           <span class="list-sub" id="list-sub">
             {#if query}
-              搜索结果
+              {view === 'todos' ? `${visibleTodos.length} 条匹配` : '搜索结果'}
+            {:else if view === 'todos'}
+              {todoCounts.open} 条未完成{todoCounts.done > 0 ? ` · ${todoCounts.done} 条已完成` : ''}
             {:else if view === 'trash'}
               {trashCounts.notes + trashCounts.folders} 项
             {:else if tagFilter}
@@ -1279,6 +1353,11 @@
               按更新时间排序{hasPinnedInList ? ` · ${pinnedCount} 条置顶` : ''}
             {/if}
           </span>
+          {#if view === 'todos' && todoCounts.done > 0}
+            <button class="chip-btn" id="todo-show-done" onclick={toggleShowDoneTodos}>
+              {showDoneTodos ? '隐藏已完成' : '显示已完成'}
+            </button>
+          {/if}
           {#if tagFilter}
             <button class="chip-btn" id="tag-clear" title="清除标签筛选" onclick={() => setTagFilter(null)}>清除标签</button>
           {/if}
@@ -1370,7 +1449,31 @@
           </div>
         {/if}
 
-        {#if listItems.length === 0}
+        {#if view === 'todos'}
+          <!-- 待办聚合清单：勾选即回写源文；点任务文本跳回原笔记并定位该行 -->
+          {#if visibleTodos.length === 0}
+            <div class="list-empty">
+              {query ? '没有匹配的待办' : showDoneTodos ? '还没有任何待办（在笔记里写 - [ ] 任务）' : '没有未完成的待办 🎉'}
+            </div>
+          {:else}
+            {#each visibleTodos as item (item.noteId + ':' + item.offset)}
+              <div class="todo-row" class:done={item.checked} data-todo-note={item.noteId} data-todo-offset={item.offset}>
+                <input
+                  type="checkbox" class="task-check todo-check" checked={item.checked}
+                  aria-label={`${item.checked ? '取消完成' : '标记完成'}：${item.text}`}
+                  onchange={() => void toggleTodo(item)}
+                />
+                <div class="todo-main">
+                  <button
+                    class="todo-text" title="跳转到该任务所在笔记"
+                    onclick={() => void openTodoSource(item)}
+                  >{item.text || '（空任务）'}</button>
+                  <span class="todo-meta">📄 {item.title || '无标题笔记'} · {item.folder} · 第 {item.line + 1} 行</span>
+                </div>
+              </div>
+            {/each}
+          {/if}
+        {:else if listItems.length === 0}
           <div class="list-empty">
             {query ? '没有匹配的结果' : view === 'trash' ? (trashFolders.length ? '' : '回收站是空的') : activeFolder ? '这个文件夹还没有笔记' : '还没有笔记'}
           </div>
@@ -1526,6 +1629,7 @@
               id="editor"
               bind:this={editorRef}
               class="editor" placeholder="开始书写…（支持 Markdown：# 标题、- [ ] 待办、``` 代码块）"
+              class:todo-flash={todoHighlight?.id === current.id}
               spellcheck={settings.editor.spellcheck}
               value={current.body}
               readonly={current.deleted}
@@ -1597,6 +1701,7 @@
         <li>全局搜索包含回收站命中（带 🗑️ 标记，点击转入回收站查看）。</li>
         <li>标签：编辑区「标签」一行回车添加（空格/逗号分隔可一次加多个），点标签条可按标签筛选；标签写在文件 frontmatter 的 tags 里。</li>
         <li>置顶：编辑区「📌 置顶」或笔记行右键；置顶笔记固定排在列表最前，可多选后批量置顶。</li>
+        <li>待办：左栏「☑️ 待办」汇总全库未完成任务；勾选即回写源文，点任务文本跳回原笔记并定位该行；可切换是否显示已完成。</li>
       </ul>
       <button class="btn-primary" onclick={() => (helpOpen = false)}>知道了</button>
     </div>

@@ -300,6 +300,30 @@ if (await evaluate('window.__ready()')) {
   await evaluate(`[...document.querySelectorAll('.chip-btn')].find((b) => b.textContent.includes('恢复时间序')).click()`);
   check('恢复后回到时间序', await waitEval(`JSON.stringify([...document.querySelectorAll('.note-title')].map((n) => n.textContent)) === ${JSON.stringify(beforeOrder)}`));
 
+  // 7.5) 待办聚合视图：汇总 → 勾选回写 → 显示已完成 → 跳回源笔记
+  check('待办入口存在', await waitEval(`[...document.querySelectorAll('.nav-item')].some((n) => n.textContent.includes('待办'))`));
+  // 新建一篇带任务的笔记（新笔记默认落收件箱，正文写两条任务）
+  await evaluate(`document.querySelector('.sidebar .btn-primary').click()`);
+  await waitEval(`!!document.querySelector('#editor')`, 8000);
+  await evaluate(`window.__setValue(document.querySelector('#editor'), '- [ ] 写周报\\n- [ ] 买牛奶')`);
+  await evaluate(`window.dispatchEvent(new KeyboardEvent('keydown', { key: 's', ctrlKey: true, bubbles: true }))`);
+  await waitEval(`document.querySelector('.save-status') && document.querySelector('.save-status').textContent.includes('已保存')`, 9000);
+  await evaluate(`[...document.querySelectorAll('.nav-item')].find((n) => n.textContent.includes('待办')).click()`);
+  check('待办视图渲染任务行', await waitEval(`document.querySelectorAll('.todo-row').length >= 2`, 8000));
+  check('任务行显示来源笔记与文件夹', await waitEval(`[...document.querySelectorAll('.todo-meta')].some((m) => m.textContent.includes('收件箱'))`));
+  // 勾选「买牛奶」→ 未完成清单里消失，并可切换显示已完成
+  await evaluate(`(() => { const row = [...document.querySelectorAll('.todo-row')].find((r) => r.textContent.includes('买牛奶')); row.querySelector('.todo-check').click(); return true; })()`);
+  check('勾选后从未完成清单消失（已回写源文）', await waitEval(`![...document.querySelectorAll('.todo-text')].some((t) => t.textContent === '买牛奶')`, 8000));
+  check('出现「显示已完成」入口', await waitEval(`!!document.querySelector('#todo-show-done')`, 4000));
+  await evaluate(`document.querySelector('#todo-show-done').click()`);
+  check('显示已完成后能看到已完成项且带删除线', await waitEval(`[...document.querySelectorAll('.todo-row.done .todo-text')].some((t) => t.textContent === '买牛奶')`, 6000));
+  // 跳回源笔记：编辑区展开且定位到该行
+  await evaluate(`[...document.querySelectorAll('.todo-text')].find((t) => t.textContent === '写周报').click()`);
+  check('点击任务跳回源笔记', await waitEval(`!!document.querySelector('.editor-pane.open') && document.querySelector('#editor') && document.querySelector('#editor').value.includes('写周报')`, 8000));
+  check('跳转后编辑器高亮该行', await waitEval(`!!document.querySelector('#editor.todo-flash')`, 4000));
+  await evaluate(`[...document.querySelectorAll('.nav-item')].find((n) => n.textContent.includes('全部笔记')).click()`);
+  check('回到全部笔记视图', await waitEval(`[...document.querySelectorAll('.note-title')].some((n) => n.textContent.includes('读书'))`, 8000));
+
   await evaluate(`[...document.querySelectorAll('.chip-btn')].find((b) => b.textContent.includes('选择')).click()`);
   check('出现多选条', await waitEval(`!!document.querySelector('.selbar')`));
   await evaluate(`[...document.querySelectorAll('.selbar button')].find((b) => b.textContent.includes('全选')).click()`);

@@ -58,6 +58,9 @@ export function highlightCode(langRaw: string, code: string): string {
 }
 
 // ---------- 待办列表：注入可勾选 checkbox（data-offset 对齐源文） ----------
+// 注意：这里的偏移语义靠“每个 list_item_open 的 map 行 + 该行内 m.index”定位，
+// 嵌套列表下 map[0] 可能指向父行，但配合 m.index 仍能命中正确位置（既有测试覆盖）。
+// 待办聚合视图不复用这段（它直接按行扫描 body，见 core/todos.ts），避免两边互相牵制。
 const MARKER_RE = /[-*+]\s+\[([ xX])\]\s/;
 
 interface TaskEnv {
@@ -89,7 +92,8 @@ function taskListPlugin(md: MarkdownIt): void {
       const checked = m[1] !== ' ';
       const offset = (starts[lineNo] ?? 0) + m.index;
 
-      // 定位该列表项首个 inline token，其首文本子节点以 "[ ] "/"[x] " 开头
+      // 定位该列表项首个 inline token：其首文本子节点以 "[ ] "/"[x] " 开头（嵌套列表下的
+      // 缩进由 token.map + taskAt 处理，这里仍沿用“列表项内首个 inline”的定位方式）
       let inline: { children: unknown[] | null } | null = null;
       for (let j = i + 1; j < state.tokens.length; j++) {
         const t = state.tokens[j];

@@ -225,7 +225,7 @@
               <label>启动布局</label>
               <p class="hint">打开应用时显示到哪一级（图3 仅侧栏 → 图4 列表 → 图5 完整）</p>
             </div>
-            <select value={s.general.startLayout} onchange={(e) => { s.general.startLayout = (e.target as HTMLSelectElement).value as AppSettings['general']['startLayout']; scheduleSave(); }}>
+            <select id="start-layout" value={s.general.startLayout} onchange={(e) => { s.general.startLayout = (e.target as HTMLSelectElement).value as AppSettings['general']['startLayout']; scheduleSave(); }}>
               <option value="fig3">图3 · 仅侧栏</option>
               <option value="fig4">图4 · 侧栏 + 笔记列表</option>
               <option value="fig5">图5 · 完整三栏</option>

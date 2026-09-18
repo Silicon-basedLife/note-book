@@ -98,9 +98,11 @@ check('设置窗口渲染', await waitEval('window.__ready()', 20000));
 check('六个分类都存在', await evaluate(`document.querySelectorAll('.settings-nav .nav-btn').length === 6`));
 
 // 通用：切换启动布局 → 持久化
+// 注意：按 id 定位，不要用 `.settings-body select` 的第一个——通用页第一行现在是主题
+// （三个按钮），“第一行就是启动布局下拉”的假设已不成立。
 await evaluate(`[...document.querySelectorAll('.nav-btn')].find((b) => b.textContent.includes('通用')).click()`);
-check('通用页出现启动布局下拉', await waitEval(`!!document.querySelector('.settings-body select')`));
-await evaluate(`(() => { const sel = document.querySelector('.settings-body select'); sel.value = 'fig5'; sel.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+check('通用页出现启动布局下拉', await waitEval(`!!document.querySelector('#start-layout')`));
+await evaluate(`window.__setValue(document.querySelector('#start-layout'), 'fig5')`);
 check('启动布局写入 localStorage', await waitEval(`(localStorage.getItem('noteapp.settings.v1') || '').includes('fig5')`));
 
 // 通用：主题（浅 / 深 / 跟随系统）→ 立即应用 + 持久化

@@ -146,24 +146,42 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
 - 点标签是**幂等筛选**（不做 toggle），退出筛选用「清除标签」按钮，避免“点了没反应”的歧义。
 - 置顶是**独立分区**，不写进 `meta.json` 的手排数组：拖拽跨分区被拦并提示，改置顶状态不需要重排。
 
-### 1.8 桌面壳与构建
+### 1.8 待办聚合视图（本轮新增）
+
+| 事项 | 实现位置 |
+|---|---|
+| 聚合纯逻辑：`extractTaskLines`（按行扫描，识别 `-`/`*`/`+` + `[ ]`/`[x]`/`[X]`，给出标记偏移、行号、去标记文本）、`collectTodos`（未完成在前 → 笔记更新时间倒序 → 同笔记按行号）、`countTodos`、`filterTodos` | `web/src/lib/core/todos.ts`（新增） |
+| 与预览的关系：**互不牵连**。预览端（`markdown.ts`）仍用 markdown-it 的 `token.map` + 行内 `index` 定位；聚合端直接按行扫描 body。两者都保证 offset 指向任务行标记，因此都能直接喂 `tasks.toggleTask` 回写 | `markdown.ts` 顶部已写清这条边界 |
+| `tasks.ts` 的标记正则由 `[-*]` 放宽为 `[-*+]`（与 `markdown.ts` 的 `MARKER_RE` 一致），并导出 `TASK_MARKER_RE` 供聚合复用 | `web/src/lib/core/tasks.ts` |
+| UI：侧栏「☑️ 待办」（带未完成角标）→ 列表栏渲染 `.todo-row`（checkbox + 任务文本 + `📄 标题 · 文件夹 · 第 N 行`）；勾选即 `core.toggleTask` 回写并重算；点任务文本 `openTodoSource()` 跳回笔记、按比例滚动文本框并给编辑器加 `.todo-flash` 1.8s 高亮；「显示已完成」切换（`#todo-show-done`） | `web/src/main/App.svelte`、`app.css` 的「待办聚合视图」段 |
+| 视图状态：`view` 由 `'notes' \| 'trash'` 扩为 `+ 'todos'`；`todoItems`/`todoCounts` 在 `refresh()` 里更新（避免 Svelte 5 派生陷阱）；搜索框在聚合视图内走 `filterTodos` | `App.svelte` |
+| 测试 | `tests/core.todos.test.mjs`（13 项：行扫描语义与边界、CRLF、偏移可回写、汇总排序、计数、过滤、勾选后聚合结果变化） |
+| 冒烟断言 | 主窗口 9 项：待办入口 → 视图渲染任务行 → 来源信息 → 勾选后从未完成清单消失 → 显示已完成（删除线）→ 点任务跳回源笔记 → 编辑器高亮 → 回到全部笔记（共 83 项） |
+
+设计取舍：
+- 排序口径：未完成恒在前；已完成项按笔记更新时间倒序（不是按勾选时间——勾选时间没有落盘字段，避免为此改存储格式）。
+- 已完成任务默认不显示（聚合视图的用途就是“还剩什么没做”），需要复盘时用「显示已完成」。
+- 跳转定位用“按行号比例估算 `textarea.scrollTop`”而不是精确滚动：`textarea` 无法按字符偏移精确滚动，比例估算在长文里已足够把目标行带进视口。
+- 聚合只读**活跃笔记**（`core.listNotes()`），回收站里的任务不参与汇总。
+
+### 1.9 桌面壳与构建
 
 - Rust 薄壳：`list/read/write/remove_note_file`、`read/write/remove_meta`、`read/write_settings`、`get_storage_info`、`open_path`、`pick_folder`、`migrate_notes`
 - 权限、双窗口配置、应用图标（`src-tauri/icons/`）
 - `scripts/setup.ps1`：ASCII 化（避免 PowerShell 5.1 编码问题）、自动结束运行中的 `noteapp.exe`（避免 exe 被占用）、`--no-bundle` 默认产出可运行 exe
 - README 全量说明；`demo/` 保留为原型（另有一次提交 `a1cba63` 把它升级成文件夹+笔记双实体 + IndexedDB，并带自己的测试）
 
-### 1.9 验证现状（本沙箱；主题落地前的历史基线）
+### 1.10 验证现状（本沙箱；主题落地前的历史基线）
 
 - 单元/集成测试：102 项全绿（`npm test`）
 - 真实 Chrome 冒烟：主窗口 51/51、设置窗口 14/14
 - `tsc --noEmit` 通过；`vite build` 通过（双页产物）
 - 覆盖点：frontmatter 往返、回收站全流程、手排/文件夹排序、搜索转义、Markdown/XSS、动作注册表、设置归一化/冲突/未知字段、存储字段契约、QQ 吸附纯计算、UI 面板宽度断言
 
-### 1.10 验证现状（本沙箱，当前）
+### 1.11 验证现状（本沙箱，当前）
 
-- **单元/集成测试：129 项全绿**（`npm test`；102 → 116（主题）→ 120（实时跟随）→ 129（标签/置顶））
-- **真实 Chrome 冒烟：主窗口 74/74、设置窗口 25/25**（本轮新增：标签 7 项 + 置顶 6 项 + 弹窗宽度 1 项 + 主题 4 项）
+- **单元/集成测试：142 项全绿**（`npm test`；102 → 116（主题）→ 120（实时跟随）→ 129（标签/置顶）→ 142（待办聚合））
+- **真实 Chrome 冒烟：主窗口 83/83、设置窗口 25/25**（本轮新增待办相关 9 项）
 - `tsc --noEmit` 通过；`vite build` 通过（双页产物，含 head 内联主题引导脚本）
 - 环境提示：本沙箱里 `vite build` 与 headless Chrome 都必须以 `danger-full-access` 升级执行（esbuild spawn / Chrome mojo 命名管道）；冒烟脚本要放到后台作业里跑，避免前台超时被中断导致误判；**CDP 实例跑几轮后要换端口重启**（标签页累积会导致 WS 异常），且 `$env:TEMP` 每次调用都不同、不要用它做跨调用临时文件路径
 
@@ -190,6 +208,12 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
    - 行右键应有「置顶 / 取消置顶」；多选后操作条有「置顶 / 取消置顶」；
    - 标签与置顶都写在 `.md` 的 frontmatter（`tags: [...]` / `pinned: true`），用记事本/其它编辑器打开应能看到；
    - 置顶笔记**不能**被拖到非置顶区（会被拦并提示），这是有意设计。
+7. **本轮待办聚合**（前端，本沙箱已用真实 Chrome 验证交互与回写，但**桌面端观感需你本机确认**）：
+   - 侧栏「☑️ 待办」→ 应汇总全库未完成任务（未完成在前，角标为未完成数）；
+   - 勾选某条 → 该条从未完成清单消失，**打开对应笔记能看到源文已变成 `- [x]`**；
+   - 点任务文本 → 跳回原笔记、编辑区滚动到该行附近并短暂高亮（1.8s）；
+   - 「显示已完成」→ 已完成项带删除线显示；
+   - 若某篇笔记任务很多，确认跳转后的滚动位置是否够准（文本框只能按行号比例估算）。
 8. **发布确认**：按 §8 推送并创建 Release（`v0.1.0`，说明中已注明“不含快速便签/悬浮窗”），确认 Release 里能看到 `NoteApp.exe`（用 Actions 构建则还有 MSI/NSIS）。
 
 ---
@@ -202,8 +226,8 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
 |---|---|
 | ~~主题（浅色/深色/跟随系统）~~ | **已完成**，见 §1.6 |
 | ~~标签系统 / 笔记置顶（pin）~~ | **已完成**，见 §1.7 |
-| 多级目录 | 目前一级 |
-| 待办聚合视图（汇总所有未完成） | |
+| ~~待办聚合视图（汇总所有未完成）~~ | **已完成**，见 §1.8 |
+| 多级目录 | 目前一级（子文件夹） |
 | 附件：粘贴/拖拽图片入库 | 需定附件目录规则（存储页已留“附件目录”讨论位） |
 | 命令面板（Ctrl+K 已用于搜索聚焦）+ 全局热键设置页 | 动作注册表已就绪，只需接 Tauri global-shortcut 插件 |
 | 悬浮速记/快搜窗（P1 重点） | 需第二窗口 + tray；当前设置窗口提供了多窗口样板 |
@@ -236,10 +260,10 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
 ### Step 0：恢复上下文
 1. `git status` 确认干净；`git log --oneline -5` 确认 HEAD（本次交接提交后以 `git log -1` 为准；此前为 `518875e`）。
 2. 读 `docs/PROGRESS.md`（本文件）→ `AGENTS.md` → `README.md`。
-3. 跑一遍基线：`node --test --test-isolation=none "tests/**/*.test.mjs"`（应 129 通过）。
+3. 跑一遍基线：`node --test --test-isolation=none "tests/**/*.test.mjs"`（应 142 通过）。
 
 ### Step 1：先收口“待确认项”
-- 让用户执行 `npm run desktop:setup`，按 §2 的 1–8 条逐项确认（含主题观感、标签与置顶）。
+- 让用户执行 `npm run desktop:setup`，按 §2 的 1–8 条逐项确认（含主题观感、标签与置顶、待办聚合）。
 - 有报错就修；Rust 报错优先看 `src-tauri/src/fs_store.rs` 与实际 cargo 输出。
 
 ### Step 2：按优先级做新功能（每次一项，走完整闭环）
@@ -247,8 +271,8 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
 1. **启动校验 + 迁移前 zip 备份**（§3.2）：Rust 加 `validate_storage`/`backup_notes` 命令，设置页给开关；补单测（纯逻辑）+ 更新 README。
 2. **命令面板 + 全局热键**：动作注册表扩展，Tauri `global-shortcut` 插件 + 设置页热键页签；冲突检测复用 `findShortcutConflict`。
 3. **悬浮速记/快搜窗**：以设置窗口为样板加第三窗口 + tray（`tauri-plugin-*` 需新增依赖，注意让用户本机构建验证）。
-4. **多级目录 / 待办聚合视图 / 导出 HTML / 字数统计 / 回收站自动清理** 等按需推进（§3.1 剩余项）。
-5. 主题与标签的后续小项（可选）：代码块主题跟随、高对比档；标签重命名/批量管理、标签出现在搜索结果里、按标签统计面板。
+4. **多级目录 / 导出 HTML / 字数统计扩展 / 回收站自动清理** 等按需推进（§3.1 剩余项）。
+5. 主题与标签的后续小项（可选）：代码块主题跟随、高对比档；标签重命名/批量管理、标签出现在搜索结果里、按标签统计面板；待办聚合的“按文件夹/标签分组”“已办保留期”。
 
 ### Step 3：每项改动的固定动作（AGENTS.md 要求）
 1. 先写/改测试（core 纯逻辑放 `tests/core.*.test.mjs`；设置相关放 `tests/core.settings.test.mjs`/`core.storage-info.test.mjs`）。
@@ -281,6 +305,7 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
 | 侧边吸附 | `web/src/lib/desktop/side-dock.ts`（常量在文件顶部）、`dock-core.ts`（纯计算+单测） |
 | 主题 | `web/src/lib/desktop/theme.ts`（解析/应用/首屏引导）、`web/src/main/app.css` 顶部两档变量、`web/index.html`+`web/settings.html` 内联引导、`tests/theme.css.test.mjs`（样式契约） |
 | 标签 / 置顶 | `web/src/lib/core/tags.ts`（纯逻辑+单测）、`store.ts` 的 `sortPinnedFirst`/`applyManualOrder`、`App.svelte` 的 `#tagbar`/`#tag-editor`/`#pin-toggle`、`tests/core.tags-pin.test.mjs` |
+| 待办聚合 | `web/src/lib/core/todos.ts`（行扫描+汇总+过滤，纯逻辑+单测）、`App.svelte` 的 `.todo-row`/`todoItems`/`openTodoSource`/`toggleShowDoneTodos`、`tests/core.todos.test.mjs` |
 | Rust 命令 | `src-tauri/src/fs_store.rs`（所有命令）、`src-tauri/src/lib.rs`（注册） |
 | 权限/窗口配置 | `src-tauri/capabilities/default.json`、`src-tauri/tauri.conf.json` |
 | 构建脚本 | `scripts/setup.ps1`、根 `package.json` 脚本 |
