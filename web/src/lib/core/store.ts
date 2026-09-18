@@ -194,6 +194,13 @@ export class NoteCore {
     return c !== 0 ? c : a.id.localeCompare(b.id);
   }
 
+  /** 置顶优先（排序始终以置顶分组为第一关键字），组内再按传入的次级比较器 */
+  private sortPinnedFirst(a: NoteDoc, b: NoteDoc, then: (x: NoteDoc, y: NoteDoc) => number): number {
+    const ap = a.pinned ? 0 : 1;
+    const bp = b.pinned ? 0 : 1;
+    return ap !== bp ? ap - bp : then(a, b);
+  }
+
   private liveDocsIn(folder?: string | null): NoteDoc[] {
     const out: NoteDoc[] = [];
     for (const doc of this.docs.values()) {
@@ -201,7 +208,7 @@ export class NoteCore {
       if (folder && doc.folder !== folder) continue;
       out.push({ ...doc });
     }
-    return out.sort((a, b) => this.sortByUpdated(a, b));
+    return out.sort((a, b) => this.sortPinnedFirst(a, b, (x, y) => this.sortByUpdated(x, y)));
   }
 
   /** 列表查询（活跃）：folder 为空/“全部”时返回全部，默认按更新时间倒序 */
@@ -209,13 +216,24 @@ export class NoteCore {
     return this.liveDocsIn(folder);
   }
 
-  /** 按作用域取活跃笔记列表；若该作用域存在手排顺序则优先手排，新增笔记追加在末尾 */
+  /** 按作用域取活跃笔记列表；若该作用域存在手排顺序则优先手排，新增笔记追加在末尾。
+   *  置顶（pinned）始终排在最前：先在“置顶组”内选手排/时间序，再拼上非置顶组，
+   *  这样置顶是独立分区，不会因为手排顺序把它压到中间。 */
   listNotesOrdered(scope: string): NoteDoc[] {
     const folder = scope === SCOPE_ALL ? null : scope;
     const base = this.liveDocsIn(folder);
+    const byPinned = [...base].sort((a, b) => Number(b.pinned) - Number(a.pinned));
+    if (byPinned.every((d) => !d.pinned)) return this.applyManualOrder(scope, byPinned);
+    const pinned = byPinned.filter((d) => d.pinned);
+    const rest = byPinned.filter((d) => !d.pinned);
+    return [...this.applyManualOrder(scope, pinned), ...this.applyManualOrder(scope, rest)];
+  }
+
+  /** 在给定子集内应用手排顺序（子集中未列出的追加在末尾，按更新时间倒序） */
+  private applyManualOrder(scope: string, subset: NoteDoc[]): NoteDoc[] {
     const order = this.noteOrder[scope];
-    if (!order || order.length === 0) return base;
-    const byId = new Map(base.map((d) => [d.id, d]));
+    if (!order || order.length === 0) return subset;
+    const byId = new Map(subset.map((d) => [d.id, d]));
     const head: NoteDoc[] = [];
     for (const id of order) {
       const doc = byId.get(id);

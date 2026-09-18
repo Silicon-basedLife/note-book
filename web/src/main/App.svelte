@@ -12,6 +12,9 @@
   import { plainTextOf } from '../lib/core/index.ts';
   import { relativeTime } from '../lib/core/format.ts';
   import { SCOPE_ALL } from '../lib/core/store.ts';
+  import {
+    countTags, hasTag, mergeTags, normalizeTag, parseTagInput, removeTag, type TagCount,
+  } from '../lib/core/tags.ts';
   import { ActionRegistry, type ActionDef, type Shortcut } from '../lib/core/actions.ts';
   import type { NoteCore } from '../lib/core/store.ts';
   import type { NoteDoc, SearchHit, TrashFolderInfo } from '../lib/core/types.ts';
@@ -33,6 +36,9 @@
     where?: 'title' | 'body';
     hit?: boolean;
     deleted?: boolean;
+    /** 置顶（列表按置顶分区排序，置顶项恒在最前） */
+    pinned?: boolean;
+    tags?: string[];
   }
   interface ToastItem { id: number; text: string }
   interface ConfirmState {
@@ -63,10 +69,16 @@
   let trashCounts = $state<{ notes: number; folders: number }>({ notes: 0, folders: 0 });
   let trashFolders = $state<TrashFolderInfo[]>([]);
   let query = $state('');
+  /** 标签筛选（大小写不敏感等值匹配）；null = 不筛选 */
+  let tagFilter = $state<string | null>(null);
+  /** 标签输入框的待提交文本 */
+  let tagDraft = $state('');
   let mode = $state<'edit' | 'split' | 'preview'>('split');
   let listItems = $state<ListItem[]>([]);
+  /** 未按标签过滤的列表（标签筛选条据此统计；listItems 是其过滤结果） */
+  let listItemsBase = $state<ListItem[]>([]);
   let currentId = $state<string | null>(null);
-  let current = $state<{ id: string; title: string; body: string; folder: string; updatedAt: string; deleted?: boolean; deletedAt?: string } | null>(null);
+  let current = $state<{ id: string; title: string; body: string; folder: string; updatedAt: string; pinned: boolean; tags: string[]; deleted?: boolean; deletedAt?: string } | null>(null);
   let saveState = $state<'idle' | 'dirty' | 'saving' | 'saved'>('idle');
   let lastSavedAt = $state<string | null>(null);
   let toasts = $state<ToastItem[]>([]);
@@ -115,6 +127,32 @@
   const previewTasks = $derived(previewRender?.tasks ?? []);
   const totalNotes = $derived(Object.values(counts).reduce((a, b) => a + b, 0));
   const currentScope = $derived(view === 'notes' && !query.trim() ? (activeFolder ?? SCOPE_ALL) : null);
+  /**
+   * 标签筛选条的统计来源：显式放在 state 里，由 refresh() 统一更新
+   * （Svelte 5 不追踪 $derived 里被调用函数内部读取的状态，所以不能写成 core.listNotesOrdered(...)）。
+   * 取“全部笔记”而非当前文件夹：标签是跨文件夹的导航维度，只统计当前文件夹会让筛选条
+   * 在单篇文件夹里消失，用户也就无从切换标签。
+   */
+  let allTags = $state<TagCount[]>([]);
+  const tagChips = $derived(view === 'notes' && !query.trim() ? allTags : ([] as TagCount[]));
+  const tagFilterLabel = $derived(tagFilter ?? '');
+  const pinnedCount = $derived(listItems.filter((it) => it.pinned).length);
+  /** 置顶分区可能存在：此时禁止跨分区拖拽排序（否则手排会与置顶分区互相打架） */
+  const hasPinnedInList = $derived(pinnedCount > 0);
+
+  // 诊断钩子：仅在 Web 预览（非 Tauri）下挂到 window，便于冒烟/排障观察派生状态
+  if (!isTauri()) {
+    (window as unknown as Record<string, unknown>).__diag = () => ({
+      view,
+      activeFolder,
+      query,
+      listItemTags: listItemsBase.map((it) => [it.title, it.tags ?? []]),
+      noteTags: core ? core.listNotes(activeFolder).map((d) => [d.title, d.tags, d.folder, d.pinned]) : null,
+      listNotesAll: core ? core.listNotes(null).map((d) => [d.title, d.folder]) : null,
+      tagChips,
+      tagFilter,
+    });
+  }
 
   // ---------- 通用 ----------
   function toast(text: string) {
@@ -190,34 +228,42 @@
     const q = query.trim();
 
     if (view === 'trash') {
-      if (q) {
-        const hits: SearchHit[] = (core.search(q, null, { includeTrash: true }) ?? []).filter((h) => h.deleted);
-        listItems = hits.map((h) => rowFromHit(h));
-      } else {
-        listItems = core.listTrashNotes().map((n) => ({
-          id: n.id, folder: n.folder, title: displayTitle(n),
-          updatedAt: n.updatedAt, deletedAt: n.deletedAt,
-          excerpt: n.body ? excerptOf(plainTextOf(n.body)) : '',
-          deleted: true,
-        }));
-      }
+      const items: ListItem[] = q
+        ? ((core.search(q, null, { includeTrash: true }) ?? []).filter((h) => h.deleted)).map((h) => rowFromHit(h))
+        : core.listTrashNotes().map((n) => ({
+            id: n.id, folder: n.folder, title: displayTitle(n),
+            updatedAt: n.updatedAt, deletedAt: n.deletedAt,
+            excerpt: n.body ? excerptOf(plainTextOf(n.body)) : '',
+            deleted: true,
+          }));
+      listItemsBase = items;
       manualScope = null;
     } else {
       if (q) {
         const includeTrash = activeFolder === null;
         const hits: SearchHit[] = core.search(q, activeFolder, { includeTrash }) ?? [];
-        listItems = hits.map((h) => rowFromHit(h));
+        listItemsBase = hits.map((h) => rowFromHit(h));
         manualScope = null;
       } else {
         const scope = activeFolder ?? SCOPE_ALL;
         manualScope = core.getNoteOrder(scope)?.length ? scope : null;
-        listItems = core.listNotesOrdered(scope).map((n) => ({
+        listItemsBase = core.listNotesOrdered(scope).map((n) => ({
           id: n.id, folder: n.folder, title: displayTitle(n),
           updatedAt: n.updatedAt,
           excerpt: n.body ? excerptOf(plainTextOf(n.body)) : '',
+          pinned: n.pinned,
+          tags: n.tags,
         }));
       }
     }
+    // 标签筛选只作用于“非搜索”的普通列表视图
+    listItems = tagFilter && view === 'notes' && !q
+      ? listItemsBase.filter((it) => (it.tags ?? []).some((t) => t.toLowerCase() === tagFilter!.toLowerCase()))
+      : listItemsBase;
+    // 标签条：始终按“全部笔记”统计（跨文件夹导航维度）
+    allTags = view === 'notes' && !q
+      ? countTags(core.listNotesOrdered(SCOPE_ALL).map((n) => ({ tags: n.tags })))
+      : [];
     // 选中项去重/清理（列表刷新后仍在其中的保留）
     selectedIds = selectedIds.filter((id) => listItems.some((it) => it.id === id));
     if (selectedIds.length === 0 && selectionMode) { /* 空选可继续模式 */ }
@@ -226,6 +272,8 @@
       if (doc && current) {
         current.updatedAt = doc.updatedAt;
         current.folder = doc.folder;
+        current.pinned = doc.pinned;
+        current.tags = doc.tags;
         current.deleted = doc.deleted ?? false;
         current.deletedAt = doc.deletedAt;
       } else if (!doc) {
@@ -258,7 +306,8 @@
     currentId = id;
     current = {
       id: doc.id, title: doc.title, body: doc.body, folder: doc.folder,
-      updatedAt: doc.updatedAt, deleted: doc.deleted ?? false, deletedAt: doc.deletedAt,
+      updatedAt: doc.updatedAt, pinned: doc.pinned, tags: [...doc.tags],
+      deleted: doc.deleted ?? false, deletedAt: doc.deletedAt,
     };
     saveState = 'saved';
     lastSavedAt = null;
@@ -421,6 +470,73 @@
     openNoteItem(item);
   }
 
+  // ---------- 标签与置顶 ----------
+  /** 标签筛选：点标签即筛选（幂等，不做 toggle，避免“点了没反应”）；用「清除标签」退出 */
+  function setTagFilter(tag: string | null) {
+    const next = tag ? normalizeTag(tag) : '';
+    tagFilter = next || null;
+    refresh();
+  }
+
+  /** 写回一条笔记的标签集合（立即落盘，不走正文去抖） */
+  async function applyTags(id: string, tags: string[]) {
+    const doc = await core.updateNote(id, { tags });
+    if (!doc) { toast('标签保存失败：笔记不存在'); return; }
+    if (current && current.id === id) current.tags = [...doc.tags];
+    // 当前筛选的标签被整体移除 → 退出筛选，避免列表“空得莫名其妙”
+    if (tagFilter && !hasTag(doc.tags, tagFilter)) tagFilter = null;
+    refresh();
+  }
+
+  /** 提交标签输入框（空格/逗号/顿号可一次录入多个） */
+  function commitTagDraft() {
+    const id = current?.id;
+    if (!id || current?.deleted) { tagDraft = ''; return; }
+    const parsed = parseTagInput(tagDraft);
+    tagDraft = '';
+    if (parsed.length === 0) return;
+    void applyTags(id, mergeTags(current?.tags ?? [], parsed));
+  }
+
+  function addTagToCurrent(tag: string) {
+    const id = current?.id;
+    if (!id || current?.deleted) return;
+    const next = mergeTags(current?.tags ?? [], [tag]);
+    if (next.length === (current?.tags ?? []).length) return;
+    void applyTags(id, next);
+  }
+
+  function removeTagFromCurrent(tag: string) {
+    const id = current?.id;
+    if (!id || current?.deleted) return;
+    void applyTags(id, removeTag(current?.tags ?? [], tag));
+  }
+
+  /** 置顶/取消置顶（单条；也用于右键菜单） */
+  async function setPinned(id: string, pinned: boolean) {
+    const doc = await core.updateNote(id, { pinned });
+    if (!doc) { toast('置顶失败：笔记不存在'); return; }
+    if (current && current.id === id) current.pinned = doc.pinned;
+    refresh();
+    toast(doc.pinned ? '已置顶' : '已取消置顶');
+  }
+
+  function togglePinned(id: string) {
+    const doc = core.getNote(id);
+    if (!doc) return;
+    void setPinned(id, !doc.pinned);
+  }
+
+  /** 批量置顶/取消置顶（多选模式） */
+  async function setPinnedSelected(pinned: boolean) {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+    for (const id of ids) await core.updateNote(id, { pinned });
+    if (current && ids.includes(current.id)) current.pinned = pinned;
+    refresh();
+    toast(pinned ? `已置顶 ${ids.length} 条` : `已取消置顶 ${ids.length} 条`);
+  }
+
   // ---------- 右键菜单 ----------
   function showCtx(x: number, y: number, items: CtxItem[]) {
     ctx = { x, y, rows: items };
@@ -459,6 +575,20 @@
         ]
       : [
           { id: 'open', label: '打开', icon: '📖', onClick: () => { if (!selectionMode) void openNote(item.id); } },
+          {
+            id: 'pin',
+            label: item.pinned ? '取消置顶' : '置顶',
+            icon: '📌',
+            onClick: () => {
+              const ids = selectionMode && selectedIds.includes(item.id) ? [...selectedIds] : [item.id];
+              void (async () => {
+                for (const id of ids) await core.updateNote(id, { pinned: !item.pinned });
+                if (current && ids.includes(current.id)) current.pinned = !item.pinned;
+                refresh();
+                toast(item.pinned ? '已取消置顶' : '已置顶');
+              })();
+            },
+          },
           { id: 'del', label: '移入回收站', icon: '🗑️', danger: true, onClick: () => trashNotesFlow([item.id]) },
         ];
     showCtx(e.clientX, e.clientY, items);
@@ -561,9 +691,24 @@
   async function commitRenameFolder() {
     const from = renamingFolder;
     renamingFolder = null;
-    if (!from || renameValue.trim() === from) return;
-    const r = await core.renameFolder(from, renameValue.trim());
-    if (!r.ok) toast(r.reason ?? '重命名失败');
+    const to = renameValue.trim();
+    if (!from || to === from) return;
+    const r = await core.renameFolder(from, to);
+    if (!r.ok) { toast(r.reason ?? '重命名失败'); refresh(); return; }
+    // 正在浏览的就是这个文件夹时，activeFolder 仍指向旧名 → 列表会显示成“空文件夹”；
+    // 跟随改名并保持浏览状态（列表/编辑区不因为改个名字被收起）。
+    if (activeFolder === from) activeFolder = to;
+    refresh();
+  }
+
+  /** 当前浏览的文件夹名是否已经不存在（例如在其它窗口被重命名/删除） */
+  function activeFolderMissing(): boolean {
+    return activeFolder !== null && !folders.includes(activeFolder);
+  }
+  function backToAllNotes() {
+    activeFolder = null;
+    view = 'notes';
+    tagFilter = null;
     refresh();
   }
   function toggleFolder(folder: string) {
@@ -579,6 +724,7 @@
       listOpen = true;      // 点文件夹 → 滑出笔记列（图4）
       editorOpen = false;   // 切换文件夹收起编辑区（从图3/图4重新开始）
       query = '';
+      tagFilter = null;     // 换文件夹时清掉标签筛选，避免“空列表”困惑
     }
     refresh();
   }
@@ -611,6 +757,20 @@
   /** 按插入下标把笔记写入手排（scope = 文件夹名 或 'all'）；未手排的作用域跳过 */
   async function commitReorderWith(scope: string, ids: string[], insertIdx: number) {
     const currentIds = listItems.map((it) => it.id);
+    // 置顶是独立分区：拖动后若落点所属分区与拖动项不同，直接忽略并提示，
+    // 否则手排顺序会和置顶分区互相打架（列表看起来“没反应”或跳位）。
+    const pinnedOf = new Map(listItems.map((it) => [it.id, !!it.pinned]));
+    const draggedPinned = pinnedOf.get(ids[0]) ?? false;
+    if (listItems.some((it) => !!it.pinned)) {
+      const targetBefore = listItems[insertIdx - 1];
+      const targetAfter = listItems[insertIdx];
+      const targetPinned = targetBefore ? !!targetBefore.pinned : (targetAfter ? !!targetAfter.pinned : draggedPinned);
+      if (targetPinned !== draggedPinned) {
+        clearDragUI();
+        toast(draggedPinned ? '置顶笔记固定在最前，取消置顶后才能拖到普通区' : '拖动到置顶区请先用右键「置顶」');
+        return;
+      }
+    }
     let insertPos = insertIdx;
     const rest: string[] = [];
     for (let i = 0; i < currentIds.length; i++) {
@@ -1104,19 +1264,24 @@
     <!-- 中：搜索 + 笔记列表（图4） -->
     <section class="list-pane" class:open={listOpen}>
       <div class="list-head">
-        <h2>{view === 'trash' ? '回收站' : (activeFolder ?? '全部笔记')}</h2>
+        <h2>{view === 'trash' ? '回收站' : tagFilter ? `#${tagFilterLabel}` : (activeFolder ?? '全部笔记')}</h2>
         <div class="head-actions">
-          <span class="list-sub">
+          <span class="list-sub" id="list-sub">
             {#if query}
               搜索结果
             {:else if view === 'trash'}
               {trashCounts.notes + trashCounts.folders} 项
+            {:else if tagFilter}
+              标签筛选{hasPinnedInList ? ` · ${pinnedCount} 条置顶` : ''}
             {:else if manualScope}
-              手动排序
+              手动排序{hasPinnedInList ? ` · ${pinnedCount} 条置顶` : ''}
             {:else}
-              按更新时间排序
+              按更新时间排序{hasPinnedInList ? ` · ${pinnedCount} 条置顶` : ''}
             {/if}
           </span>
+          {#if tagFilter}
+            <button class="chip-btn" id="tag-clear" title="清除标签筛选" onclick={() => setTagFilter(null)}>清除标签</button>
+          {/if}
           {#if currentScope && manualScope}
             <button class="chip-btn" title="恢复按更新时间排序" onclick={resetToTimeOrder}>恢复时间序</button>
           {/if}
@@ -1130,6 +1295,30 @@
           {/if}
         </div>
       </div>
+
+      <!-- 兜底：当前文件夹名已不存在（例如在设置/其它窗口被改名或删除）→ 给出出口而不是空列表 -->
+      {#if view === 'notes' && !query && activeFolderMissing()}
+        <div class="trash-banner" id="folder-missing">
+          <span>文件夹「{activeFolder}」已不存在（可能被重命名或删除）。</span>
+          <button class="btn-primary small" onclick={backToAllNotes}>查看全部笔记</button>
+        </div>
+      {/if}
+
+      <!-- 标签筛选条：列出当前作用域内的标签与条数，点击即筛选（再点取消） -->
+      {#if view === 'notes' && !query && tagChips.length > 0}
+        <div class="tagbar" id="tagbar">
+          {#each tagChips as t (t.tag)}
+            <button
+              class="tag-chip" class:active={tagFilter?.toLowerCase() === t.tag.toLowerCase()}
+              data-tag={t.tag}
+              title={`筛选标签 #${t.tag}（${t.count} 条）`}
+              onclick={() => setTagFilter(t.tag)}
+            >
+              #{t.tag}<span class="tag-count">{t.count}</span>
+            </button>
+          {/each}
+        </div>
+      {/if}
       <div class="searchbox">
         <span class="search-ico">🔍</span>
         <input
@@ -1156,6 +1345,8 @@
             <button class="btn-danger small" disabled={selectedIds.length === 0} onclick={() => { const ids = [...selectedIds]; purgeSelectedFlow(ids); }}>彻底删除</button>
           {:else}
             <button class="btn-danger small" disabled={selectedIds.length === 0} onclick={() => { const ids = [...selectedIds]; trashNotesFlow(ids); }}>移入回收站</button>
+            <button class="btn-ghost small" disabled={selectedIds.length === 0} onclick={() => void setPinnedSelected(true)}>置顶</button>
+            <button class="btn-ghost small" disabled={selectedIds.length === 0} onclick={() => void setPinnedSelected(false)}>取消置顶</button>
           {/if}
           <span class="spacer"></span>
           <button class="btn-ghost small" onclick={clearSelection}>取消</button>
@@ -1191,7 +1382,7 @@
               class:selected={isSelected(item.id)}
               class:drop-line-top={dropLineIdx === i}
               class:drop-line-bottom={dropLineIdx === i + 1}
-              title="点击打开；拖拽可移动到文件夹或手动排序"
+              title={item.pinned ? '已置顶（点击打开；拖拽可移动到文件夹）' : '点击打开；拖拽可移动到文件夹或手动排序'}
               oncontextmenu={(e) => onNoteRowCtx(e, item)}
               onclick={(e) => void onRowClick(item, e)}
               onpointerdown={(e) => {
@@ -1203,6 +1394,7 @@
                 {#if selectionMode}
                   <input type="checkbox" class="row-check" checked={isSelected(item.id)} onchange={() => toggleSelection(item.id)} />
                 {/if}
+                {#if item.pinned}<span class="badge-pin" title="已置顶">📌</span>{/if}
                 <span class="note-title">{visibleTitle(item)}</span>
                 {#if item.deleted}<span class="badge-trash">🗑️ 回收站</span>{/if}
                 {#if item.hit && item.where === 'title'}<span class="badge-where">标题</span>{/if}
@@ -1216,9 +1408,17 @@
                 <span class="note-excerpt">{item.excerpt}</span>
                 <span class="note-meta">
                   {#if view === 'trash'}原文件夹：{item.folder}{:else}{item.folder}{/if} · {relativeTime(item.deletedAt ?? item.updatedAt)}
+                  {#if !item.hit && (item.tags ?? []).length > 0}
+                    {' · '}{#each (item.tags ?? []).slice(0, 3) as t (t)}<span class="row-tag">#{t}</span>{/each}{#if (item.tags ?? []).length > 3}<span class="row-tag">+{(item.tags ?? []).length - 3}</span>{/if}
+                  {/if}
                 </span>
               {:else}
-                <span class="note-meta">{item.folder} · {relativeTime(item.updatedAt)}</span>
+                <span class="note-meta">
+                  {item.folder} · {relativeTime(item.updatedAt)}
+                  {#if (item.tags ?? []).length > 0}
+                    {' · '}{#each (item.tags ?? []).slice(0, 3) as t (t)}<span class="row-tag">#{t}</span>{/each}{#if (item.tags ?? []).length > 3}<span class="row-tag">+{(item.tags ?? []).length - 3}</span>{/if}
+                  {/if}
+                </span>
               {/if}
             </div>
           {/each}
@@ -1267,6 +1467,15 @@
             />
           </div>
           <div class="ed-right">
+            {#if !current.deleted}
+              <button
+                class="btn-ghost small pin-btn" class:on={current.pinned}
+                id="pin-toggle"
+                title={current.pinned ? '取消置顶' : '置顶这条笔记'}
+                aria-pressed={current.pinned}
+                onclick={() => void setPinned(current!.id, !current!.pinned)}
+              >📌 {current.pinned ? '已置顶' : '置顶'}</button>
+            {/if}
             <div class="seg" id="mode-seg">
               <button class:active={mode === 'edit'} disabled={current.deleted} onclick={() => (mode = 'edit')}>编辑</button>
               <button class:active={mode === 'split'} onclick={() => (mode = 'split')}>分屏</button>
@@ -1279,6 +1488,36 @@
               <button class="btn-danger" onclick={trashCurrentFlow} title="移入回收站">删除</button>
             {/if}
           </div>
+        </div>
+
+        <!-- 标签编辑（读写 frontmatter 的 tags；直接落盘，不受正文去抖影响） -->
+        <div class="tag-editor" id="tag-editor">
+          <span class="tag-editor-label">标签</span>
+          {#each current.tags as tag (tag)}
+            <span class="tag-chip editable" data-tag={tag}>
+              #{tag}
+              {#if !current.deleted}
+                <button class="tag-remove" title={`移除标签 #${tag}`} aria-label={`移除标签 ${tag}`} onclick={() => removeTagFromCurrent(tag)}>✕</button>
+              {/if}
+            </span>
+          {/each}
+          {#if !current.deleted}
+            <input
+              class="tag-input" id="tag-input" type="text" placeholder="添加标签后回车（空格/逗号可分隔多个）"
+              value={tagDraft} autocomplete="off" spellcheck="false"
+              oninput={(e) => (tagDraft = (e.target as HTMLInputElement).value)}
+              onkeydown={(e) => {
+                if (e.key === 'Enter' || e.key === ',' || e.key === '，') { e.preventDefault(); commitTagDraft(); }
+                else if (e.key === 'Backspace' && !tagDraft && current && current.tags.length > 0) {
+                  e.preventDefault();
+                  removeTagFromCurrent(current.tags[current.tags.length - 1]);
+                }
+              }}
+              onblur={commitTagDraft}
+            />
+          {:else if current.tags.length === 0}
+            <span class="tag-editor-empty">（无标签）</span>
+          {/if}
         </div>
 
         <div class="workspace">
@@ -1309,6 +1548,7 @@
           <span class="sep">·</span>
           <span>{previewTasks.length > 0 ? `${previewTasks.filter((t) => t.checked).length}/${previewTasks.length} 待办已完成` : '无待办'}</span>
           <span class="spacer"></span>
+          {#if current.tags.length > 0}<span>{current.tags.length} 个标签</span><span class="sep">·</span>{/if}
           <span>{current.body.length} 字符</span>
         </footer>
       {:else}
@@ -1355,6 +1595,8 @@
         <li>「选择」模式（或 Ctrl/Shift+点击）多选后可批量移入回收站 / 还原 / 彻底删除。</li>
         <li>删除的笔记与文件夹先进回收站，可整组还原；“清空回收站”才会物理删除。</li>
         <li>全局搜索包含回收站命中（带 🗑️ 标记，点击转入回收站查看）。</li>
+        <li>标签：编辑区「标签」一行回车添加（空格/逗号分隔可一次加多个），点标签条可按标签筛选；标签写在文件 frontmatter 的 tags 里。</li>
+        <li>置顶：编辑区「📌 置顶」或笔记行右键；置顶笔记固定排在列表最前，可多选后批量置顶。</li>
       </ul>
       <button class="btn-primary" onclick={() => (helpOpen = false)}>知道了</button>
     </div>

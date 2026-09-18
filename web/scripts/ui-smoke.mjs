@@ -147,6 +147,48 @@ if (await evaluate('window.__ready()')) {
 
   // 5) 回收站：删除 → 只读视图 → 还原
   check('编辑区已展开（图5）', await waitEval(`!!document.querySelector('.editor-pane.open') && document.querySelector('.title-input').value === '独门笔记'`));
+  // 重命名后重新点进该文件夹（改名后侧栏顺序可能变化，显式点一下保证 activeFolder 是当前文件夹）
+  await evaluate(`(() => { const b = [...document.querySelectorAll('.folder-item .folder-main')].find((x) => x.textContent.includes('工作甲')); if (b) b.click(); return true; })()`);
+  await waitEval(`[...document.querySelectorAll('.note-title')].some((n) => n.textContent === '独门笔记')`, 8000);
+
+  // 5.5) 标签：添加 → 筛选 → 取消筛选 → 移除（写在 frontmatter 的 tags 里）
+  check('编辑区出现标签编辑行', await waitEval(`!!document.querySelector('#tag-editor #tag-input')`));
+  await evaluate(`window.__setValue(document.querySelector('#tag-input'), '工作 重要')`);
+  await evaluate(`document.querySelector('#tag-input').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))`);
+  check('标签写入编辑区（工作 / 重要）', await waitEval(`(() => { const t = [...document.querySelectorAll('#tag-editor .tag-chip[data-tag]')].map((c) => c.dataset.tag); return t.includes('工作') && t.includes('重要'); })()`, 8000));
+  check('列表出现标签筛选条', await waitEval(`[...document.querySelectorAll('#tagbar .tag-chip')].some((c) => c.dataset.tag === '工作')`, 8000));
+  await evaluate(`[...document.querySelectorAll('#tagbar .tag-chip')].find((c) => c.dataset.tag === '工作').click()`);
+  check('按标签筛选（只剩带该标签的笔记）', await waitEval(`document.querySelectorAll('.note-title').length === 1 && document.querySelector('.note-title').textContent === '独门笔记'`, 8000));
+  check('列表头显示当前筛选的标签名', await evaluate(`document.querySelector('.list-head h2').textContent.includes('工作')`));
+  await evaluate(`[...document.querySelectorAll('#tagbar .tag-chip')].find((c) => c.dataset.tag === '工作').click()`);
+  check('再点同一标签筛选保持（幂等，不会莫名清空）', await waitEval(`document.querySelector('#tag-clear') && document.querySelectorAll('.note-title').length === 1`, 6000));
+  await evaluate(`document.querySelector('#tag-clear').click()`);
+  check('点“清除标签”退出筛选', await waitEval(`!document.querySelector('#tag-clear')`, 6000));
+  console.log('      [diag-clear]', JSON.stringify(await evaluate(`window.__diag ? window.__diag() : 'no hook'`)));
+  await evaluate(`[...document.querySelectorAll('#tagbar .tag-chip')].find((c) => c.dataset.tag === '重要').click()`);
+  await waitEval(`document.querySelectorAll('.note-title').length === 1`, 8000);
+  await evaluate(`document.querySelector('#tag-editor .tag-chip[data-tag="重要"] .tag-remove').click()`);
+  check('移除标签后该标签筛选自动退出', await waitEval(`!document.querySelector('#tagbar .tag-chip[data-tag="重要"]')`, 8000));
+
+  // 5.6) 置顶：编辑区按钮 + 右键菜单 + 列表分区 + 重载保持
+  check('编辑区出现置顶按钮', await waitEval(`!!document.querySelector('#pin-toggle')`));
+  await evaluate(`document.querySelector('#pin-toggle').click()`);
+  check('置顶按钮变为已置顶', await waitEval(`document.querySelector('#pin-toggle').textContent.includes('已置顶')`, 8000));
+  check('列表首行即该笔记并显示置顶徽标', await waitEval(`(() => { const row = document.querySelector('.note-row'); return !!row && !!row.querySelector('.badge-pin') && row.querySelector('.note-title').textContent === '独门笔记'; })()`, 8000));
+  check('列表头显示置顶条数', await evaluate(`document.querySelector('.list-sub').textContent.includes('置顶')`));
+  // 只断言右键菜单里有“取消置顶”，不点它（点了会真的取消置顶，把后面的断言带偏）
+  await evaluate(`window.__ctxAt([...document.querySelectorAll('.note-title')].find((n) => n.textContent === '独门笔记').closest('.note-row'))`);
+  check('行右键出现“取消置顶”', await waitEval(`[...document.querySelectorAll('.ctx-item')].some((b) => b.textContent.includes('取消置顶'))`, 4000));
+  await evaluate(`document.querySelector('.ctx-menu').dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))`);
+  check('关菜单后置顶徽标仍在（菜单未误改状态）', await waitEval(`!!document.querySelector('.badge-pin')`, 4000));
+  await send('Page.reload', { ignoreCache: true });
+  await waitEval('window.__ready()', 25000);
+  check('置顶在重载后仍生效', await waitEval(`window.__ready() && (() => { const row = document.querySelector('.note-row'); return !!row && !!row.querySelector('.badge-pin'); })()`, 25000));
+  await evaluate(`[...document.querySelectorAll('.note-title')].find((n) => n.textContent === '独门笔记').closest('.note-row').click()`);
+  check('打开后置顶按钮仍为已置顶', await waitEval(`document.querySelector('#pin-toggle') && document.querySelector('#pin-toggle').textContent.includes('已置顶')`, 8000));
+  await evaluate(`document.querySelector('#pin-toggle').click()`);
+  check('取消置顶后徽标消失', await waitEval(`!document.querySelector('.badge-pin')`, 8000));
+
   await evaluate(`[...document.querySelectorAll('.ed-right .btn-danger')][0].click()`);
   check('删除需二次确认（进回收站文案）', await waitEval(`!!document.querySelector('.modal-card') && document.body.textContent.includes('回收站')`));
   check('弹窗宽度未被边框撑宽（≤440）', await evaluate(`(() => { const r = document.querySelector('.modal-card').getBoundingClientRect(); return r.width > 420 && r.width <= 440; })()`));

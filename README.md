@@ -24,7 +24,7 @@ npm run desktop:setup     # = scripts/setup.ps1：装 Rust(如缺) → 装依赖
 数据存放：`%APPDATA%\com.noteapp.desktop\notes\<id>.md`（笔记）+ 同目录 `meta.json`（文件夹等元数据），纯文本可随时备份。
 
 > 说明：本仓库的开发沙箱网络只放行 npm 源，`cargo` 需要的 crates.io / static.rust-lang.org 不可达，
-> 因此 **cargo/tauri 的最终编译需在你的本机终端执行**（`npm run desktop:setup`）。代码侧验证（120 项单测、
+> 因此 **cargo/tauri 的最终编译需在你的本机终端执行**（`npm run desktop:setup`）。代码侧验证（129 项单测、
 > tsc、vite build、真实 Chrome 冒烟）均已在此环境通过；Rust 薄壳只做 8 个文件读写命令（薄壳核心边界，
 > 见 [TECH_DESIGN §1.1/§2](docs/TECH_DESIGN.md)），前端存储适配器见 `web/src/lib/core/storage/tauri.ts`。
 >
@@ -54,6 +54,8 @@ npm run desktop:setup     # = scripts/setup.ps1：装 Rust(如缺) → 装依赖
 | 待办勾选 | `- [ ] task` 在预览中可勾选，源文即时回写 |
 | 纯本地存储 | 一条笔记一个 `.md` 文件 + frontmatter；Web 端以 IndexedDB 虚拟文件系统持久化 |
 | 主题 | 浅色 / 深色 / 跟随系统；主窗口与设置窗口同时生效、跨窗口同步、重启保持，首屏无白屏闪烁 |
+| 标签 | 编辑区回车添加（空格/逗号可分隔多个）、点标签条按标签筛选、笔记行显示标签摘要；写在 frontmatter 的 `tags` 里 |
+| 笔记置顶 | 编辑区「📌 置顶」/ 行右键 / 多选批量；置顶笔记固定排在列表最前（与手排、时间序并存） |
 | 快捷键 | `Ctrl+K` 搜索、`Alt+N` 新建、`Ctrl+S` 立即保存、`Shift+?` 帮助、`Esc` 关闭弹层 |
 | 安全 | 用户 HTML 全部转义 + 渲染输出白名单清洗；`javascript:` 链接不可点击 |
 
@@ -66,6 +68,7 @@ npm run desktop:setup     # = scripts/setup.ps1：装 Rust(如缺) → 装依赖
 - **文件夹**：▶/▼ 展开箭头与手风琴（再点收回）、悬停时笔记数变 ✕ 快捷删除、双击/右键重命名
 - **面板级联**：默认仅侧栏（图3）且**桌面窗口收缩到侧栏宽度**（无右侧空白）；点文件夹滑出笔记列（图4，窗口加宽），点笔记滑出编辑区（图5）；再点同类或边缘手柄逐级收回，窗口随开合自动缩放（Tauri `setSize`；Web 预览仅内容自适应，不缩放浏览器窗口）
 - **侧边吸附（桌面，QQ 式）**：图3 态拖到屏幕左/右边缘自动贴边并置顶；鼠标离开窗口 3 秒后缩进屏幕外，光标靠近该侧屏幕边缘即滑回；一旦展开到图4/图5 自动取消停靠。“吸附/缩进/唤出”以本机桌面实测为准可再调阈值
+- **标签与置顶**：标签写在 frontmatter（跨文件夹统计，点标签条筛选，点「清除标签」退出）；置顶独立成区排在列表最前，可多选批量置顶；改文件夹名后当前浏览的文件夹会跟随（不再出现“空文件夹”假象）
 - **设置（独立窗口，首版）**：
   - 入口：侧栏底部「⚙️ 设置」或快捷键 `Ctrl + ,`；桌面为独立窗口（`settings.html`），Web 预览为新浏览器窗口
   - 分类：通用（**主题** / 启动布局 / 记住面板）、快捷键（改键 / 冲突提示 / 恢复默认）、存储（路径展示 / 打开目录 / **更改位置并迁移**）、编辑器（默认视图 / 自动保存去抖 / 拼写检查）、窗口与吸附（开关 / 吸附侧 / 缩进延迟 / 置顶 / 热区宽度 / 仅侧栏生效）、关于（版本与数据位置）
@@ -113,7 +116,7 @@ npm run build          # 生产构建到 web/dist
 node web/scripts/serve-dist.mjs            # http://127.0.0.1:5174/
 # 3) 带 CDP 调试端口的 headless Chrome（独立临时 profile）：
 chrome --headless=new --user-data-dir=%TEMP%\na-smoke-profile --remote-debugging-port=9222 about:blank
-# 4) 跑冒烟（主窗口 57 项 + 设置窗口 25 项）：
+# 4) 跑冒烟（主窗口 74 项 + 设置窗口 25 项）：
 SMOKE_URL=http://127.0.0.1:5174/ node web/scripts/ui-smoke.mjs
 SMOKE_URL=http://127.0.0.1:5174/ node web/scripts/settings-smoke.mjs
 ```
@@ -167,6 +170,6 @@ demo/                     # 纯前端原型（参照保留）
 
 ## 验证状态
 
-- 单元/集成测试：全绿（`npm test`，**120 项**，见各 `tests/*.test.mjs`；含 `tests/theme.css.test.mjs` 对“颜色必须走主题变量”的样式契约校验）；
+- 单元/集成测试：全绿（`npm test`，**129 项**，见各 `tests/*.test.mjs`；含 `tests/theme.css.test.mjs` 对“颜色必须走主题变量”的样式契约校验）；
 - `tsc --noEmit` 通过；`vite build` 通过（双页产物：主窗口 + 设置窗口）；
-- 真实 Chrome 端到端冒烟：**主窗口 57/57、设置窗口 25/25** 通过（默认仅侧栏 / 面板级联与手柄 / 右键菜单 / 拖拽排序移动 / 手排 / 回收站还原批量 / 多选 / 含回收站搜索 / 设置改键与冲突 / **主题切换、持久化与实时跟随系统** / 无控制台错误）。
+- 真实 Chrome 端到端冒烟：**主窗口 74/74、设置窗口 25/25** 通过（默认仅侧栏 / 面板级联与手柄 / 右键菜单 / 拖拽排序移动 / 手排 / 回收站还原批量 / 多选 / 含回收站搜索 / 设置改键与冲突 / 主题切换、持久化与实时跟随系统 / **标签添加·筛选·移除与置顶分区·重载保持** / 无控制台错误）。

@@ -25,6 +25,7 @@ export function entryFromDoc(doc: NoteDoc): IndexEntry {
     title: doc.title,
     updatedAt: doc.updatedAt,
     tags: doc.tags,
+    pinned: doc.pinned,
     bodyText: plainTextOf(doc.body),
     bodyRaw: doc.body,
     deleted: doc.deleted ?? false,

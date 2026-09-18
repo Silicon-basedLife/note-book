@@ -53,6 +53,8 @@ export interface IndexEntry {
   title: string;
   updatedAt: string;
   tags: string[];
+  /** 是否置顶（列表排序时置顶项优先） */
+  pinned: boolean;
   /** 纯文本正文（去掉 markdown 语法），用于全文搜索 */
   bodyText: string;
   /** 原始正文，用于搜索结果片段定位 */

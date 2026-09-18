@@ -124,26 +124,48 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
 - 弹窗浮层用 flex 而非 grid 居中：`.panel` 带 1px 边框，grid 会把边框算进 `min(440px, 92vw)` 导致弹窗被撑宽 2px（已有冒烟断言看着）。
 - `theme.css.test.mjs` 会拦下任何新增的硬编码颜色：新增颜色请先加到两档变量里（白名单只有 `--mono` 这类与主题无关的 token）。
 
-### 1.7 桌面壳与构建
+### 1.7 标签与置顶（本轮新增）
+
+| 事项 | 实现位置 |
+|---|---|
+| 标签纯逻辑：`normalizeTag`（去 #、剔控制字符、折叠空白、截断 24 字）/ `parseTagInput`（空格/逗号/顿号/分号分隔，大小写不敏感去重保序）/ `mergeTags` / `removeTag` / `hasTag` / `countTags` | `web/src/lib/core/tags.ts`（新增） |
+| 置顶排序：`sortPinnedFirst` 包在 `liveDocsIn` 上（时间序也置顶优先）；`listNotesOrdered` 拆出 `applyManualOrder`，**置顶区内用手排、非置顶区另算**，两区拼接 | `web/src/lib/core/store.ts` |
+| 索引补 `pinned` | `web/src/lib/core/types.ts`（`IndexEntry.pinned`）、`web/src/lib/core/index.ts`（`entryFromDoc`） |
+| UI：编辑区「📌 置顶」按钮 + 标签编辑行（chip + 输入框，回车添加、Backspace 删末尾、失焦提交）；列表标签筛选条（`#tagbar` / `data-tag`）；行内 📌 徽标与 `#标签` 摘要；多选批量置顶/取消置顶；行右键「置顶/取消置顶」 | `web/src/main/App.svelte`（含样式见 `app.css` 的「标签与置顶」段） |
+| 拖拽与置顶分区：拖动项与落点分区不一致时忽略并提示（不写手排），避免手排与置顶互相打架 | `App.svelte` 的 `commitReorderWith` |
+| 搜索：标签不参与全文检索（搜索仍只搜标题+正文），标签是独立的筛选维度 | 无需改动 `search.ts` |
+| 测试 | `tests/core.tags-pin.test.mjs`（9 项：规范化/解析/合并/计数、索引带 pinned、置顶时间序与手排分区、写盘+重启恢复、回收站不参与） |
+| 冒烟断言 | 主窗口 15 项：标签添加→筛选条→按标签筛选→幂等保持→清除→移除后自动退出筛选；置顶按钮→首行徽标→列表头条数→右键菜单项→重载保持→取消置顶（共 74 项） |
+
+顺手修掉的两个真实缺陷（本轮发现）：
+1. **Svelte 5 响应式陷阱**：`$derived` 不会追踪“被调用函数内部”读取的状态，原先写成 `countTags(core.listNotesOrdered(...))` 只会算一次（首次空库）且永不更新 → 标签筛选条永远不出现。现改为 `refresh()` 里显式更新 `allTags` state，`tagChips` 只做纯条件包装。
+2. **重命名当前文件夹后列表变空**：`activeFolder` 仍指向旧名 → 列表显示“这个文件夹还没有笔记”。现在改名会跟随，且新增兜底横幅（文件夹名已不存在时提示并给「查看全部笔记」出口）。
+
+设计取舍（下次改这块请先看）：
+- 标签条统计的是**全部笔记**的标签（跨文件夹导航维度），不是当前文件夹；筛选本身仍只作用于当前列表。
+- 点标签是**幂等筛选**（不做 toggle），退出筛选用「清除标签」按钮，避免“点了没反应”的歧义。
+- 置顶是**独立分区**，不写进 `meta.json` 的手排数组：拖拽跨分区被拦并提示，改置顶状态不需要重排。
+
+### 1.8 桌面壳与构建
 
 - Rust 薄壳：`list/read/write/remove_note_file`、`read/write/remove_meta`、`read/write_settings`、`get_storage_info`、`open_path`、`pick_folder`、`migrate_notes`
 - 权限、双窗口配置、应用图标（`src-tauri/icons/`）
 - `scripts/setup.ps1`：ASCII 化（避免 PowerShell 5.1 编码问题）、自动结束运行中的 `noteapp.exe`（避免 exe 被占用）、`--no-bundle` 默认产出可运行 exe
 - README 全量说明；`demo/` 保留为原型（另有一次提交 `a1cba63` 把它升级成文件夹+笔记双实体 + IndexedDB，并带自己的测试）
 
-### 1.8 验证现状（本沙箱；主题落地前的历史基线）
+### 1.9 验证现状（本沙箱；主题落地前的历史基线）
 
 - 单元/集成测试：102 项全绿（`npm test`）
 - 真实 Chrome 冒烟：主窗口 51/51、设置窗口 14/14
 - `tsc --noEmit` 通过；`vite build` 通过（双页产物）
 - 覆盖点：frontmatter 往返、回收站全流程、手排/文件夹排序、搜索转义、Markdown/XSS、动作注册表、设置归一化/冲突/未知字段、存储字段契约、QQ 吸附纯计算、UI 面板宽度断言
 
-### 1.9 验证现状（本沙箱，主题改动后）
+### 1.10 验证现状（本沙箱，当前）
 
-- **单元/集成测试：120 项全绿**（`npm test`；102 → 116（主题）→ 120（实时跟随系统））
-- **真实 Chrome 冒烟：主窗口 57/57、设置窗口 25/25**（主题相关：主窗口 4 项、设置窗口 10 项，含“系统主题变化立即跟随 / 切走释放监听”）
+- **单元/集成测试：129 项全绿**（`npm test`；102 → 116（主题）→ 120（实时跟随）→ 129（标签/置顶））
+- **真实 Chrome 冒烟：主窗口 74/74、设置窗口 25/25**（本轮新增：标签 7 项 + 置顶 6 项 + 弹窗宽度 1 项 + 主题 4 项）
 - `tsc --noEmit` 通过；`vite build` 通过（双页产物，含 head 内联主题引导脚本）
-- 环境提示：本沙箱里 `vite build` 与 headless Chrome 都必须以 `danger-full-access` 升级执行（esbuild spawn / Chrome mojo 命名管道）；冒烟脚本要放到后台作业里跑，避免前台超时被中断导致误判
+- 环境提示：本沙箱里 `vite build` 与 headless Chrome 都必须以 `danger-full-access` 升级执行（esbuild spawn / Chrome mojo 命名管道）；冒烟脚本要放到后台作业里跑，避免前台超时被中断导致误判；**CDP 实例跑几轮后要换端口重启**（标签页累积会导致 WS 异常），且 `$env:TEMP` 每次调用都不同、不要用它做跨调用临时文件路径
 
 ---
 
@@ -162,7 +184,13 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
    - 切「跟随系统」后：**直接在 Windows 设置里切换应用/系统主题，两个窗口应立即跟随**（无需重开窗口）；再切到固定「浅色」后，系统主题变化不应再影响应用；
    - 首屏不闪白：深色下重启，启动那一瞬不应出现刺眼白底；
    - 细看深色下的**预览排版与浮层**：代码块固定深底、表格/引用/待办删除线是否可读；确认/重命名弹窗底色与边框是否清晰（本机看深色下弹窗边框与遮挡是否舒服）；有不对的请截图或说明位置。
-7. **发布确认**：按 §8 推送并创建 Release（`v0.1.0`，说明中已注明“不含快速便签/悬浮窗”），确认 Release 里能看到 `NoteApp.exe`（用 Actions 构建则还有 MSI/NSIS）。
+7. **本轮标签与置顶**（前端，本沙箱已用真实 Chrome 验证交互与落盘，但**桌面端观感需你本机确认**）：
+   - 打开一篇笔记 → 编辑区「标签」一行输入 `工作` 回车 → 标签出现在笔记行与标签条；点标签条按标签筛选，点「清除标签」退出；
+   - 编辑区「📌 置顶」→ 该笔记跳到列表最前并带 📌；**重启后仍在最前**；再点「已置顶」取消；
+   - 行右键应有「置顶 / 取消置顶」；多选后操作条有「置顶 / 取消置顶」；
+   - 标签与置顶都写在 `.md` 的 frontmatter（`tags: [...]` / `pinned: true`），用记事本/其它编辑器打开应能看到；
+   - 置顶笔记**不能**被拖到非置顶区（会被拦并提示），这是有意设计。
+8. **发布确认**：按 §8 推送并创建 Release（`v0.1.0`，说明中已注明“不含快速便签/悬浮窗”），确认 Release 里能看到 `NoteApp.exe`（用 Actions 构建则还有 MSI/NSIS）。
 
 ---
 
@@ -173,7 +201,7 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
 | 功能 | 备注 |
 |---|---|
 | ~~主题（浅色/深色/跟随系统）~~ | **已完成**，见 §1.6 |
-| 标签系统 / 笔记置顶（pin） | frontmatter 已预留 `tags`/`pinned` 字段并可无损往返 |
+| ~~标签系统 / 笔记置顶（pin）~~ | **已完成**，见 §1.7 |
 | 多级目录 | 目前一级 |
 | 待办聚合视图（汇总所有未完成） | |
 | 附件：粘贴/拖拽图片入库 | 需定附件目录规则（存储页已留“附件目录”讨论位） |
@@ -198,6 +226,8 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
 - Svelte 编译告警：若干 `a11y_*`（div 带 click/contextmenu 缺 role/键盘处理）与 `core` 未用 `$state` 的 non_reactive 提示；构建通过，属提示。
 - Rust 侧没有本地编译验证通道（无 cargo），依赖用户机器构建；建议每次改 Rust 后让用户回贴 cargo 输出。
 - `demo/` 与被 `a1cba63` 升级后的 `demo/js/db.mjs`、`tests/store.test.mjs` 相关测试仍在跑，属于原型层，不影响生产实现。
+- **Svelte 5 响应式坑（已踩过两次，务必记住）**：`$derived` 不会追踪「被它调用的函数内部」读取的 state。凡是要随数据变化的派生值，必须在 `$derived` 表达式里**直接读** state（如 `listItems`），或改由 `refresh()` 显式写入 state（如 `allTags`）。写成 `someFn(core.xxx())` 只会算一次并永久停留在首次结果。
+- `App.svelte` 里保留了一个 Web 预览专用的诊断钩子 `window.__diag()`（仅 `!isTauri()` 时挂载），用于排障与冒烟定位；如果觉得碍事可以删。
 
 ---
 
@@ -206,10 +236,10 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
 ### Step 0：恢复上下文
 1. `git status` 确认干净；`git log --oneline -5` 确认 HEAD（本次交接提交后以 `git log -1` 为准；此前为 `518875e`）。
 2. 读 `docs/PROGRESS.md`（本文件）→ `AGENTS.md` → `README.md`。
-3. 跑一遍基线：`node --test --test-isolation=none "tests/**/*.test.mjs"`（应 120 通过）。
+3. 跑一遍基线：`node --test --test-isolation=none "tests/**/*.test.mjs"`（应 129 通过）。
 
 ### Step 1：先收口“待确认项”
-- 让用户执行 `npm run desktop:setup`，按 §2 的 1–7 条逐项确认（含主题观感）。
+- 让用户执行 `npm run desktop:setup`，按 §2 的 1–8 条逐项确认（含主题观感、标签与置顶）。
 - 有报错就修；Rust 报错优先看 `src-tauri/src/fs_store.rs` 与实际 cargo 输出。
 
 ### Step 2：按优先级做新功能（每次一项，走完整闭环）
@@ -217,8 +247,8 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
 1. **启动校验 + 迁移前 zip 备份**（§3.2）：Rust 加 `validate_storage`/`backup_notes` 命令，设置页给开关；补单测（纯逻辑）+ 更新 README。
 2. **命令面板 + 全局热键**：动作注册表扩展，Tauri `global-shortcut` 插件 + 设置页热键页签；冲突检测复用 `findShortcutConflict`。
 3. **悬浮速记/快搜窗**：以设置窗口为样板加第三窗口 + tray（`tauri-plugin-*` 需新增依赖，注意让用户本机构建验证）。
-4. **标签 / 置顶 / 多级目录 / 导出 HTML / 字数统计** 等按需推进（frontmatter 已预留字段）。
-5. 主题的后续小项（可选）：主题跟随代码块高亮（新增浅色配色会触及 `theme.css.test.mjs` 的白名单）、再加“高对比”档（新增一档同构变量即可）。
+4. **多级目录 / 待办聚合视图 / 导出 HTML / 字数统计 / 回收站自动清理** 等按需推进（§3.1 剩余项）。
+5. 主题与标签的后续小项（可选）：代码块主题跟随、高对比档；标签重命名/批量管理、标签出现在搜索结果里、按标签统计面板。
 
 ### Step 3：每项改动的固定动作（AGENTS.md 要求）
 1. 先写/改测试（core 纯逻辑放 `tests/core.*.test.mjs`；设置相关放 `tests/core.settings.test.mjs`/`core.storage-info.test.mjs`）。
@@ -250,6 +280,7 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
 | 存储信息契约 | `web/src/lib/settings/storage-info.ts`（后端字段 camelCase 契约） |
 | 侧边吸附 | `web/src/lib/desktop/side-dock.ts`（常量在文件顶部）、`dock-core.ts`（纯计算+单测） |
 | 主题 | `web/src/lib/desktop/theme.ts`（解析/应用/首屏引导）、`web/src/main/app.css` 顶部两档变量、`web/index.html`+`web/settings.html` 内联引导、`tests/theme.css.test.mjs`（样式契约） |
+| 标签 / 置顶 | `web/src/lib/core/tags.ts`（纯逻辑+单测）、`store.ts` 的 `sortPinnedFirst`/`applyManualOrder`、`App.svelte` 的 `#tagbar`/`#tag-editor`/`#pin-toggle`、`tests/core.tags-pin.test.mjs` |
 | Rust 命令 | `src-tauri/src/fs_store.rs`（所有命令）、`src-tauri/src/lib.rs`（注册） |
 | 权限/窗口配置 | `src-tauri/capabilities/default.json`、`src-tauri/tauri.conf.json` |
 | 构建脚本 | `scripts/setup.ps1`、根 `package.json` 脚本 |
