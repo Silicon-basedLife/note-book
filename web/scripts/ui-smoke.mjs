@@ -149,6 +149,7 @@ if (await evaluate('window.__ready()')) {
   check('编辑区已展开（图5）', await waitEval(`!!document.querySelector('.editor-pane.open') && document.querySelector('.title-input').value === '独门笔记'`));
   await evaluate(`[...document.querySelectorAll('.ed-right .btn-danger')][0].click()`);
   check('删除需二次确认（进回收站文案）', await waitEval(`!!document.querySelector('.modal-card') && document.body.textContent.includes('回收站')`));
+  check('弹窗宽度未被边框撑宽（≤440）', await evaluate(`(() => { const r = document.querySelector('.modal-card').getBoundingClientRect(); return r.width > 420 && r.width <= 440; })()`));
   await evaluate(`[...document.querySelectorAll('.modal-actions button')].find((b) => b.textContent.includes('移入回收站')).click()`);
   await evaluate(`[...document.querySelectorAll('.nav-item')].find((n) => n.textContent.includes('回收站') && n.textContent.includes('🗑️')).click()`);
   check('回收站显示已删笔记', await waitEval(`[...document.querySelectorAll('.note-title')].some((n) => n.textContent === '独门笔记')`));

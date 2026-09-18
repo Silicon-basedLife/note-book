@@ -11,7 +11,7 @@
     type Shortcut,
     type ThemeMode,
   } from '../lib/settings/types.ts';
-  import { applyThemeMode, systemPrefersDark } from '../lib/desktop/theme.ts';
+  import { applyThemeMode, systemPrefersDark, ThemeFollower } from '../lib/desktop/theme.ts';
   import { ACTIONS } from '../lib/settings/catalog.ts';
   import {
     effectiveShortcuts,
@@ -51,9 +51,12 @@
   let lastEcho = '';
 
   const effective = $derived(effectiveShortcuts(s.shortcuts));
-  /** 设置窗口自身也跟随主题（与主窗口共用 settings.json / localStorage） */
+  /** 设置窗口自身也跟随主题（与主窗口共用 settings.json / localStorage）。
+   *  用 ThemeFollower：只有档位是「跟随系统」时才挂 prefers-color-scheme 监听，切走就释放。 */
+  const themeFollower = new ThemeFollower();
   $effect(() => {
-    applyThemeMode(s.general.theme);
+    themeFollower.update(s.general.theme);
+    return () => themeFollower.stop();
   });
   /** “跟随系统”时给出当前解析结果，便于用户判断（不随主题变化而失效） */
   const themeDetail = $derived(

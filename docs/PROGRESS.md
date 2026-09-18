@@ -106,19 +106,22 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
 |---|---|
 | 设置模型：`general.theme`（`'light' \| 'dark' \| 'system'`，默认 `light`） | `web/src/lib/settings/types.ts`（`THEME_MODES` / `DARK_QUERY` 与运行时共用同一份常量） |
 | 归一化：非法/缺省值回退 `light`，未知字段照旧保留 | `web/src/lib/settings/coerce.ts`（`pickEnum(g.theme, THEME_MODES, …)`） |
-| 主题运行时：`resolveTheme`（纯函数）/ `applyTheme` / `applyCachedTheme` / `applyThemeMode` | `web/src/lib/desktop/theme.ts` |
+| 主题运行时：`resolveTheme`（纯函数）/ `applyTheme` / `applyCachedTheme` / `applyThemeMode` / `watchSystemTheme` / `ThemeFollower` | `web/src/lib/desktop/theme.ts` |
+| 实时跟随系统：`prefers-color-scheme` 变化即重算；**只有档位是 system 时才订阅**，切走自动释放 | `theme.ts` 的 `ThemeFollower`（App.svelte 持有实例、卸载时 `stop()`；Settings.svelte 在 `$effect` 里 update + 返回清理） |
 | 配色变量：`:root[data-theme='light']` 与 `:root[data-theme='dark']` 两档同构变量集（各 40+ 个 token）+ `color-scheme` | `web/src/main/app.css` |
 | 系统深色兜底：脚本执行前 `@media (prefers-color-scheme: dark)` 只覆盖大面积底色 | `web/src/main/app.css`（`:root:not([data-theme])`） |
 | 首屏防闪：两个入口 HTML 的 head 内联引导脚本（读 localStorage 快照 → 写 `data-theme`） | `web/index.html`、`web/settings.html` |
 | 挂载前同步应用 + 读到设置后精确应用 + 跨窗口同步 | `web/src/main/main.ts`、`web/src/settings/main.ts`、`App.svelte`（loadSettings / subscribeSettings）、`Settings.svelte`（`$effect` + 选择器） |
 | 设置页 UI：通用 → 主题三项 chip（含当前解析结果提示） | `web/src/settings/Settings.svelte`（`data-theme-choice` 供冒烟定位） |
-| 测试 | `tests/core.theme.test.mjs`（9 项：归一化/解析/DOM 应用/快照容错）、`tests/theme.css.test.mjs`（5 项：两档变量同构、无硬编码色、引导脚本就位） |
-| 冒烟断言 | 主窗口 3 项（默认浅色 → 深色重载保持 → 清设置回浅色）、设置窗口 5 项（选深色立即生效 + 持久化、跟随系统与系统偏好一致、切回浅色） |
+| 测试 | `tests/core.theme.test.mjs`（13 项：归一化/解析/DOM 应用/快照容错/监听订阅与释放）、`tests/theme.css.test.mjs`（5 项：两档变量同构、无硬编码色、引导脚本就位） |
+| 冒烟断言 | 主窗口 4 项（默认浅色 → 深色重载保持 → 清设置回浅色 → 弹窗宽度未被边框撑宽）、设置窗口 10 项（深色立即生效 + 持久化、跟随系统与系统偏好一致、切回浅色、非 system 档不挂监听、系统主题变化实时跟随、切走后释放监听） |
 
 设计取舍（下次改主题请先看）：
 - 默认 `light` 而不是 `system`：不因系统深色让既有用户“静默变脸”；要改默认值只需动 `DEFAULT_SETTINGS.general.theme`。
-- 主题只做“解析 + 应用”，**不监听 `matchMedia` 变化**：窗口加载/收到设置变更时重算即可，避免遗留监听器；因此“跟随系统”在系统主题切换后需重开窗口（或改一次设置）才更新。
+- **实时跟随只在 `system` 档发生**：显式选了浅/深就完全不订阅 `matchMedia`，避免无谓回调；`ThemeFollower` 记录当前档位，同档重复 update 不重建订阅。
+- 老 WebView 若 `MediaQueryList` 没有 `addEventListener`（或环境无 `matchMedia`）→ 静默降级为不订阅，不影响主题本身生效。
 - 代码块高亮配色与深色代码底色固定，不随主题切换（GitHub Dark 风格，深浅两档下都可读）。
+- 弹窗浮层用 flex 而非 grid 居中：`.panel` 带 1px 边框，grid 会把边框算进 `min(440px, 92vw)` 导致弹窗被撑宽 2px（已有冒烟断言看着）。
 - `theme.css.test.mjs` 会拦下任何新增的硬编码颜色：新增颜色请先加到两档变量里（白名单只有 `--mono` 这类与主题无关的 token）。
 
 ### 1.7 桌面壳与构建
@@ -137,8 +140,8 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
 
 ### 1.9 验证现状（本沙箱，主题改动后）
 
-- **单元/集成测试：116 项全绿**（`npm test`；102 → 116，新增 `core.theme` 9 项 + `theme.css` 5 项）
-- **真实 Chrome 冒烟：主窗口 56/56、设置窗口 20/20**（主题新增：主窗口 3 项、设置窗口 5 项）
+- **单元/集成测试：120 项全绿**（`npm test`；102 → 116（主题）→ 120（实时跟随系统））
+- **真实 Chrome 冒烟：主窗口 57/57、设置窗口 25/25**（主题相关：主窗口 4 项、设置窗口 10 项，含“系统主题变化立即跟随 / 切走释放监听”）
 - `tsc --noEmit` 通过；`vite build` 通过（双页产物，含 head 内联主题引导脚本）
 - 环境提示：本沙箱里 `vite build` 与 headless Chrome 都必须以 `danger-full-access` 升级执行（esbuild spawn / Chrome mojo 命名管道）；冒烟脚本要放到后台作业里跑，避免前台超时被中断导致误判
 
@@ -153,12 +156,12 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
 3. **迁移完整流程**：选一个空目录 → 验证并迁移 → 提示成功、三个路径刷新、重启应用后仍是新目录、原目录文件保留。
 4. **侧边吸附手感**（最近改动未确认）：拖到屏幕左/右越界即吸、垂直居中、置顶；鼠标移开 3 秒平滑滑出；光标贴近屏幕边缘滑回。若与系统“半屏贴靠”仍打架或手感不对，记录现象（越界多少才吸？滑出快慢？热区宽窄？）再调 `side-dock.ts` 顶部常量。
 5. 顺带确认上一轮已修的：快捷键点“默认”不再回弹；设置窗口关闭后能再次打开。
-6. **本轮主题**（前端改动，本沙箱已用真实 Chrome 验证逻辑与配色变量，但**桌面端观感需你本机确认**）：
+6. **主题**（前端改动，本沙箱已用真实 Chrome 验证逻辑与配色变量，但**桌面端观感需你本机确认**）：
    - 设置 → 通用 → 主题：切「深色」应立即变暗，**主窗口与设置窗口同时变**；
    - 重启应用后仍是深色（`settings.json` 持久化）；
-   - 切「跟随系统」后：把 Windows 主题在深/浅之间切换 → 重开一次窗口（或再切一次主题）应跟随；`data-theme` 与系统一致；
+   - 切「跟随系统」后：**直接在 Windows 设置里切换应用/系统主题，两个窗口应立即跟随**（无需重开窗口）；再切到固定「浅色」后，系统主题变化不应再影响应用；
    - 首屏不闪白：深色下重启，启动那一瞬不应出现刺眼白底；
-   - 细看深色下的**打印/预览排版**：代码块固定深底、表格/引用/待办删除线是否可读；有不对的请截图或说明位置。
+   - 细看深色下的**预览排版与浮层**：代码块固定深底、表格/引用/待办删除线是否可读；确认/重命名弹窗底色与边框是否清晰（本机看深色下弹窗边框与遮挡是否舒服）；有不对的请截图或说明位置。
 7. **发布确认**：按 §8 推送并创建 Release（`v0.1.0`，说明中已注明“不含快速便签/悬浮窗”），确认 Release 里能看到 `NoteApp.exe`（用 Actions 构建则还有 MSI/NSIS）。
 
 ---
@@ -203,7 +206,7 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
 ### Step 0：恢复上下文
 1. `git status` 确认干净；`git log --oneline -5` 确认 HEAD（本次交接提交后以 `git log -1` 为准；此前为 `518875e`）。
 2. 读 `docs/PROGRESS.md`（本文件）→ `AGENTS.md` → `README.md`。
-3. 跑一遍基线：`node --test --test-isolation=none "tests/**/*.test.mjs"`（应 116 通过）。
+3. 跑一遍基线：`node --test --test-isolation=none "tests/**/*.test.mjs"`（应 120 通过）。
 
 ### Step 1：先收口“待确认项”
 - 让用户执行 `npm run desktop:setup`，按 §2 的 1–7 条逐项确认（含主题观感）。
@@ -215,7 +218,7 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
 2. **命令面板 + 全局热键**：动作注册表扩展，Tauri `global-shortcut` 插件 + 设置页热键页签；冲突检测复用 `findShortcutConflict`。
 3. **悬浮速记/快搜窗**：以设置窗口为样板加第三窗口 + tray（`tauri-plugin-*` 需新增依赖，注意让用户本机构建验证）。
 4. **标签 / 置顶 / 多级目录 / 导出 HTML / 字数统计** 等按需推进（frontmatter 已预留字段）。
-5. 主题的后续小项（可选）：系统主题变化时自动跟随（给 `theme.ts` 加 matchMedia 监听并在窗口卸载时移除）、主题跟随代码块，或再加“高对比”档（新增一档变量即可，注意 `theme.css.test.mjs` 的同构断言）。
+5. 主题的后续小项（可选）：主题跟随代码块高亮（新增浅色配色会触及 `theme.css.test.mjs` 的白名单）、再加“高对比”档（新增一档同构变量即可）。
 
 ### Step 3：每项改动的固定动作（AGENTS.md 要求）
 1. 先写/改测试（core 纯逻辑放 `tests/core.*.test.mjs`；设置相关放 `tests/core.settings.test.mjs`/`core.storage-info.test.mjs`）。
@@ -266,7 +269,7 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
 - 设置面板形态：**独立窗口**
 - 存储位置：**首版就要能更改并迁移**
 - 每次改动：**Git commit + 测试全绿**（AGENTS.md）
-- 主题：**三档（浅色 / 深色 / 跟随系统），默认浅色**；不做系统主题实时监听（重开窗口或改一次设置即生效）
+- 主题：**三档（浅色 / 深色 / 跟随系统），默认浅色**；「跟随系统」实时跟随系统主题变化（只在 system 档订阅）
 
 ---
 

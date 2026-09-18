@@ -45,13 +45,41 @@ async function waitEval(expression, timeoutMs = 10000, step = 200) {
 
 await send('Page.enable');
 await send('Runtime.enable');
+// 确定性前置：把 prefers-color-scheme 固定成浅色（headless Chrome 默认值不保证），
+// 否则 CI/本机上“跟随系统”的断言会随系统主题漂移；同时暴露 __setSystemTheme 用于
+// 验证「跟随系统」是实时跟随的（主题监听会在变化时立刻重算）。
 await send('Page.addScriptToEvaluateOnNewDocument', {
   source: `
-    window.__errs = [];
-    window.addEventListener('error', (e) => window.__errs.push('err: ' + (e.message || String(e))));
-    window.addEventListener('unhandledrejection', (e) => window.__errs.push('rej: ' + String(e.reason)));
-    window.__setValue = (el, v) => { if (!el) return false; el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); return true; };
-    window.__ready = () => !!document.querySelector('.settings-shell');
+    (() => {
+      let systemDark = false;
+      const listeners = new Set();
+      const orig = window.matchMedia ? window.matchMedia.bind(window) : null;
+      const stub = {
+        media: '(prefers-color-scheme: dark)',
+        get matches() { return systemDark; },
+        addEventListener: (t, cb) => { if (t === 'change') listeners.add(cb); },
+        removeEventListener: (t, cb) => { if (t === 'change') listeners.delete(cb); },
+        addListener: (cb) => listeners.add(cb),
+        removeListener: (cb) => listeners.delete(cb),
+        onchange: null,
+        dispatchEvent: () => true,
+      };
+      window.__listenerCount = () => listeners.size;
+      window.__setSystemTheme = (dark) => {
+        systemDark = dark === true;
+        for (const cb of [...listeners]) {
+          try { cb({ matches: systemDark, media: stub.media }); } catch {}
+        }
+        return true;
+      };
+      window.matchMedia = (q) =>
+        /prefers-color-scheme/.test(String(q)) ? stub : (orig ? orig(q) : stub);
+      window.__errs = [];
+      window.addEventListener('error', (e) => window.__errs.push('err: ' + (e.message || String(e))));
+      window.addEventListener('unhandledrejection', (e) => window.__errs.push('rej: ' + String(e.reason)));
+      window.__setValue = (el, v) => { if (!el) return false; el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); return true; };
+      window.__ready = () => !!document.querySelector('.settings-shell');
+    })();
   `,
 });
 
@@ -86,6 +114,17 @@ check('跟随系统：data-theme 与系统偏好一致', await waitEval(`documen
 check('跟随系统写入 localStorage', await waitEval(`(localStorage.getItem('noteapp.settings.v1') || '').includes('"system"')`));
 await evaluate(`(() => { const b = document.querySelector('[data-theme-choice="light"]'); if (!b) return false; b.click(); return true; })()`);
 check('切回浅色立即生效', await waitEval(`document.documentElement.dataset.theme === 'light'`));
+check('非「跟随系统」档位不挂系统主题监听', await evaluate(`window.__listenerCount() === 0`));
+
+// 通用：主题「跟随系统」是实时跟随的（系统主题变化 → 立即重算，无需重开窗口）
+await evaluate(`(() => { const b = document.querySelector('[data-theme-choice="system"]'); if (!b) return false; b.click(); return true; })()`);
+check('「跟随系统」已挂上监听', await waitEval(`window.__listenerCount() >= 1`));
+await evaluate(`window.__setSystemTheme(true)`);
+check('系统转深色时立即跟随（无需重开窗口）', await waitEval(`document.documentElement.dataset.theme === 'dark'`));
+await evaluate(`window.__setSystemTheme(false)`);
+check('系统转回浅色时立即跟随', await waitEval(`document.documentElement.dataset.theme === 'light'`));
+await evaluate(`(() => { const b = document.querySelector('[data-theme-choice="light"]'); if (!b) return false; b.click(); return true; })()`);
+check('切到固定浅色后释放系统主题监听', await waitEval(`window.__listenerCount() === 0`));
 
 // 编辑器：自动保存去抖
 await evaluate(`[...document.querySelectorAll('.nav-btn')].find((b) => b.textContent.includes('编辑器')).click()`);

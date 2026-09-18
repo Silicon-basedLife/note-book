@@ -19,7 +19,7 @@
   import { ACTIONS as ACTION_CATALOG } from '../lib/settings/catalog.ts';
   import { effectiveShortcuts } from '../lib/settings/shortcuts.ts';
   import { loadSettings, saveSettings, subscribeSettings } from '../lib/settings/store.ts';
-  import { applyThemeMode } from '../lib/desktop/theme.ts';
+  import { ThemeFollower } from '../lib/desktop/theme.ts';
 
   // ---------- 类型 ----------
   interface ListItem {
@@ -102,6 +102,8 @@
   let registry = $state<ActionRegistry>(new ActionRegistry());
   let unsubSettings: (() => void) | undefined;
   let panelsSaveTimer: ReturnType<typeof setTimeout> | undefined;
+  // 主题运行时：只在「跟随系统」时订阅 prefers-color-scheme 变化，切档自动换订阅
+  const themeFollower = new ThemeFollower();
 
   // ---------- 计算 ----------
   const isDeletedCurrent = $derived(!!current?.deleted);
@@ -954,7 +956,7 @@
     void (async () => {
       const loaded = await loadSettings();
       settings = loaded;
-      applyThemeMode(loaded.general.theme);
+      themeFollower.update(loaded.general.theme);
       registerActions(loaded);
       core = await createCore();
       core.on(() => refresh());
@@ -970,7 +972,7 @@
       }
       unsubSettings = subscribeSettings((next) => {
         settings = next;
-        applyThemeMode(next.general.theme);
+        themeFollower.update(next.general.theme);
         registerActions(next);
         dock?.setConfig({ ...next.dock });
       });
@@ -981,6 +983,7 @@
       window.removeEventListener('blur', flushTimer);
       releasePointer();
       unsubSettings?.();
+      themeFollower.stop();
       dock?.destroy();
       if (panelsSaveTimer) clearTimeout(panelsSaveTimer);
       if (saveTimer) clearTimeout(saveTimer);

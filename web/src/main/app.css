@@ -316,7 +316,8 @@ input, select, textarea { font: inherit; color: inherit; }
 .hljs-doctag { color: #ff7b72; }
 
 /* ===== 浮层 / 弹窗 / 提示 ===== */
-.overlay { position: fixed; inset: 0; background: var(--overlay); display: grid; place-content: center; z-index: 40; padding: 20px; }
+/* 用 flex 而非 grid 居中：panel 现在带 1px 边框，grid 会把边框算进 min(440px, 92vw) 导致弹窗被拉宽 2px */
+.overlay { position: fixed; inset: 0; background: var(--overlay); display: flex; align-items: center; justify-content: center; z-index: 40; padding: 20px; }
 .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow-panel); width: min(440px, 92vw); padding: 20px 22px; max-height: 84vh; overflow-y: auto; }
 .panel h3 { margin: 0 0 10px; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }

@@ -11,6 +11,8 @@ import {
   resolveTheme,
   SETTINGS_LS_KEY,
   systemPrefersDark,
+  ThemeFollower,
+  watchSystemTheme,
 } from '../web/src/lib/desktop/theme.ts';
 
 /** 最小 document 替身：只暴露 applyTheme 会用到的 documentElement */
@@ -128,4 +130,96 @@ test('applyCachedTheme：有快照→应用；无快照→不写 DOM（留给 CS
 test('applyThemeMode：按模式解析并应用（node 环境无 document 也不抛错）', () => {
   assert.equal(applyThemeMode('light'), 'light');
   assert.equal(applyThemeMode('system'), 'light'); // 无 matchMedia → 浅色
+});
+
+// ---------- 实时跟随系统主题 ----------
+
+/** 受控的 window/matchMedia 替身：可切换系统偏好并统计监听器数量 */
+function fakeWindow(initialDark = false) {
+  let dark = initialDark;
+  const listeners = new Set();
+  const mql = {
+    media: '(prefers-color-scheme: dark)',
+    get matches() { return dark; },
+    addEventListener: (type, cb) => { if (type === 'change') listeners.add(cb); },
+    removeEventListener: (type, cb) => { if (type === 'change') listeners.delete(cb); },
+  };
+  return {
+    win: {
+      matchMedia: (q) => (String(q).includes('prefers-color-scheme')
+        ? mql
+        : { matches: false, addEventListener() {}, removeEventListener() {} }),
+    },
+    doc: { documentElement: { dataset: {}, style: {} } },
+    listenerCount: () => listeners.size,
+    /** 模拟系统主题切换：改状态并通知监听器 */
+    setSystemTheme(next) {
+      dark = next;
+      for (const cb of [...listeners]) cb({ matches: dark, media: mql.media });
+    },
+  };
+}
+
+test('watchSystemTheme：只在 system 档位订阅，变化时立即重算主题', () => {
+  const env = fakeWindow(false);
+
+  // 显式浅/深：不订阅，返回的函数可安全调用
+  const noop = watchSystemTheme('light', env.win, env.doc);
+  assert.equal(env.listenerCount(), 0);
+  assert.doesNotThrow(() => noop());
+
+  const stop = watchSystemTheme('system', env.win, env.doc);
+  assert.equal(env.listenerCount(), 1);
+
+  env.setSystemTheme(true);
+  assert.equal(env.doc.documentElement.dataset.theme, 'dark');
+  env.setSystemTheme(false);
+  assert.equal(env.doc.documentElement.dataset.theme, 'light');
+
+  stop();
+  assert.equal(env.listenerCount(), 0);
+  env.setSystemTheme(true);
+  assert.equal(env.doc.documentElement.dataset.theme, 'light'); // 已取消，不再被改
+});
+
+test('watchSystemTheme：环境不支持 addEventListener 时静默降级（不抛错）', () => {
+  const win = { matchMedia: () => ({ matches: false }) }; // 老式 mql：只有 matches / addListener
+  const doc = { documentElement: { dataset: {}, style: {} } };
+  const stop = watchSystemTheme('system', win, doc);
+  assert.equal(typeof stop, 'function');
+  assert.doesNotThrow(() => stop());
+});
+
+test('ThemeFollower：档位切换时自动换订阅（system 挂上、light/dark 释放）', () => {
+  const env = fakeWindow(false);
+  const follower = new ThemeFollower(env.win, env.doc);
+
+  assert.equal(follower.update('system'), 'light');
+  assert.equal(env.listenerCount(), 1);
+
+  env.setSystemTheme(true);
+  assert.equal(env.doc.documentElement.dataset.theme, 'dark');
+
+  // 切到固定深色：监听应释放，系统再变也不影响
+  assert.equal(follower.update('dark'), 'dark');
+  assert.equal(env.listenerCount(), 0);
+  env.setSystemTheme(false);
+  assert.equal(env.doc.documentElement.dataset.theme, 'dark');
+
+  // 切回跟随系统：重新挂上，并按当前系统偏好解析
+  assert.equal(follower.update('system'), 'light');
+  assert.equal(env.listenerCount(), 1);
+
+  follower.stop();
+  assert.equal(env.listenerCount(), 0);
+  assert.doesNotThrow(() => follower.stop()); // 可重复 stop
+});
+
+test('ThemeFollower：同一档位重复 update 不重建订阅', () => {
+  const env = fakeWindow(false);
+  const follower = new ThemeFollower(env.win, env.doc);
+  follower.update('system');
+  follower.update('system');
+  assert.equal(env.listenerCount(), 1);
+  follower.stop();
 });

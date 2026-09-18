@@ -24,7 +24,7 @@ npm run desktop:setup     # = scripts/setup.ps1：装 Rust(如缺) → 装依赖
 数据存放：`%APPDATA%\com.noteapp.desktop\notes\<id>.md`（笔记）+ 同目录 `meta.json`（文件夹等元数据），纯文本可随时备份。
 
 > 说明：本仓库的开发沙箱网络只放行 npm 源，`cargo` 需要的 crates.io / static.rust-lang.org 不可达，
-> 因此 **cargo/tauri 的最终编译需在你的本机终端执行**（`npm run desktop:setup`）。代码侧验证（116 项单测、
+> 因此 **cargo/tauri 的最终编译需在你的本机终端执行**（`npm run desktop:setup`）。代码侧验证（120 项单测、
 > tsc、vite build、真实 Chrome 冒烟）均已在此环境通过；Rust 薄壳只做 8 个文件读写命令（薄壳核心边界，
 > 见 [TECH_DESIGN §1.1/§2](docs/TECH_DESIGN.md)），前端存储适配器见 `web/src/lib/core/storage/tauri.ts`。
 >
@@ -69,7 +69,7 @@ npm run desktop:setup     # = scripts/setup.ps1：装 Rust(如缺) → 装依赖
 - **设置（独立窗口，首版）**：
   - 入口：侧栏底部「⚙️ 设置」或快捷键 `Ctrl + ,`；桌面为独立窗口（`settings.html`），Web 预览为新浏览器窗口
   - 分类：通用（**主题** / 启动布局 / 记住面板）、快捷键（改键 / 冲突提示 / 恢复默认）、存储（路径展示 / 打开目录 / **更改位置并迁移**）、编辑器（默认视图 / 自动保存去抖 / 拼写检查）、窗口与吸附（开关 / 吸附侧 / 缩进延迟 / 置顶 / 热区宽度 / 仅侧栏生效）、关于（版本与数据位置）
-  - 主题：三档（浅色 / 深色 / 跟随系统），立即生效并持久化；全部颜色走 CSS 变量（`web/src/main/app.css` 的 `[data-theme]` 两档 + 系统深色兜底），`<html data-theme>` 由窗口入口在挂载前同步写入，避免深色用户看到白底闪烁；「跟随系统」按 `prefers-color-scheme` 解析为具体档位
+  - 主题：三档（浅色 / 深色 / 跟随系统），立即生效并持久化；全部颜色走 CSS 变量（`web/src/main/app.css` 的 `[data-theme]` 两档 + 系统深色兜底），`<html data-theme>` 由窗口入口在挂载前同步写入，避免深色用户看到白底闪烁；「跟随系统」按 `prefers-color-scheme` 解析为具体档位，并在系统主题变化时**实时跟随**（只在 system 档订阅）
   - 存储：设置存 `settings.json`（应用配置目录）；存储位置指针存 `storage.json`；笔记与 `meta.json` 随笔记目录一起迁移，原目录保留作备份；目标目录须为空或仅含 `.md`/`meta.json`
   - 兼容：设置文件带 `version`，读取时未知字段原样保留（向后兼容）
 
@@ -113,7 +113,7 @@ npm run build          # 生产构建到 web/dist
 node web/scripts/serve-dist.mjs            # http://127.0.0.1:5174/
 # 3) 带 CDP 调试端口的 headless Chrome（独立临时 profile）：
 chrome --headless=new --user-data-dir=%TEMP%\na-smoke-profile --remote-debugging-port=9222 about:blank
-# 4) 跑冒烟（主窗口 56 项 + 设置窗口 20 项）：
+# 4) 跑冒烟（主窗口 57 项 + 设置窗口 25 项）：
 SMOKE_URL=http://127.0.0.1:5174/ node web/scripts/ui-smoke.mjs
 SMOKE_URL=http://127.0.0.1:5174/ node web/scripts/settings-smoke.mjs
 ```
@@ -167,6 +167,6 @@ demo/                     # 纯前端原型（参照保留）
 
 ## 验证状态
 
-- 单元/集成测试：全绿（`npm test`，**116 项**，见各 `tests/*.test.mjs`；含 `tests/theme.css.test.mjs` 对“颜色必须走主题变量”的样式契约校验）；
+- 单元/集成测试：全绿（`npm test`，**120 项**，见各 `tests/*.test.mjs`；含 `tests/theme.css.test.mjs` 对“颜色必须走主题变量”的样式契约校验）；
 - `tsc --noEmit` 通过；`vite build` 通过（双页产物：主窗口 + 设置窗口）；
-- 真实 Chrome 端到端冒烟：**主窗口 56/56、设置窗口 20/20** 通过（默认仅侧栏 / 面板级联与手柄 / 右键菜单 / 拖拽排序移动 / 手排 / 回收站还原批量 / 多选 / 含回收站搜索 / 设置改键与冲突 / **主题切换与重载保持** / 无控制台错误）。
+- 真实 Chrome 端到端冒烟：**主窗口 57/57、设置窗口 25/25** 通过（默认仅侧栏 / 面板级联与手柄 / 右键菜单 / 拖拽排序移动 / 手排 / 回收站还原批量 / 多选 / 含回收站搜索 / 设置改键与冲突 / **主题切换、持久化与实时跟随系统** / 无控制台错误）。
