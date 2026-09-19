@@ -133,3 +133,39 @@ test('renderMarkdown 输出整体过白名单（组合攻击样例）', () => {
   // 高亮后的代码块仍被保留为受控 <pre>/<code>
   assert.ok(html.includes('<pre class="code">'));
 });
+
+// ---------- 高亮 ==文字==（格式工具栏的渲染侧支持） ----------
+
+test('高亮：==文字== 渲染为 <mark>', () => {
+  const { html } = renderMarkdown('这是 ==重点== 内容');
+  assert.ok(html.includes('<mark>重点</mark>'), html);
+});
+
+test('高亮：高亮内部仍可嵌套其它行内语法', () => {
+  const { html } = renderMarkdown('==**粗体在高亮里**==');
+  assert.ok(html.includes('<mark><strong>粗体在高亮里</strong></mark>'), html);
+});
+
+test('高亮：未闭合的 == 按普通文本输出，不吞掉后续内容', () => {
+  const { html } = renderMarkdown('不闭合的 ==高亮');
+  assert.ok(html.includes('==高亮'));
+  assert.ok(!html.includes('<mark>'));
+});
+
+test('高亮：行内代码里的 == 不被当作高亮', () => {
+  const { html } = renderMarkdown('代码 `==x==` 里不高亮');
+  assert.ok(html.includes('<code>==x==</code>'), html);
+  assert.ok(!html.includes('<mark>'));
+});
+
+test('高亮：与删除线/粗体混用互不干扰', () => {
+  const { html } = renderMarkdown('~~删~~ 与 **粗** 与 ==亮==');
+  assert.ok(html.includes('<s>删</s>'));
+  assert.ok(html.includes('<strong>粗</strong>'));
+  assert.ok(html.includes('<mark>亮</mark>'));
+});
+
+test('高亮：<mark> 属于白名单标签，能穿过清洗', () => {
+  const { html } = renderMarkdown('==x==');
+  assert.ok(html.includes('<mark>x</mark>'));
+});

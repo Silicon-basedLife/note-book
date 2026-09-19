@@ -1,8 +1,10 @@
 // markdown.ts —— Markdown 渲染管线（对应 docs/TECH_DESIGN.md §4）
-// markdown-it + GFM（表格/删除线/链接化）+ highlight.js 语法高亮 + 白名单输出清洗。
+// markdown-it + GFM（表格/删除线/链接化）+ ==高亮==（markdown-it-mark）+ highlight.js 语法高亮
+// + 白名单输出清洗。
 // 待办列表由自定义 core 规则实现：勾选框带 data-offset（指向源文任务行 "-" 的字符偏移），
 // 预览点击后经 core.toggleTask 回写源文（demo 交互语义的平移 + 测试迁移）。
 import MarkdownIt from 'markdown-it';
+import mark from 'markdown-it-mark';
 import type { LanguageFn } from 'highlight.js';
 import hljs from 'highlight.js/lib/core';
 import javascript from 'highlight.js/lib/languages/javascript';
@@ -223,6 +225,7 @@ function createRenderer(): MarkdownIt {
     },
   });
   taskListPlugin(md);
+  md.use(mark); // ==高亮== → <mark>（mark 已在 ALLOWED_TAGS 白名单里）
   return md;
 }
 

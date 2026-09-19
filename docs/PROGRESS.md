@@ -164,26 +164,58 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
 - 跳转定位用“按行号比例估算 `textarea.scrollTop`”而不是精确滚动：`textarea` 无法按字符偏移精确滚动，比例估算在长文里已足够把目标行带进视口。
 - 聚合只读**活跃笔记**（`core.listNotes()`），回收站里的任务不参与汇总。
 
-### 1.9 桌面壳与构建
+### 1.9 Markdown 格式工具栏（本轮新增）
+
+> 起因：用户提出「不太会用 Markdown，不会加粗/斜体/代码块」。讨论后的结论是**不要让用户背符号**，
+> 用一组按钮替他把语法打好；同时明确不做富文本（会破坏“笔记是纯文本”的根基）。
+
+| 事项 | 实现位置 |
+|---|---|
+| 纯逻辑：`toggleWrap`（行内包裹/取消，同字符标记按“层”判定）、`toggleLinePrefix`（行首前缀，互斥前缀按最长匹配归属）、`toggleOrderedList`（逐行编号）、`codeBlock`/`link`/`table`/`horizontalRule`（块插入）、`FORMAT_BUTTONS`/`FORMAT_GROUPS`/`FORMAT_SHORTCUTS` 目录 | `web/src/lib/core/md-format.ts`（新增） |
+| 统一表达：每个操作都产出「替换 [replaceStart, replaceEnd) 为 replacement + 新选区」，UI 据此既能直改值、也能走原生插入通道 | `FormatResult` |
+| 渲染支持：`==高亮==` → `<mark>` | `markdown.ts` 里 `md.use(mark)`（`markdown-it-mark@4`，`mark` 本就在清洗白名单里）；类型补充见 `web/src/types/markdown-it-mark.d.ts` |
+| UI：编辑区上方 `.format-bar`，按 inline/heading/block/insert 分组、组间细竖线，`⋯ 更多` 收纳 `inline-code` 与 `hr`，右侧独立一组撤销/重做；预览视图下隐藏 | `App.svelte`（`#format-bar` / `#fmt-<id>` / `#fmt-more` / `#fmt-undo` / `#fmt-redo`）、`app.css` |
+| 交互：选中文字→包裹；未选中→插入模板并定位光标；再点一次取消；按钮 `onmousedown` 阻止默认以保住 textarea 选区 | `App.svelte` 的 `applyFormatAction` / `replaceEditorRange` |
+| 撤销/重做：按钮与 `Ctrl+Z`/`Ctrl+Y` 共用浏览器**原生撤销栈**（格式编辑经 `execCommand('insertText')` 落地，因此可被原生撤销） | `editorUndo` / `editorRedo` |
+| 快捷键：`format-bold`(Ctrl+B)、`format-italic`(Ctrl+I) 进设置目录，可在设置里改键 | `web/src/lib/settings/catalog.ts` |
+| 测试 | `tests/core.md-format.test.mjs`（38 项）、`tests/core.markdown.test.mjs` 新增 6 项高亮渲染 |
+| 冒烟断言 | 主窗口 15 项：工具栏渲染/按钮齐全 → 加粗逐字比对 → 撤销 → 重做 → 高亮逐字比对 → `<mark>` 渲染 → H1 行首前缀逐字比对（防“插入而非替换”） → 再次点击还原 → 取消高亮 → 折叠区展开/收起 → 预览下隐藏与恢复（共 98 项） |
+
+**本轮抓到并修掉的一个真实缺陷**（值得记住）：
+`execCommand('insertText')` 是**在光标处插入**、并不删除选区。最初我算了 `replaceStart/replaceEnd` 却**没有在调用前把选区设成这个区间**，
+于是行首前缀类操作（H1/列表）把整行又拼了一遍——值变成 `# ==内容==...==内容==...` 这种重复串。
+更糟的是我最初的断言只查 `startsWith('# ')`，**恰好能通过**，所以差点漏掉。
+现在两处都修了：① 调用前 `setSelectionRange(res.replaceStart, res.replaceEnd)`；
+② 调用后用 `ta.value === res.text` 校验，不一致就走回退路径纠正；
+③ 冒烟断言改为**逐字比对**（`value === 期望完整字符串`），这类“只在局部看起来对”的缺陷再也过不去。
+
+设计取舍：
+- **不做富文本（WYSIWYG）**：会破坏“一条笔记一个纯文本 `.md`、任何编辑器都能打开”的根本优点，且牵动搜索/待办回写/回收站一整串既有能力。
+- **不做字体颜色**：Markdown 无标准语法，只能用内联 HTML，而现有安全清洗会剥掉内联样式；改用 `==高亮==`（背景色标记）满足“突出显示”的需求。
+- 同字符标记的“已生效”判定：单字符标记（`*` 斜体、`` ` ``）当连续字符数为**奇数**时才算生效；多字符（`**`、`~~`、`==`）连续数 ≥ 标记长度即算。
+  这样在 `**粗**` 上点斜体会补成 `***粗***`（保留粗体），而 `***x***` 上点粗体会去掉粗体留斜体。
+- 行首前缀归属按**最长匹配**：`- [ ] x` 算待办而不是无序列表，所以「待办 ↔ 列表」互转能正确整段替换前缀。
+
+### 1.10 桌面壳与构建
 
 - Rust 薄壳：`list/read/write/remove_note_file`、`read/write/remove_meta`、`read/write_settings`、`get_storage_info`、`open_path`、`pick_folder`、`migrate_notes`
 - 权限、双窗口配置、应用图标（`src-tauri/icons/`）
 - `scripts/setup.ps1`：ASCII 化（避免 PowerShell 5.1 编码问题）、自动结束运行中的 `noteapp.exe`（避免 exe 被占用）、`--no-bundle` 默认产出可运行 exe
 - README 全量说明；`demo/` 保留为原型（另有一次提交 `a1cba63` 把它升级成文件夹+笔记双实体 + IndexedDB，并带自己的测试）
 
-### 1.10 验证现状（本沙箱；主题落地前的历史基线）
+### 1.11 验证现状（本沙箱；主题落地前的历史基线）
 
 - 单元/集成测试：102 项全绿（`npm test`）
 - 真实 Chrome 冒烟：主窗口 51/51、设置窗口 14/14
 - `tsc --noEmit` 通过；`vite build` 通过（双页产物）
 - 覆盖点：frontmatter 往返、回收站全流程、手排/文件夹排序、搜索转义、Markdown/XSS、动作注册表、设置归一化/冲突/未知字段、存储字段契约、QQ 吸附纯计算、UI 面板宽度断言
 
-### 1.11 验证现状（本沙箱，当前）
+### 1.12 验证现状（本沙箱，当前）
 
-- **单元/集成测试：142 项全绿**（`npm test`；102 → 116（主题）→ 120（实时跟随）→ 129（标签/置顶）→ 142（待办聚合））
-- **真实 Chrome 冒烟：主窗口 83/83、设置窗口 25/25**（本轮新增待办相关 9 项）
+- **单元/集成测试：186 项全绿**（`npm test`；102 → 116（主题）→ 120（实时跟随）→ 129（标签/置顶）→ 142（待办聚合）→ 186（格式工具栏 +38，高亮渲染 +6））
+- **真实 Chrome 冒烟：主窗口 98/98、设置窗口 25/25**（本轮新增格式工具栏 15 项）
 - `tsc --noEmit` 通过；`vite build` 通过（双页产物，含 head 内联主题引导脚本）
-- 环境提示：本沙箱里 `vite build` 与 headless Chrome 都必须以 `danger-full-access` 升级执行（esbuild spawn / Chrome mojo 命名管道）；冒烟脚本要放到后台作业里跑，避免前台超时被中断导致误判；**CDP 实例跑几轮后要换端口重启**（标签页累积会导致 WS 异常），且 `$env:TEMP` 每次调用都不同、不要用它做跨调用临时文件路径
+- 环境提示：本沙箱里 `vite build` 与 headless Chrome 都必须以 `danger-full-access` 升级执行（esbuild spawn / Chrome mojo 命名管道）；冒烟脚本要放到后台作业里跑，避免前台超时被中断导致误判；**CDP 实例跑几轮后要换端口重启**（标签页累积会导致 WS 异常，表现为脚本挂住或 `Inspected target navigated or closed`），且 `$env:TEMP` 每次调用都不同、不要用它做跨调用临时文件路径
 
 ---
 
@@ -208,13 +240,22 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
    - 行右键应有「置顶 / 取消置顶」；多选后操作条有「置顶 / 取消置顶」；
    - 标签与置顶都写在 `.md` 的 frontmatter（`tags: [...]` / `pinned: true`），用记事本/其它编辑器打开应能看到；
    - 置顶笔记**不能**被拖到非置顶区（会被拦并提示），这是有意设计。
-7. **本轮待办聚合**（前端，本沙箱已用真实 Chrome 验证交互与回写，但**桌面端观感需你本机确认**）：
+8. **待办聚合**（前端，本沙箱已用真实 Chrome 验证交互与回写，但**桌面端观感需你本机确认**）：
    - 侧栏「☑️ 待办」→ 应汇总全库未完成任务（未完成在前，角标为未完成数）；
    - 勾选某条 → 该条从未完成清单消失，**打开对应笔记能看到源文已变成 `- [x]`**；
    - 点任务文本 → 跳回原笔记、编辑区滚动到该行附近并短暂高亮（1.8s）；
    - 「显示已完成」→ 已完成项带删除线显示；
    - 若某篇笔记任务很多，确认跳转后的滚动位置是否够准（文本框只能按行号比例估算）。
-8. **发布确认**：按 §8 推送并创建 Release（`v0.1.0`，说明中已注明“不含快速便签/悬浮窗”），确认 Release 里能看到 `NoteApp.exe`（用 Actions 构建则还有 MSI/NSIS）。
+9. **本轮格式工具栏**（前端，本沙箱已用真实 Chrome 逐字校验，但**桌面端观感与手感需你本机确认**）：
+   - 打开任意笔记，编辑区上方应出现一排按钮（B / I / S / 高亮 / H1 H2 H3 / • 1. ☑ ❝ </> / 🔗 ▦ / ⋯ / ↶ ↷）；
+   - **选中一段文字点 B** → 文字两边出现 `**`，预览里变粗；再点一次 B → 恢复；
+   - **点「高亮」** → 预览里该段文字有黄底（这就是你要的“换色”效果）；
+   - **点「</>」代码块** → 插入一对围栏、光标在中间；**点「▦」表格** → 插入一张空表；
+   - **点「⋯」** → 展开行内代码与分隔线；点空白处应收起；
+   - **撤销/重做按钮**与 `Ctrl+Z` / `Ctrl+Y` 应该是同一套（用按钮改了格式后按 Ctrl+Z 也能回退）；
+   - 切到「预览」视图时工具栏会隐藏（只读），切回「编辑/分屏」回来；
+   - 若某个按钮在你的使用习惯下应该换个位置或名字，直接说，改名/换位是纯前端小改动。
+10. **发布确认**：按 §8 推送并创建 Release（`v0.1.0`，说明中已注明“不含快速便签/悬浮窗”），确认 Release 里能看到 `NoteApp.exe`（用 Actions 构建则还有 MSI/NSIS）。
 
 ---
 
@@ -227,6 +268,7 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
 | ~~主题（浅色/深色/跟随系统）~~ | **已完成**，见 §1.6 |
 | ~~标签系统 / 笔记置顶（pin）~~ | **已完成**，见 §1.7 |
 | ~~待办聚合视图（汇总所有未完成）~~ | **已完成**，见 §1.8 |
+| ~~格式工具栏（Markdown 语法可视化）~~ | **已完成**，见 §1.9（不在原 ROADMAP 里，来自用户“不会用 Markdown”的反馈） |
 | 多级目录 | 目前一级（子文件夹） |
 | 附件：粘贴/拖拽图片入库 | 需定附件目录规则（存储页已留“附件目录”讨论位） |
 | 命令面板（Ctrl+K 已用于搜索聚焦）+ 全局热键设置页 | 动作注册表已就绪，只需接 Tauri global-shortcut 插件 |
@@ -251,6 +293,7 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
 - Rust 侧没有本地编译验证通道（无 cargo），依赖用户机器构建；建议每次改 Rust 后让用户回贴 cargo 输出。
 - `demo/` 与被 `a1cba63` 升级后的 `demo/js/db.mjs`、`tests/store.test.mjs` 相关测试仍在跑，属于原型层，不影响生产实现。
 - **Svelte 5 响应式坑（已踩过两次，务必记住）**：`$derived` 不会追踪「被它调用的函数内部」读取的 state。凡是要随数据变化的派生值，必须在 `$derived` 表达式里**直接读** state（如 `listItems`），或改由 `refresh()` 显式写入 state（如 `allTags`）。写成 `someFn(core.xxx())` 只会算一次并永久停留在首次结果。
+- **`execCommand('insertText')` 的坑（见 §1.9）**：它是“在光标处插入”，**不会**替你删除选区。要用它替换一段区间，必须先 `setSelectionRange(replaceStart, replaceEnd)`，并在调用后用 `textarea.value === 期望文本` 校验结果。同理，写断言时不要只用 `startsWith`/`includes`——用**逐字比对**才能拦住“局部看起来对”的缺陷。
 - `App.svelte` 里保留了一个 Web 预览专用的诊断钩子 `window.__diag()`（仅 `!isTauri()` 时挂载），用于排障与冒烟定位；如果觉得碍事可以删。
 
 ---
@@ -260,10 +303,10 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
 ### Step 0：恢复上下文
 1. `git status` 确认干净；`git log --oneline -5` 确认 HEAD（本次交接提交后以 `git log -1` 为准；此前为 `518875e`）。
 2. 读 `docs/PROGRESS.md`（本文件）→ `AGENTS.md` → `README.md`。
-3. 跑一遍基线：`node --test --test-isolation=none "tests/**/*.test.mjs"`（应 142 通过）。
+3. 跑一遍基线：`node --test --test-isolation=none "tests/**/*.test.mjs"`（应 186 通过）。
 
 ### Step 1：先收口“待确认项”
-- 让用户执行 `npm run desktop:setup`，按 §2 的 1–8 条逐项确认（含主题观感、标签与置顶、待办聚合）。
+- 让用户执行 `npm run desktop:setup`，按 §2 的 1–10 条逐项确认（含主题观感、标签与置顶、待办聚合、格式工具栏）。
 - 有报错就修；Rust 报错优先看 `src-tauri/src/fs_store.rs` 与实际 cargo 输出。
 
 ### Step 2：按优先级做新功能（每次一项，走完整闭环）
@@ -273,6 +316,7 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
 3. **悬浮速记/快搜窗**：以设置窗口为样板加第三窗口 + tray（`tauri-plugin-*` 需新增依赖，注意让用户本机构建验证）。
 4. **多级目录 / 导出 HTML / 字数统计扩展 / 回收站自动清理** 等按需推进（§3.1 剩余项）。
 5. 主题与标签的后续小项（可选）：代码块主题跟随、高对比档；标签重命名/批量管理、标签出现在搜索结果里、按标签统计面板；待办聚合的“按文件夹/标签分组”“已办保留期”。
+6. 格式工具栏的后续小项（可选）：字号/对齐类（Markdown 无标准语法，需评估）、插入图片（等附件功能）、把常用按钮做成可自定义排序、给按钮加“当前是否生效”的高亮态（需按光标位置反查语法）。
 
 ### Step 3：每项改动的固定动作（AGENTS.md 要求）
 1. 先写/改测试（core 纯逻辑放 `tests/core.*.test.mjs`；设置相关放 `tests/core.settings.test.mjs`/`core.storage-info.test.mjs`）。
@@ -306,6 +350,7 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
 | 主题 | `web/src/lib/desktop/theme.ts`（解析/应用/首屏引导）、`web/src/main/app.css` 顶部两档变量、`web/index.html`+`web/settings.html` 内联引导、`tests/theme.css.test.mjs`（样式契约） |
 | 标签 / 置顶 | `web/src/lib/core/tags.ts`（纯逻辑+单测）、`store.ts` 的 `sortPinnedFirst`/`applyManualOrder`、`App.svelte` 的 `#tagbar`/`#tag-editor`/`#pin-toggle`、`tests/core.tags-pin.test.mjs` |
 | 待办聚合 | `web/src/lib/core/todos.ts`（行扫描+汇总+过滤，纯逻辑+单测）、`App.svelte` 的 `.todo-row`/`todoItems`/`openTodoSource`/`toggleShowDoneTodos`、`tests/core.todos.test.mjs` |
+| 格式工具栏 | `web/src/lib/core/md-format.ts`（纯逻辑 + `FORMAT_BUTTONS` 目录，单测 `tests/core.md-format.test.mjs`）、`App.svelte` 的 `#format-bar`/`applyFormatAction`/`replaceEditorRange`/`editorUndo`、`app.css` 的 `.format-bar` 段、高亮渲染在 `markdown.ts`（`md.use(mark)`） |
 | Rust 命令 | `src-tauri/src/fs_store.rs`（所有命令）、`src-tauri/src/lib.rs`（注册） |
 | 权限/窗口配置 | `src-tauri/capabilities/default.json`、`src-tauri/tauri.conf.json` |
 | 构建脚本 | `scripts/setup.ps1`、根 `package.json` 脚本 |
@@ -326,13 +371,14 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
 - 存储位置：**首版就要能更改并迁移**
 - 每次改动：**Git commit + 测试全绿**（AGENTS.md）
 - 主题：**三档（浅色 / 深色 / 跟随系统），默认浅色**；「跟随系统」实时跟随系统主题变化（只在 system 档订阅）
+- 格式工具栏：**不做富文本所见即所得**（会破坏“纯文本 .md”的根基）、**不做字体颜色**（Markdown 无标准语法，改用 `==高亮==` 背景标记）；只做“点按钮替你打符号”
 
 ---
 
 ## 7. 复现验证的最短命令
 
 ```powershell
-# 单测（116）
+# 单测（186）
 node --test --test-isolation=none "tests/**/*.test.mjs"
 
 # 类型检查
@@ -342,10 +388,10 @@ npm --prefix web run typecheck
 npm --prefix web run build
 
 # Web 冒烟（两个窗口；Chrome 同样需 danger-full-access 升级，且建议换端口避免旧实例干扰）
-node web/scripts/serve-dist.mjs 5180                 # 终端 A：5180
-chrome --headless=new --user-data-dir=%TEMP%\na-smoke --remote-debugging-port=9244 about:blank   # 终端 B
-$env:CDP_PORT='9244'; $env:SMOKE_URL='http://127.0.0.1:5180/'; node web/scripts/ui-smoke.mjs        # 56 项
-$env:CDP_PORT='9244'; $env:SMOKE_URL='http://127.0.0.1:5180/'; node web/scripts/settings-smoke.mjs  # 20 项
+node web/scripts/serve-dist.mjs 5190                 # 终端 A：5190
+chrome --headless=new --user-data-dir=%TEMP%\na-smoke --remote-debugging-port=9345 about:blank   # 终端 B
+$env:CDP_PORT='9345'; $env:SMOKE_URL='http://127.0.0.1:5190/'; node web/scripts/ui-smoke.mjs        # 98 项
+$env:CDP_PORT='9345'; $env:SMOKE_URL='http://127.0.0.1:5190/'; node web/scripts/settings-smoke.mjs  # 25 项
 
 # 桌面构建与自测（用户本机）
 npm run desktop:setup     # 产出 src-tauri\target\release\NoteApp.exe

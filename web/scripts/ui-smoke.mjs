@@ -189,6 +189,64 @@ if (await evaluate('window.__ready()')) {
   await evaluate(`document.querySelector('#pin-toggle').click()`);
   check('取消置顶后徽标消失', await waitEval(`!document.querySelector('.badge-pin')`, 8000));
 
+  // 5.7) 格式工具栏：按钮生效 / 撤销重做 / 高亮渲染 / 更多折叠
+  check('格式工具栏渲染（分组 + 按钮）', await waitEval(`!!document.querySelector('#format-bar') && !!document.querySelector('#fmt-bold') && document.querySelectorAll('#format-bar .fmt-group').length >= 5`, 8000));
+  check('工具栏含加粗/斜体/标题/列表/代码块/链接/表格', await evaluate(`['bold','italic','strike','highlight','h1','h2','h3','bullet','ordered','todo','quote','code-block','link','table'].every((id) => !!document.querySelector('#fmt-' + id))`));
+
+  const editorValue = `document.querySelector('#editor').value`;
+  /** 选中 [from,to) 后点某个格式按钮，返回新的正文 */
+  const selFmt = async (from, to, id) => {
+    await evaluate(`(() => { const ta = document.querySelector('#editor'); ta.focus(); ta.setSelectionRange(${from}, ${to}); return true; })()`);
+    await evaluate(`document.querySelector('#fmt-${id}').click()`);
+    await new Promise((r) => setTimeout(r, 150));
+    return await evaluate(editorValue);
+  };
+  // 全文逐字比对：能拦住“插入而非替换”这类只在局部看起来对的缺陷
+  const fmtBody = await evaluate(editorValue);
+  const boldExpected = `**${fmtBody.slice(0, 2)}**${fmtBody.slice(2)}`;
+  const hlExpected = `==${fmtBody.slice(0, 2)}==${fmtBody.slice(2)}`;
+
+  const bolded = await selFmt(0, 2, 'bold');
+  check('加粗：恰好给选中文字包上 ** （未重复拼接）', bolded === boldExpected, `${JSON.stringify(bolded)} vs ${JSON.stringify(boldExpected)}`);
+
+  await evaluate(`document.querySelector('#fmt-undo').click()`);
+  check('撤销按钮回退加粗（原生撤销栈可用）', await waitEval(`${editorValue} === ${JSON.stringify(fmtBody)}`, 6000));
+  await evaluate(`document.querySelector('#fmt-redo').click()`);
+  check('重做按钮恢复加粗', await waitEval(`${editorValue} === ${JSON.stringify(boldExpected)}`, 6000));
+  await evaluate(`document.querySelector('#fmt-undo').click()`);
+  await waitEval(`${editorValue} === ${JSON.stringify(fmtBody)}`, 6000);
+
+  const highlighted = await selFmt(0, 2, 'highlight');
+  check('高亮：恰好给选中文字包上 == （未重复拼接）', highlighted === hlExpected, `${JSON.stringify(highlighted)} vs ${JSON.stringify(hlExpected)}`);
+  check('预览把 ==文字== 渲染为高亮（<mark>）', await waitEval(`!!document.querySelector('#preview mark')`, 8000));
+  check('预览里高亮内容正确', await evaluate(`document.querySelector('#preview mark').textContent === ${JSON.stringify(fmtBody.slice(0, 2))}`));
+
+  // 行首前缀类最容易暴露“插入而非替换”：整行必须原样保留，只多一个前缀
+  await evaluate(`(() => { const ta = document.querySelector('#editor'); ta.focus(); ta.setSelectionRange(0, 0); return true; })()`);
+  await evaluate(`document.querySelector('#fmt-h1').click()`);
+  await new Promise((r) => setTimeout(r, 150));
+  const h1On = await evaluate(editorValue);
+  check('H1：行首加 # 且整行未被复制', h1On === `# ${hlExpected}`, `${JSON.stringify(h1On)} vs ${JSON.stringify(`# ${hlExpected}`)}`);
+  await evaluate(`document.querySelector('#fmt-h1').click()`);
+  await new Promise((r) => setTimeout(r, 150));
+  const h1Off = await evaluate(editorValue);
+  check('H1 再点一次完全还原', h1Off === hlExpected, `${JSON.stringify(h1Off)} vs ${JSON.stringify(hlExpected)}`);
+
+  // 清理高亮，避免影响后续「回收站」等断言（只选被高亮的那一段，而不是整行）
+  const hlSpanEnd = hlExpected.indexOf('==', 2) + 2;
+  const cleared = await selFmt(0, hlSpanEnd, 'highlight');
+  check('高亮可被取消（回到原文）', cleared === fmtBody, `${JSON.stringify(cleared)} vs ${JSON.stringify(fmtBody)}`);
+
+  // 「⋯ 更多」折叠区
+  await evaluate(`document.querySelector('#fmt-more').click()`);
+  check('「⋯ 更多」展开折叠面板（含行内代码/分隔线）', await waitEval(`!!document.querySelector('#fmt-more-panel') && !!document.querySelector('#fmt-inline-code') && !!document.querySelector('#fmt-hr')`, 5000));
+  await evaluate(`document.querySelector('#fmt-more').click()`);
+  check('再点收起折叠面板', await waitEval(`!document.querySelector('#fmt-more-panel')`, 5000));
+  await evaluate(`[...document.querySelectorAll('#mode-seg button')].find((x) => x.textContent.includes('预览')).click()`);
+  check('工具栏在「预览」视图下隐藏', await waitEval(`!document.querySelector('#format-bar')`, 5000));
+  await evaluate(`[...document.querySelectorAll('#mode-seg button')].find((x) => x.textContent.includes('编辑')).click()`);
+  check('切回编辑视图后工具栏回来', await waitEval(`!!document.querySelector('#format-bar')`, 5000));
+
   await evaluate(`[...document.querySelectorAll('.ed-right .btn-danger')][0].click()`);
   check('删除需二次确认（进回收站文案）', await waitEval(`!!document.querySelector('.modal-card') && document.body.textContent.includes('回收站')`));
   check('弹窗宽度未被边框撑宽（≤440）', await evaluate(`(() => { const r = document.querySelector('.modal-card').getBoundingClientRect(); return r.width > 420 && r.width <= 440; })()`));

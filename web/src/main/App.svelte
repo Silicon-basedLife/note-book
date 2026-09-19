@@ -14,6 +14,10 @@
   import { SCOPE_ALL } from '../lib/core/store.ts';
   import { collectTodos, countTodos, filterTodos, type TodoItem } from '../lib/core/todos.ts';
   import {
+    FORMAT_BUTTONS, FORMAT_GROUPS, formatButton,
+    type FormatActionId, type FormatResult,
+  } from '../lib/core/md-format.ts';
+  import {
     countTags, hasTag, mergeTags, normalizeTag, parseTagInput, removeTag, type TagCount,
   } from '../lib/core/tags.ts';
   import { ActionRegistry, type ActionDef, type Shortcut } from '../lib/core/actions.ts';
@@ -1106,6 +1110,8 @@
     'save-now': () => { if (ready) void flush(); },
     'open-settings': () => { void openSettingsWindow(); },
     'help': () => { helpOpen = !helpOpen; },
+    'format-bold': () => { void applyFormatAction('bold'); },
+    'format-italic': () => { void applyFormatAction('italic'); },
   };
 
   /** 依据设置中的键位（含自定义覆盖/禁用）重新注册全部动作 */
@@ -1157,6 +1163,85 @@
   // ---------- 其它 ----------
   let editorRef: HTMLTextAreaElement | undefined = $state();
   let renameInput: HTMLInputElement | undefined = $state();
+  /** 格式工具栏：「⋯ 更多」折叠区是否展开 */
+  let moreFormatsOpen = $state(false);
+  let moreFormatsEl: HTMLElement | undefined = $state();
+
+  // ---------- 格式工具栏 ----------
+  /** 「更多」之外的按钮（按分组顺序渲染） */
+  const primaryFormatButtons = FORMAT_BUTTONS.filter((b) => !b.more);
+  const moreFormatButtons = FORMAT_BUTTONS.filter((b) => b.more);
+
+  /**
+   * 把一次格式编辑落到编辑器。
+   * 优先走 textarea 的原生插入通道（execCommand insertText）——这样这次修改会进入浏览器
+   * 原生撤销栈，Ctrl+Z / Ctrl+Y 照常可用；不支持时回退为直接改值。
+   *
+   * 关键点：调用 execCommand 之前必须把选区设成**待替换区间**，否则 insertText 会在当前光标处
+   * 插入而不删除原文，导致文本被重复拼接（例如行首前缀类操作）。
+   */
+  async function replaceEditorRange(res: FormatResult, ta: HTMLTextAreaElement) {
+    if (!current) return;
+    // 先刷掉待写的去抖保存，避免它在这次编辑之后才落旧内容
+    await flush();
+    const original = current.body.slice(res.replaceStart, res.replaceEnd);
+    if (res.replacement === original) {
+      // 文本没有实际变化，只调整选区
+      ta.focus();
+      ta.setSelectionRange(res.start, res.end);
+      return;
+    }
+    let usedNative = false;
+    try {
+      ta.focus();
+      ta.setSelectionRange(res.replaceStart, res.replaceEnd);
+      usedNative = typeof document.execCommand === 'function'
+        && document.execCommand('insertText', false, res.replacement) === true;
+    } catch {
+      usedNative = false;
+    }
+    // 校验原生插入的结果与预期一致，否则走回退路径纠正
+    if (usedNative && ta.value === res.text) {
+      ta.setSelectionRange(res.start, res.end);
+      return;
+    }
+    current.body = res.text;
+    markDirty();
+    ta.focus();
+    ta.setSelectionRange(res.start, res.end);
+  }
+
+  /** 应用一个格式动作（工具栏按钮与 Ctrl+B / Ctrl+I 共用） */
+  async function applyFormatAction(id: FormatActionId) {
+    moreFormatsOpen = false;
+    if (!ready || !current || current.deleted) return;
+    const ta = editorRef;
+    if (!ta) return; // 预览视图下没有 textarea，格式操作不适用
+    const btn = formatButton(id);
+    if (!btn) return;
+    const res = btn.apply({ text: current.body, start: ta.selectionStart, end: ta.selectionEnd });
+    await replaceEditorRange(res, ta);
+  }
+
+  /** 撤销 / 重做：直接走浏览器原生撤销栈（与 Ctrl+Z / Ctrl+Y 是同一套） */
+  function editorUndo() {
+    if (!editorRef) return;
+    editorRef.focus();
+    try { document.execCommand('undo'); } catch { /* 不支持则静默 */ }
+  }
+  function editorRedo() {
+    if (!editorRef) return;
+    editorRef.focus();
+    try { document.execCommand('redo'); } catch { /* 不支持则静默 */ }
+  }
+
+  /** 点击工具栏以外的地方时收起「更多」面板 */
+  function onDocumentClickForFormats(e: MouseEvent) {
+    if (!moreFormatsOpen) return;
+    const target = e.target as Node | null;
+    if (target && moreFormatsEl?.contains(target)) return;
+    moreFormatsOpen = false;
+  }
 
   function previewAction(node: HTMLElement) {
     const onClick = (e: Event) => { void onPreviewClick(e as MouseEvent); };
@@ -1170,6 +1255,7 @@
 
   onMount(() => {
     window.addEventListener('keydown', onGlobalKey);
+    document.addEventListener('click', onDocumentClickForFormats);
     const flushTimer = () => { if (saveState !== 'idle') void flush(); };
     window.addEventListener('beforeunload', flushTimer);
     window.addEventListener('blur', flushTimer);
@@ -1200,6 +1286,7 @@
     })();
     return () => {
       window.removeEventListener('keydown', onGlobalKey);
+      document.removeEventListener('click', onDocumentClickForFormats);
       window.removeEventListener('beforeunload', flushTimer);
       window.removeEventListener('blur', flushTimer);
       releasePointer();
@@ -1622,6 +1709,57 @@
             <span class="tag-editor-empty">（无标签）</span>
           {/if}
         </div>
+
+        <!-- 格式工具栏：选中文字点按钮即套上 Markdown 语法；预览视图下不显示 -->
+        {#if !current.deleted && mode !== 'preview'}
+          <div class="format-bar" id="format-bar">
+            {#each FORMAT_GROUPS as group (group)}
+              <span class="fmt-group">
+                {#each primaryFormatButtons.filter((b) => b.group === group) as btn (btn.id)}
+                  <button
+                    class="fmt-btn" data-fmt={btn.id} id={`fmt-${btn.id}`}
+                    type="button" title={btn.title} aria-label={btn.title}
+                    onmousedown={(e) => e.preventDefault()}
+                    onclick={() => void applyFormatAction(btn.id)}
+                  >{btn.label}</button>
+                {/each}
+              </span>
+            {/each}
+
+            <span class="fmt-group fmt-more-wrap" bind:this={moreFormatsEl}>
+              <button
+                class="fmt-btn" id="fmt-more" type="button" title="更多格式"
+                aria-label="更多格式" aria-expanded={moreFormatsOpen}
+                onmousedown={(e) => e.preventDefault()}
+                onclick={() => (moreFormatsOpen = !moreFormatsOpen)}
+              >⋯</button>
+              {#if moreFormatsOpen}
+                <span class="fmt-more-panel" id="fmt-more-panel">
+                  {#each moreFormatButtons as btn (btn.id)}
+                    <button
+                      class="fmt-btn wide" data-fmt={btn.id} id={`fmt-${btn.id}`}
+                      type="button" title={btn.title}
+                      onmousedown={(e) => e.preventDefault()}
+                      onclick={() => void applyFormatAction(btn.id)}
+                    >{btn.label}</button>
+                  {/each}
+                </span>
+              {/if}
+            </span>
+
+            <span class="spacer"></span>
+            <span class="fmt-group">
+              <button
+                class="fmt-btn" id="fmt-undo" type="button" title="撤销（Ctrl+Z）" aria-label="撤销"
+                onmousedown={(e) => e.preventDefault()} onclick={editorUndo}
+              >↶</button>
+              <button
+                class="fmt-btn" id="fmt-redo" type="button" title="重做（Ctrl+Y）" aria-label="重做"
+                onmousedown={(e) => e.preventDefault()} onclick={editorRedo}
+              >↷</button>
+            </span>
+          </div>
+        {/if}
 
         <div class="workspace">
           {#if mode !== 'preview'}
