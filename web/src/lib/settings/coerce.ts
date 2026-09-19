@@ -7,6 +7,7 @@ import {
   HIDE_DELAY_RANGE,
   HOT_ZONE_RANGE,
   SETTINGS_VERSION,
+  SPLIT_RATIO_RANGE,
   THEME_MODES,
   type AppSettings,
   type DockSidePref,
@@ -25,6 +26,12 @@ function pickBool(v: unknown, d: boolean): boolean {
 }
 function clampNum(v: unknown, d: number, range: { min: number; max: number }): number {
   const n = typeof v === 'number' && Number.isFinite(v) ? Math.round(v) : NaN;
+  if (!Number.isFinite(n)) return d;
+  return Math.min(range.max, Math.max(range.min, n));
+}
+/** 与 clampNum 同义，但不取整（用于比例这类小数） */
+function clampFloat(v: unknown, d: number, range: { min: number; max: number }): number {
+  const n = typeof v === 'number' && Number.isFinite(v) ? v : NaN;
   if (!Number.isFinite(n)) return d;
   return Math.min(range.max, Math.max(range.min, n));
 }
@@ -81,6 +88,7 @@ export function coerceSettings(raw: unknown): AppSettings {
       defaultMode: pickEnum<EditorMode>(e.defaultMode, ['edit', 'split', 'preview'], DEFAULT_SETTINGS.editor.defaultMode),
       autoSaveMs: clampNum(e.autoSaveMs, DEFAULT_SETTINGS.editor.autoSaveMs, AUTO_SAVE_RANGE),
       spellcheck: pickBool(e.spellcheck, DEFAULT_SETTINGS.editor.spellcheck),
+      splitRatio: clampFloat(e.splitRatio, DEFAULT_SETTINGS.editor.splitRatio, SPLIT_RATIO_RANGE),
     },
     dock: {
       enabled: pickBool(dk.enabled, DEFAULT_SETTINGS.dock.enabled),

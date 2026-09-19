@@ -196,24 +196,68 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
   这样在 `**粗**` 上点斜体会补成 `***粗***`（保留粗体），而 `***x***` 上点粗体会去掉粗体留斜体。
 - 行首前缀归属按**最长匹配**：`- [ ] x` 算待办而不是无序列表，所以「待办 ↔ 列表」互转能正确整段替换前缀。
 
-### 1.10 桌面壳与构建
+### 1.10 布局修复：宽度分配 / 不留白 / 可拖拽分隔条（本轮新增）
+
+> 起因：用户反馈「放大后仍然出现空白地方，编辑/分屏/预览那一列不能随意控制大小，显得笔记很窄，滚动条仍然在中间」。
+> 用 CDP 量了真实宽度后确认是**三个独立缺陷**（视口固定 1600px 时的实测值）：
+
+| 模式 | 窗口 | app-shell | 编辑区 | workspace | 编辑器 | 预览 |
+|---|---|---|---|---|---|---|
+| 分屏（修复前） | 1600 | **1220** | 680 | 680 | **340** | **340** |
+| 仅预览（修复前） | 1600 | **1220** | 680 | 680 | — | **340** ← 只占一半 |
+| 仅编辑（修复前） | 1600 | **1220** | 680 | 680 | **340** ← 只占一半 | — |
+
+| 缺陷 | 根因 | 修法 |
+|---|---|---|
+| ① 仅预览/仅编辑时内容只占一半、滚动条落在中间 | `.workspace > .editor/.preview { width: 50% }` 是给分屏写的，但只渲染一个子元素时它**仍然只拿 50%** | 改用下文的 flex-grow 分配 + `:only-child` 兜底 |
+| ② 窗口放大/最大化后右侧留白 | `.app-shell { width: max-content }` 把内容宽度钉死在 224+8+300+8+680 = 1220px | `.app-shell` 改 `width: 100%`；`.editor-pane.open` 改 `flex: 1 1 680px`（`min-width: 360px`）让编辑区吸收多余空间 |
+| ③ 面板宽度完全固定、无法调整 | 两条 seam 只能点击开合，`cursor: pointer`，宽度全是写死的常量 | 编辑⇄预览之间新增 `.split-handle` 分隔条，指针拖动改比例、双击恢复各半 |
+
+**这里踩到一个很隐蔽的 CSS 规范细节（务必记住）**：
+flex-grow 用比例分配时，**当所有 flex-grow 之和小于 1**，浏览器按「自己的 grow × 剩余空间」分配，
+**余量留在原处不分配**（不是归一化到 100%）。所以 `flex: 0.5 1 0` 单独一个子元素只能拿到一半宽度——
+实测 552/1060。分屏时 0.5+0.5=1 恰好正常，所以只有「仅编辑/仅预览」会露馅。
+修法是显式兜底：
+
+```css
+.workspace > .editor  { flex: var(--split-left, 0.5) 1 0; min-width: 0; }
+.workspace > .preview { flex: var(--split-right, 0.5) 1 0; min-width: 0; }
+.workspace > .editor:only-child,
+.workspace > .preview:only-child { flex-grow: 1; }
+```
+
+| 事项 | 实现位置 |
+|---|---|
+| 比例状态 + 拖拽 + 持久化（停手 400ms 写盘，避免拖动刷爆设置文件） | `App.svelte` 的 `splitRatio` / `onSplitPointerDown/Move/Up` / `resetSplitRatio` / `scheduleSplitSave` |
+| 比例作为 CSS 变量注入 workspace | `<div class="workspace" style="--split-left: {splitRatio}; --split-right: {1 - splitRatio}">` |
+| 设置项 `editor.splitRatio`（0.2–0.8，默认 0.5）——用 `clampFloat` 而不是 `clampNum`，**比例不能被四舍五入成整数** | `settings/types.ts`（`SPLIT_RATIO_RANGE`）、`settings/coerce.ts` |
+| 窗口宽度策略调整：编辑区关闭时精确贴合内容；编辑区打开时**只放大不缩小**（已更宽就交给编辑区吸收） | `App.svelte` 的 `applyWindowWidth`（用 `innerSize()/scaleFactor()` 算当前逻辑宽度） |
+| 跨窗口同步：设置变更时跟随比例，但**正在拖动时以本地为准**（避免手抖） | `subscribeSettings` 回调 |
+| 测试 | `tests/core.settings.test.mjs` 新增 1 项（比例钳制/不取整/非法回退） |
+| 冒烟断言 | 主窗口 10 项：分屏各半 → 分隔条存在 → 仅预览占满 → 仅编辑占满 → 拖动改比例 → 比例持久化 → 双击恢复各半 → 填满窗口不留白 → 图3 两个面板宽度为 0 → 侧栏宽度≈224（共 107 项） |
+
+顺带修正的既有断言：原来「收回后内容宽度≈侧栏」断言 `.app-shell` < 260，
+它依赖的是“shell 缩到内容宽”这个旧行为；现在 shell 填满窗口、**窗口缩放由桌面端 `setSize` 负责**，
+所以改成断言“列表/编辑区宽度为 0 且侧栏≈224”（Web 预览下浏览器窗口本来就不能被页面缩放）。
+
+### 1.11 桌面壳与构建
 
 - Rust 薄壳：`list/read/write/remove_note_file`、`read/write/remove_meta`、`read/write_settings`、`get_storage_info`、`open_path`、`pick_folder`、`migrate_notes`
 - 权限、双窗口配置、应用图标（`src-tauri/icons/`）
 - `scripts/setup.ps1`：ASCII 化（避免 PowerShell 5.1 编码问题）、自动结束运行中的 `noteapp.exe`（避免 exe 被占用）、`--no-bundle` 默认产出可运行 exe
 - README 全量说明；`demo/` 保留为原型（另有一次提交 `a1cba63` 把它升级成文件夹+笔记双实体 + IndexedDB，并带自己的测试）
 
-### 1.11 验证现状（本沙箱；主题落地前的历史基线）
+### 1.12 验证现状（本沙箱；主题落地前的历史基线）
 
 - 单元/集成测试：102 项全绿（`npm test`）
 - 真实 Chrome 冒烟：主窗口 51/51、设置窗口 14/14
 - `tsc --noEmit` 通过；`vite build` 通过（双页产物）
 - 覆盖点：frontmatter 往返、回收站全流程、手排/文件夹排序、搜索转义、Markdown/XSS、动作注册表、设置归一化/冲突/未知字段、存储字段契约、QQ 吸附纯计算、UI 面板宽度断言
 
-### 1.12 验证现状（本沙箱，当前）
+### 1.13 验证现状（本沙箱，当前）
 
-- **单元/集成测试：186 项全绿**（`npm test`；102 → 116（主题）→ 120（实时跟随）→ 129（标签/置顶）→ 142（待办聚合）→ 186（格式工具栏 +38，高亮渲染 +6））
-- **真实 Chrome 冒烟：主窗口 98/98、设置窗口 25/25**（本轮新增格式工具栏 15 项）
+- **单元/集成测试：187 项全绿**（`npm test`；102 → 116（主题）→ 120（实时跟随）→ 129（标签/置顶）→ 142（待办聚合）→ 186（格式工具栏）→ 187（分屏比例））
+- **真实 Chrome 冒烟：主窗口 107/107、设置窗口 25/25**（本轮新增布局 10 项）
 - `tsc --noEmit` 通过；`vite build` 通过（双页产物，含 head 内联主题引导脚本）
 - 环境提示：本沙箱里 `vite build` 与 headless Chrome 都必须以 `danger-full-access` 升级执行（esbuild spawn / Chrome mojo 命名管道）；冒烟脚本要放到后台作业里跑，避免前台超时被中断导致误判；**CDP 实例跑几轮后要换端口重启**（标签页累积会导致 WS 异常，表现为脚本挂住或 `Inspected target navigated or closed`），且 `$env:TEMP` 每次调用都不同、不要用它做跨调用临时文件路径
 
@@ -255,7 +299,14 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
    - **撤销/重做按钮**与 `Ctrl+Z` / `Ctrl+Y` 应该是同一套（用按钮改了格式后按 Ctrl+Z 也能回退）；
    - 切到「预览」视图时工具栏会隐藏（只读），切回「编辑/分屏」回来；
    - 若某个按钮在你的使用习惯下应该换个位置或名字，直接说，改名/换位是纯前端小改动。
-10. **发布确认**：按 §8 推送并创建 Release（`v0.1.0`，说明中已注明“不含快速便签/悬浮窗”），确认 Release 里能看到 `NoteApp.exe`（用 Actions 构建则还有 MSI/NSIS）。
+11. **本轮布局修复**（前端，本沙箱已用真实宽度测量 + 冒烟断言验证，但**桌面端的窗口缩放手感需你本机确认**）：
+   - **把窗口拉大**：编辑区应跟着变宽、右侧不留空白（原来是固定 1220px，放大后右边一片空）；
+   - **切到「预览」**：正文应占满整个编辑区，滚动条贴在编辑区右边缘（原来只占一半、滚动条卡在中间）——这是你截图里那个问题；
+   - **切到「编辑」**：同上，输入框占满；
+   - **分屏时拖动中间那条分隔条**：编辑/预览比例应随手改变；**双击**它恢复各半；拖动后重启应用比例应保持；
+   - **窗口已经拉大时点开/收起面板**：不应把窗口突然缩回 1220px（只有编辑区关闭时才会贴合内容收缩）；
+   - 如果觉得“图3 时窗口仍会收缩成窄条”不合适，或者希望侧栏/列表也能拖动改宽，直接说。
+12. **发布确认**：按 §8 推送并创建 Release（`v0.1.0`，说明中已注明“不含快速便签/悬浮窗”），确认 Release 里能看到 `NoteApp.exe`（用 Actions 构建则还有 MSI/NSIS）。
 
 ---
 
@@ -269,6 +320,7 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
 | ~~标签系统 / 笔记置顶（pin）~~ | **已完成**，见 §1.7 |
 | ~~待办聚合视图（汇总所有未完成）~~ | **已完成**，见 §1.8 |
 | ~~格式工具栏（Markdown 语法可视化）~~ | **已完成**，见 §1.9（不在原 ROADMAP 里，来自用户“不会用 Markdown”的反馈） |
+| ~~布局：宽度分配 / 不留白 / 可拖拽分隔条~~ | **已完成**，见 §1.10（用户截图反馈） |
 | 多级目录 | 目前一级（子文件夹） |
 | 附件：粘贴/拖拽图片入库 | 需定附件目录规则（存储页已留“附件目录”讨论位） |
 | 命令面板（Ctrl+K 已用于搜索聚焦）+ 全局热键设置页 | 动作注册表已就绪，只需接 Tauri global-shortcut 插件 |
@@ -294,6 +346,8 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
 - `demo/` 与被 `a1cba63` 升级后的 `demo/js/db.mjs`、`tests/store.test.mjs` 相关测试仍在跑，属于原型层，不影响生产实现。
 - **Svelte 5 响应式坑（已踩过两次，务必记住）**：`$derived` 不会追踪「被它调用的函数内部」读取的 state。凡是要随数据变化的派生值，必须在 `$derived` 表达式里**直接读** state（如 `listItems`），或改由 `refresh()` 显式写入 state（如 `allTags`）。写成 `someFn(core.xxx())` 只会算一次并永久停留在首次结果。
 - **`execCommand('insertText')` 的坑（见 §1.9）**：它是“在光标处插入”，**不会**替你删除选区。要用它替换一段区间，必须先 `setSelectionRange(replaceStart, replaceEnd)`，并在调用后用 `textarea.value === 期望文本` 校验结果。同理，写断言时不要只用 `startsWith`/`includes`——用**逐字比对**才能拦住“局部看起来对”的缺陷。
+- **flex-grow 之和 < 1 的坑（见 §1.10）**：flex 分配剩余空间时，若所有 flex-grow 之和**小于 1**，浏览器按「各自的 grow × 剩余空间」分配，余量**留在原处**（不归一化）。`flex: 0.5 1 0` 单独一个子元素只能拿到一半宽度。所以“单个子元素占满”要么让 grow 和为 1，要么显式 `:only-child { flex-grow: 1 }`。
+- **断言里的“按位置取元素”很脆**：`document.querySelector('.settings-body select')` 这类“第一个下拉/第一个按钮”的定位，在页面上插入新行后就会指到别的元素（§1.10 与主题那轮都踩过）。新写断言请按 **id 或语义标签** 定位。
 - `App.svelte` 里保留了一个 Web 预览专用的诊断钩子 `window.__diag()`（仅 `!isTauri()` 时挂载），用于排障与冒烟定位；如果觉得碍事可以删。
 
 ---
@@ -303,10 +357,10 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
 ### Step 0：恢复上下文
 1. `git status` 确认干净；`git log --oneline -5` 确认 HEAD（本次交接提交后以 `git log -1` 为准；此前为 `518875e`）。
 2. 读 `docs/PROGRESS.md`（本文件）→ `AGENTS.md` → `README.md`。
-3. 跑一遍基线：`node --test --test-isolation=none "tests/**/*.test.mjs"`（应 186 通过）。
+3. 跑一遍基线：`node --test --test-isolation=none "tests/**/*.test.mjs"`（应 187 通过）。
 
 ### Step 1：先收口“待确认项”
-- 让用户执行 `npm run desktop:setup`，按 §2 的 1–10 条逐项确认（含主题观感、标签与置顶、待办聚合、格式工具栏）。
+- 让用户执行 `npm run desktop:setup`，按 §2 的 1–12 条逐项确认（含主题观感、标签与置顶、待办聚合、格式工具栏、布局与拖拽分隔条）。
 - 有报错就修；Rust 报错优先看 `src-tauri/src/fs_store.rs` 与实际 cargo 输出。
 
 ### Step 2：按优先级做新功能（每次一项，走完整闭环）
@@ -351,6 +405,7 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
 | 标签 / 置顶 | `web/src/lib/core/tags.ts`（纯逻辑+单测）、`store.ts` 的 `sortPinnedFirst`/`applyManualOrder`、`App.svelte` 的 `#tagbar`/`#tag-editor`/`#pin-toggle`、`tests/core.tags-pin.test.mjs` |
 | 待办聚合 | `web/src/lib/core/todos.ts`（行扫描+汇总+过滤，纯逻辑+单测）、`App.svelte` 的 `.todo-row`/`todoItems`/`openTodoSource`/`toggleShowDoneTodos`、`tests/core.todos.test.mjs` |
 | 格式工具栏 | `web/src/lib/core/md-format.ts`（纯逻辑 + `FORMAT_BUTTONS` 目录，单测 `tests/core.md-format.test.mjs`）、`App.svelte` 的 `#format-bar`/`applyFormatAction`/`replaceEditorRange`/`editorUndo`、`app.css` 的 `.format-bar` 段、高亮渲染在 `markdown.ts`（`md.use(mark)`） |
+| 面板宽度 / 分屏比例 | `App.svelte` 的 `splitRatio`/`onSplitPointer*`/`applyWindowWidth`/`computeWidth`、`app.css` 的 `.app-shell`/`.editor-pane.open`/`.workspace > *`/`.split-handle`、设置项 `editor.splitRatio`（`settings/types.ts` + `coerce.ts` 的 `clampFloat`） |
 | Rust 命令 | `src-tauri/src/fs_store.rs`（所有命令）、`src-tauri/src/lib.rs`（注册） |
 | 权限/窗口配置 | `src-tauri/capabilities/default.json`、`src-tauri/tauri.conf.json` |
 | 构建脚本 | `scripts/setup.ps1`、根 `package.json` 脚本 |
@@ -372,13 +427,14 @@ demo/                   浏览器原型（已被另一次改动升级为“文�
 - 每次改动：**Git commit + 测试全绿**（AGENTS.md）
 - 主题：**三档（浅色 / 深色 / 跟随系统），默认浅色**；「跟随系统」实时跟随系统主题变化（只在 system 档订阅）
 - 格式工具栏：**不做富文本所见即所得**（会破坏“纯文本 .md”的根基）、**不做字体颜色**（Markdown 无标准语法，改用 `==高亮==` 背景标记）；只做“点按钮替你打符号”
+- 布局宽度：**编辑区吸收多余空间**（窗口放大后编辑区变宽、不留白）；**编辑⇄预览可分屏比例可拖动并持久化**（`editor.splitRatio`，20%–80%，双击恢复各半）；窗口只在“比目标窄”时放大，已更宽就不动（避免最大化状态下点开面板被打回原宽度）
 
 ---
 
 ## 7. 复现验证的最短命令
 
 ```powershell
-# 单测（186）
+# 单测（187）
 node --test --test-isolation=none "tests/**/*.test.mjs"
 
 # 类型检查
@@ -389,9 +445,9 @@ npm --prefix web run build
 
 # Web 冒烟（两个窗口；Chrome 同样需 danger-full-access 升级，且建议换端口避免旧实例干扰）
 node web/scripts/serve-dist.mjs 5190                 # 终端 A：5190
-chrome --headless=new --user-data-dir=%TEMP%\na-smoke --remote-debugging-port=9345 about:blank   # 终端 B
-$env:CDP_PORT='9345'; $env:SMOKE_URL='http://127.0.0.1:5190/'; node web/scripts/ui-smoke.mjs        # 98 项
-$env:CDP_PORT='9345'; $env:SMOKE_URL='http://127.0.0.1:5190/'; node web/scripts/settings-smoke.mjs  # 25 项
+chrome --headless=new --user-data-dir=%TEMP%\na-smoke --remote-debugging-port=9371 about:blank   # 终端 B
+$env:CDP_PORT='9371'; $env:SMOKE_URL='http://127.0.0.1:5190/'; node web/scripts/ui-smoke.mjs        # 107 项
+$env:CDP_PORT='9371'; $env:SMOKE_URL='http://127.0.0.1:5190/'; node web/scripts/settings-smoke.mjs  # 25 项
 
 # 桌面构建与自测（用户本机）
 npm run desktop:setup     # 产出 src-tauri\target\release\NoteApp.exe

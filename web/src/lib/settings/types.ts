@@ -26,6 +26,8 @@ export interface EditorSettings {
   /** 自动保存去抖（毫秒） */
   autoSaveMs: number;
   spellcheck: boolean;
+  /** 分屏时编辑区占编辑面板的比例（0.2–0.8）；拖动中间分隔条时写入 */
+  splitRatio: number;
 }
 
 export interface DockSettings {
@@ -56,7 +58,7 @@ export const SETTINGS_VERSION = 1;
 export const DEFAULT_SETTINGS: AppSettings = {
   version: SETTINGS_VERSION,
   general: { startLayout: 'fig3', rememberPanels: false, theme: 'light' },
-  editor: { defaultMode: 'split', autoSaveMs: 600, spellcheck: false },
+  editor: { defaultMode: 'split', autoSaveMs: 600, spellcheck: false, splitRatio: 0.5 },
   dock: { enabled: true, side: 'both', hideDelayMs: 3000, topmost: true, hotZonePx: 14, onlySidebar: true },
   shortcuts: {},
 };
@@ -64,3 +66,5 @@ export const DEFAULT_SETTINGS: AppSettings = {
 export const AUTO_SAVE_RANGE = { min: 200, max: 2000 } as const;
 export const HIDE_DELAY_RANGE = { min: 1000, max: 10000 } as const;
 export const HOT_ZONE_RANGE = { min: 4, max: 40 } as const;
+/** 分屏比例范围：两侧各至少留 20%，避免拖到 0 宽后“面板消失”找不回来 */
+export const SPLIT_RATIO_RANGE = { min: 0.2, max: 0.8 } as const;

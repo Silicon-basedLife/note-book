@@ -23,7 +23,7 @@
   import { ActionRegistry, type ActionDef, type Shortcut } from '../lib/core/actions.ts';
   import type { NoteCore } from '../lib/core/store.ts';
   import type { NoteDoc, SearchHit, TrashFolderInfo } from '../lib/core/types.ts';
-  import { DEFAULT_SETTINGS, type AppSettings } from '../lib/settings/types.ts';
+  import { DEFAULT_SETTINGS, SPLIT_RATIO_RANGE, type AppSettings } from '../lib/settings/types.ts';
   import { ACTIONS as ACTION_CATALOG } from '../lib/settings/catalog.ts';
   import { effectiveShortcuts } from '../lib/settings/shortcuts.ts';
   import { loadSettings, saveSettings, subscribeSettings } from '../lib/settings/store.ts';
@@ -1007,11 +1007,25 @@
     if (editorOpen) w += SEAM_W + EDITOR_W;
     return w;
   }
+  /**
+   * 面板开合 → 调整窗口宽度。
+   * - 编辑区**关闭**时（图3/图4）：窗口精确贴合内容，避免右侧留一大片空白；
+   * - 编辑区**打开**时（图5）：只在窗口比目标窄时放大，比目标宽就不动
+   *   —— 多余宽度交给编辑区吸收（app.css 里编辑区是 flex: 1 1 680px），
+   *   这样用户把窗口拉大/最大化之后，点开面板不会被打回原宽度。
+   */
   async function applyWindowWidth(w: number) {
     if (!core || !isTauri()) return;
     try {
+      const win = getCurrentWindow();
+      if (editorOpen) {
+        const size = await win.innerSize();
+        const scale = await win.scaleFactor();
+        const logicalW = size.width / (scale || 1);
+        if (logicalW >= w) return; // 已经够宽（例如已最大化）→ 不动
+      }
       // 用 CSS 像素（LogicalSize）设置宽度；高度保持当前逻辑像素，任意 DPI 下都正确
-      await getCurrentWindow().setSize(new LogicalSize(w, window.innerHeight));
+      await win.setSize(new LogicalSize(w, window.innerHeight));
     } catch { /* 忽略（如窗口被系统限制） */ }
   }
   // 面板开合 → 窗口宽度随之变化。
@@ -1243,6 +1257,64 @@
     moreFormatsOpen = false;
   }
 
+  // ---------- 编辑/预览 分屏比例（拖动中间分隔条） ----------
+  /** 编辑区占编辑面板的比例（0.2–0.8），持久化在 settings.editor.splitRatio */
+  let splitRatio = $state<number>(DEFAULT_SETTINGS.editor.splitRatio);
+  let splitDragging = $state(false);
+  let splitSaveTimer: ReturnType<typeof setTimeout> | undefined;
+
+  function clampSplit(r: number): number {
+    if (!Number.isFinite(r)) return DEFAULT_SETTINGS.editor.splitRatio;
+    return Math.min(SPLIT_RATIO_RANGE.max, Math.max(SPLIT_RATIO_RANGE.min, r));
+  }
+
+  /** 按指针位置算出比例（以 workspace 的宽度为基准） */
+  function updateSplitFromPointer(e: PointerEvent, handle: HTMLElement) {
+    const ws = handle.parentElement;
+    if (!ws) return;
+    const rect = ws.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    splitRatio = clampSplit((e.clientX - rect.left) / rect.width);
+  }
+
+  function onSplitPointerDown(e: PointerEvent) {
+    if (e.button !== 0) return;
+    const handle = e.currentTarget as HTMLElement;
+    e.preventDefault();
+    splitDragging = true;
+    try { handle.setPointerCapture(e.pointerId); } catch { /* 忽略 */ }
+    updateSplitFromPointer(e, handle);
+  }
+  function onSplitPointerMove(e: PointerEvent) {
+    if (!splitDragging) return;
+    updateSplitFromPointer(e, e.currentTarget as HTMLElement);
+  }
+  function onSplitPointerUp(e: PointerEvent) {
+    if (!splitDragging) return;
+    splitDragging = false;
+    try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch { /* 忽略 */ }
+    scheduleSplitSave();
+  }
+  function resetSplitRatio() {
+    splitRatio = DEFAULT_SETTINGS.editor.splitRatio;
+    scheduleSplitSave();
+  }
+  /** 拖动过程中不写盘，停手 400ms 后再持久化（避免拖动时刷爆设置文件） */
+  function scheduleSplitSave() {
+    if (splitSaveTimer) clearTimeout(splitSaveTimer);
+    splitSaveTimer = setTimeout(() => {
+      splitSaveTimer = undefined;
+      void persistSplitRatio();
+    }, 400);
+  }
+  async function persistSplitRatio() {
+    if (!ready) return;
+    const next = structuredClone($state.snapshot(settings)) as AppSettings;
+    next.editor.splitRatio = splitRatio;
+    settings = next;
+    try { await saveSettings(next); } catch { /* 忽略写盘失败 */ }
+  }
+
   function previewAction(node: HTMLElement) {
     const onClick = (e: Event) => { void onPreviewClick(e as MouseEvent); };
     node.addEventListener('click', onClick);
@@ -1263,6 +1335,7 @@
     void (async () => {
       const loaded = await loadSettings();
       settings = loaded;
+      splitRatio = loaded.editor.splitRatio;
       themeFollower.update(loaded.general.theme);
       registerActions(loaded);
       core = await createCore();
@@ -1279,6 +1352,8 @@
       }
       unsubSettings = subscribeSettings((next) => {
         settings = next;
+        // 其它窗口改了分屏比例也要跟随（但正在拖动时以本地为准，避免手抖）
+        if (!splitDragging) splitRatio = next.editor.splitRatio;
         themeFollower.update(next.general.theme);
         registerActions(next);
         dock?.setConfig({ ...next.dock });
@@ -1296,6 +1371,7 @@
       dock?.destroy();
       if (panelsSaveTimer) clearTimeout(panelsSaveTimer);
       if (saveTimer) clearTimeout(saveTimer);
+      if (splitSaveTimer) clearTimeout(splitSaveTimer);
     };
   });
 </script>
@@ -1761,7 +1837,10 @@
           </div>
         {/if}
 
-        <div class="workspace">
+        <div
+          class="workspace"
+          style="--split-left: {splitRatio}; --split-right: {1 - splitRatio}"
+        >
           {#if mode !== 'preview'}
             <textarea
               id="editor"
@@ -1773,6 +1852,19 @@
               readonly={current.deleted}
               oninput={onBodyInput}
             ></textarea>
+          {/if}
+          {#if mode === 'split'}
+            <!-- 拖动改变编辑/预览比例；双击回到 50/50 -->
+            <div
+              class="split-handle" class:dragging={splitDragging}
+              id="split-handle" role="separator" aria-orientation="vertical"
+              aria-label="拖动调整编辑与预览宽度" title="拖动调整编辑/预览宽度（双击恢复各半）"
+              onpointerdown={onSplitPointerDown}
+              onpointermove={onSplitPointerMove}
+              onpointerup={onSplitPointerUp}
+              onpointercancel={onSplitPointerUp}
+              ondblclick={resetSplitRatio}
+            ></div>
           {/if}
           {#if mode !== 'edit'}
             <div

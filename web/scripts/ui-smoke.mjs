@@ -247,6 +247,55 @@ if (await evaluate('window.__ready()')) {
   await evaluate(`[...document.querySelectorAll('#mode-seg button')].find((x) => x.textContent.includes('编辑')).click()`);
   check('切回编辑视图后工具栏回来', await waitEval(`!!document.querySelector('#format-bar')`, 5000));
 
+  // 5.8) 布局：宽度按可见内容分配 + 可拖拽分隔条 + 不留白
+  const wsW = `Math.round(document.querySelector('.workspace').getBoundingClientRect().width)`;
+  const edW = `Math.round(document.querySelector('.editor').getBoundingClientRect().width)`;
+  const pvW = `Math.round(document.querySelector('.preview').getBoundingClientRect().width)`;
+  const setMode = async (t) => {
+    await evaluate(`[...document.querySelectorAll('#mode-seg button')].find((b) => b.textContent.includes(${JSON.stringify(t)})).click()`);
+    await new Promise((r) => setTimeout(r, 320));
+  };
+
+  await setMode('分屏');
+  const splitEd = await evaluate(edW);
+  const splitPv = await evaluate(pvW);
+  check('分屏：编辑/预览各占一半', Math.abs(splitEd - splitPv) <= 12 && splitEd > 60, `${splitEd} / ${splitPv}`);
+  check('分屏：出现可拖拽分隔条', await waitEval(`!!document.querySelector('#split-handle')`, 4000));
+
+  await setMode('预览');
+  const pvOnly = await evaluate(pvW);
+  const pvOnlyWs = await evaluate(wsW);
+  check('仅预览：预览占满整宽（不再只占一半）', pvOnly === pvOnlyWs, `${pvOnly} vs workspace ${pvOnlyWs}`);
+
+  await setMode('编辑');
+  const edOnly = await evaluate(edW);
+  const edOnlyWs = await evaluate(wsW);
+  check('仅编辑：编辑器占满整宽（不再只占一半）', edOnly === edOnlyWs, `${edOnly} vs workspace ${edOnlyWs}`);
+
+  await setMode('分屏');
+  await evaluate(`(() => {
+    const h = document.querySelector('#split-handle');
+    const wr = h.parentElement.getBoundingClientRect();
+    const r = h.getBoundingClientRect();
+    const mk = (type, x) => new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 1, button: 0, buttons: 1, clientX: x, clientY: r.top + 8 });
+    h.dispatchEvent(mk('pointerdown', r.left + 3));
+    h.dispatchEvent(mk('pointermove', wr.left + wr.width * 0.8));
+    h.dispatchEvent(mk('pointerup', wr.left + wr.width * 0.8));
+    return true;
+  })()`);
+  await new Promise((r) => setTimeout(r, 550));
+  const dragEd = await evaluate(edW);
+  check('拖动分隔条改变编辑/预览比例', dragEd > splitEd + 30, `${splitEd} → ${dragEd}`);
+  check('拖后的比例写入设置（可持久化）', await waitEval(
+    `(() => { const raw = localStorage.getItem('noteapp.settings.v1'); if (!raw) return false; const r = Number(JSON.parse(raw).editor.splitRatio); return Number.isFinite(r) && r > 0.6; })()`, 4000));
+
+  await evaluate(`document.querySelector('#split-handle').dispatchEvent(new MouseEvent('dblclick', { bubbles: true }))`);
+  await new Promise((r) => setTimeout(r, 400));
+  const resetEd = await evaluate(edW);
+  const resetPv = await evaluate(pvW);
+  check('双击分隔条恢复各半', Math.abs(resetEd - resetPv) <= 12 && resetEd > 60, `${resetEd} / ${resetPv}`);
+  check('内容填满窗口（右侧不留白）', await evaluate(`Math.round(document.querySelector('.app-shell').getBoundingClientRect().width) === window.innerWidth`));
+
   await evaluate(`[...document.querySelectorAll('.ed-right .btn-danger')][0].click()`);
   check('删除需二次确认（进回收站文案）', await waitEval(`!!document.querySelector('.modal-card') && document.body.textContent.includes('回收站')`));
   check('弹窗宽度未被边框撑宽（≤440）', await evaluate(`(() => { const r = document.querySelector('.modal-card').getBoundingClientRect(); return r.width > 420 && r.width <= 440; })()`));
@@ -398,7 +447,10 @@ if (await evaluate('window.__ready()')) {
   // 手柄收回笔记列 → 图3
   await evaluate(`document.querySelector('.seam-a').click()`);
   check('手柄收回笔记列（图3）', await waitEval(`!document.querySelector('.list-pane.open') && !document.querySelector('.editor-pane.open')`));
-  check('收回后内容宽度≈侧栏', await evaluate(`document.querySelector('.app-shell').getBoundingClientRect().width < 260`));
+  // 图3 的“窗口收窄”由桌面端 setSize 负责（Web 预览下 window 不能缩）；
+  // 这里断言的是内容侧确实回到了只有侧栏：两个面板宽度为 0，只剩侧栏 224。
+  check('收回后只剩侧栏（列表/编辑区宽度为 0）', await evaluate(`(() => { const l = document.querySelector('.list-pane').getBoundingClientRect().width; const e = document.querySelector('.editor-pane').getBoundingClientRect().width; return l === 0 && e === 0; })()`));
+  check('收回后侧栏宽度≈224', await evaluate(`Math.abs(document.querySelector('.sidebar').getBoundingClientRect().width - 224) <= 2`));
   // 再展开笔记列
   await evaluate(`document.querySelector('.seam-a').click()`);
   check('手柄再次展开笔记列', await waitEval(`!!document.querySelector('.list-pane.open')`));

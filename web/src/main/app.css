@@ -252,16 +252,27 @@ input, select, textarea { font: inherit; color: inherit; }
 .save-status.dirty { color: var(--warn); }
 .save-status.saving { color: var(--text-2); }
 
+/* 编辑/预览按 splitRatio 分配（--split-left/right 由组件按比例写入）。
+   用 flex-grow 而不是 width: 50%，这样只渲染一个子元素时也能占满整宽——
+   否则“仅预览/仅编辑”会被压成半宽、滚动条落在中间（2026-09 修复）。
+
+   注意 :only-child 那条不是冗余：flexbox 规范规定 **flex-grow 之和小于 1 时**，
+   各元素只按“自己的比例 × 剩余空间”分配，余量留在原处不分配。
+   分屏时 0.5+0.5=1 所以看起来正常，但单独一个 0.5 只能拿走一半（实测 552/1060）。
+   所以单子元素时显式把 grow 提成 1。 */
 .workspace { flex: 1; display: flex; min-height: 0; }
-.workspace > .editor { width: 50%; }
-.workspace > .preview { width: 50%; }
+.workspace > .editor { flex: var(--split-left, 0.5) 1 0; min-width: 0; }
+.workspace > .preview { flex: var(--split-right, 0.5) 1 0; min-width: 0; }
+.workspace > .editor:only-child,
+.workspace > .preview:only-child { flex-grow: 1; }
 .editor {
   border: none; outline: none; resize: none; padding: 18px 20px;
   font-family: var(--mono); font-size: 13.5px; line-height: 1.75;
   background: transparent; min-height: 0;
 }
 .editor:focus { box-shadow: inset 0 0 0 1px var(--accent-weak); }
-.preview { overflow-y: auto; padding: 18px 22px; border-left: 1px solid var(--border); min-height: 0; }
+/* 分隔线交给 .split-handle，这里不再画左边框（否则分屏时会出现双线） */
+.preview { overflow-y: auto; padding: 18px 22px; min-height: 0; }
 .mode-split { }
 .preview-only { }
 
@@ -536,8 +547,12 @@ input, select, textarea { font: inherit; color: inherit; }
 .help-tips { margin: 10px 0 4px; padding-left: 18px; color: var(--text-2); font-size: 12.5px; }
 .help-tips li { margin: 3px 0; }
 
-/* ===== 面板级联收起/展开（图3 ⇄ 图4 ⇄ 图5；窗口/内容随开合自适应宽度，不留空白） ===== */
-.app-shell { display: flex; align-items: stretch; width: max-content; height: 100vh; }
+/* ===== 面板级联收起/展开（图3 ⇄ 图4 ⇄ 图5） =====
+   宽度策略（2026-09 修复）：
+   - .app-shell 用 100% 而不是 max-content —— 否则窗口放大/最大化后右侧会留一片空白；
+   - 编辑区用 flex: 1 1 680px —— 窗口比内容宽时由编辑区吸收多余空间；
+   - workspace 内部按“当前显示了哪些”分配：只有一个时占满，两个都在时按 splitRatio 分。 */
+.app-shell { display: flex; align-items: stretch; width: 100%; height: 100vh; }
 .sidebar { flex: 0 0 224px; width: 224px; }
 .list-pane {
   flex: 0 0 0; width: 0; min-width: 0; overflow: hidden; border-right: 0;
@@ -546,9 +561,9 @@ input, select, textarea { font: inherit; color: inherit; }
 .list-pane.open { flex: 0 0 300px; width: 300px; }
 .editor-pane {
   flex: 0 0 0; width: 0; min-width: 0; overflow: hidden; opacity: 0;
-  transition: width 0.2s ease, opacity 0.18s ease;
+  transition: flex-basis 0.2s ease, opacity 0.18s ease;
 }
-.editor-pane.open { flex: 0 0 680px; width: 680px; opacity: 1; }
+.editor-pane.open { flex: 1 1 680px; width: auto; min-width: 360px; opacity: 1; }
 .seam {
   flex: 0 0 8px; width: 8px; align-self: stretch; padding: 0;
   display: grid; place-content: center; cursor: pointer;
@@ -557,6 +572,15 @@ input, select, textarea { font: inherit; color: inherit; }
 .seam:hover { background: var(--hover-strong); color: var(--accent); }
 .seam-arrow { font-size: 9px; }
 .seam-b.closed { flex: 0 0 0; width: 0; overflow: hidden; border: none; }
+
+/* 编辑 ⇄ 预览 之间的分隔条：拖动改变 splitRatio；双击回到 50/50 */
+.split-handle {
+  flex: 0 0 7px; align-self: stretch;
+  cursor: col-resize; background: var(--panel-alt);
+  border-left: 1px solid var(--border); border-right: 1px solid var(--border);
+  transition: background 0.12s ease;
+}
+.split-handle:hover, .split-handle.dragging { background: var(--accent-weak); }
 
 /* 拖拽中禁止选中文本；回收站入口悬停高亮 */
 body.is-dragging { user-select: none; }

@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { coerceSettings, preservedMerge } from '../web/src/lib/settings/coerce.ts';
-import { DEFAULT_SETTINGS } from '../web/src/lib/settings/types.ts';
+import { DEFAULT_SETTINGS, SPLIT_RATIO_RANGE } from '../web/src/lib/settings/types.ts';
 import {
   effectiveShortcuts, findShortcutConflict, formatShortcut, isShortcutAllowed, shortcutSignature,
 } from '../web/src/lib/settings/shortcuts.ts';
@@ -31,6 +31,19 @@ test('coerceSettings：非法枚举与越界数值被纠正', () => {
   assert.equal(s.dock.hideDelayMs, 1000);  // 夹到下限
   assert.equal(s.dock.hotZonePx, 40);
   assert.equal(s.dock.enabled, false);
+});
+
+test('coerceSettings：分屏比例用小数钳制（不取整、越界夹紧、非法回退）', () => {
+  assert.equal(DEFAULT_SETTINGS.editor.splitRatio, 0.5);
+  assert.equal(coerceSettings({}).editor.splitRatio, 0.5);
+  assert.equal(coerceSettings({ editor: { splitRatio: 0.7 } }).editor.splitRatio, 0.7);
+  // 关键：不能像其它数值项那样被四舍五入成整数（clampNum 会 round）
+  assert.equal(coerceSettings({ editor: { splitRatio: 0.33 } }).editor.splitRatio, 0.33);
+  assert.equal(coerceSettings({ editor: { splitRatio: 0.95 } }).editor.splitRatio, SPLIT_RATIO_RANGE.max);
+  assert.equal(coerceSettings({ editor: { splitRatio: -3 } }).editor.splitRatio, SPLIT_RATIO_RANGE.min);
+  assert.equal(coerceSettings({ editor: { splitRatio: 'x' } }).editor.splitRatio, 0.5);
+  assert.equal(coerceSettings({ editor: { splitRatio: NaN } }).editor.splitRatio, 0.5);
+  assert.equal(coerceSettings({ editor: { splitRatio: null } }).editor.splitRatio, 0.5);
 });
 
 test('coerceSettings：快捷键清洗（保留 null 禁用、丢弃非法）', () => {
