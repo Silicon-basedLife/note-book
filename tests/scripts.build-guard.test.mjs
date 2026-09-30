@@ -48,6 +48,30 @@ test('构建钩子：诊断脚本存在且提供 npm 入口', () => {
   assert.ok(existsSync(join(root, 'scripts', 'diagnose-startup.ps1')));
 });
 
+test('构建钩子：构建后自动去除网络标记（否则双击会弹「无法验证发布者」）', () => {
+  const pkg = JSON.parse(read('package.json'));
+  for (const name of ['desktop:exe', 'desktop:build', 'desktop:dev', 'desktop:setup']) {
+    const post = pkg.scripts[`post${name}`];
+    assert.equal(typeof post, 'string', `缺少 post${name} 钩子`);
+    assert.match(post, /postbuild-unblock\.mjs/, `post${name} 应调用 postbuild-unblock.mjs`);
+  }
+  const src = read('scripts/postbuild-unblock.mjs');
+  assert.match(src, /Zone\.Identifier/, '必须删除 Zone.Identifier 备用数据流');
+  assert.match(src, /process\.platform !== 'win32'/, '非 Windows 应安全退出');
+});
+
+test('启动入口：提供桌面快捷方式脚本（绕开资源管理器弹框）', () => {
+  const pkg = JSON.parse(read('package.json'));
+  assert.match(pkg.scripts['shortcut:desktop'] ?? '', /create-desktop-shortcut\.ps1/);
+  const p = 'scripts/create-desktop-shortcut.ps1';
+  assert.ok(existsSync(join(root, p)));
+  const src = read(p);
+  // 必须走 cmd /c start（CreateProcess），而不是把快捷方式直接指向 exe
+  assert.match(src, /cmd\.exe/, '快捷方式应通过 cmd.exe 启动');
+  assert.match(src, /\/c start ""/, '应使用 cmd /c start "" 形式');
+  assert.ok(existsSync(join(root, 'launch-noteapp.bat')), '启动器应保留');
+});
+
 test('文件格式不变量：.bat 必须是 CRLF，否则 cmd.exe 会把注释当命令执行', () => {
   const raw = bytes('launch-noteapp.bat');
   const lf = raw.filter((b) => b === 10).length;
@@ -67,7 +91,7 @@ test('文件格式不变量：.bat 必须纯 ASCII（cmd 代码页会把非 ASCI
 });
 
 test('文件格式不变量：.ps1 必须纯 ASCII（PowerShell 5.1 无 BOM 时按 ANSI 读取）', () => {
-  for (const p of ['scripts/diagnose-startup.ps1', 'scripts/setup.ps1', 'scripts/release.ps1']) {
+  for (const p of ['scripts/diagnose-startup.ps1', 'scripts/setup.ps1', 'scripts/release.ps1', 'scripts/create-desktop-shortcut.ps1']) {
     if (!existsSync(join(root, p))) continue;
     const raw = bytes(p);
     const max = raw.reduce((m, b) => Math.max(m, b), 0);
