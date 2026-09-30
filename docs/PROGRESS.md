@@ -1,223 +1,223 @@
-﻿# NoteApp 杩涘害涓庝氦鎺ワ紙PROGRESS / HANDOFF锛?
+# NoteApp 进度与交接（PROGRESS / HANDOFF）
 
-> 鐢ㄩ€旓細涓婁笅鏂囦氦鎺ャ€傛柊瀵硅瘽璇峰厛璇绘湰鏂囦欢锛屽啀璇?`AGENTS.md`銆乣README.md`銆乣docs/ROADMAP.md`銆乣docs/TECH_DESIGN.md`銆?
-> 璁板綍鏃堕棿锛欻EAD = `6e1c414`锛?*鍥為€€銆屽洖杞﹀嵆鎹㈣銆?*锛涘叾鍓?`2e7e8dc` 鍚姩鍣ㄣ€乣8771f8e`+`144ede7` 鍥炶溅鍗虫崲琛屻€愬凡鍥為€€銆戙€乣93434ae` 甯冨眬淇銆乣5f7c26f` 浣跨敤鏁欑▼銆乣30f216f` 鏍煎紡宸ュ叿鏍忋€乣14e4f0e` 寰呭姙鑱氬悎銆乣67d92d2` 鏍囩+缃《銆乣d904eca` 涓婚銆乣518875e` v0.1.0 鍙戝竷鑴氭墜鏋讹級銆?
-> 涓€鍙ヨ瘽鐜扮姸锛?*P0 MVP 鍏ㄩ儴瀹屾垚骞跺凡鍦ㄤ綘鐨?Windows 妗岄潰绔窇閫?*锛涘湪姝や箣涓婂畬鎴愪簡澶ч噺澧炲己锛堝洖鏀剁珯銆佹嫋鎷姐€佸閫夈€侀潰鏉跨骇鑱斻€佺嫭绔嬭缃獥鍙ｃ€佸瓨鍌ㄨ縼绉汇€丵Q 寮忎晶杈瑰惛闄勩€?*涓婚**锛夈€傚綋鍓?*鍙樊浣犲湪鏈満閲嶆柊鏋勫缓涓€娆″苟纭 搂2 鐨勬竻鍗曪紙鍚富棰樿鎰燂級**銆?
-
----
-
-## 0. 鏂板璇濅笂鎵嬶紙蹇呰锛?
-
-### 0.1 浠撳簱鍦板浘
-
-```
-docs/ROADMAP.md        浜у搧闇€姹傦紙P0/P1 鑼冨洿涓庨獙鏀讹級
-docs/TECH_DESIGN.md    鎶€鏈柟妗堬紙Tauri 2 + Svelte + TS 涓夊眰鏋舵瀯锛?
-docs/PROGRESS.md       鏈枃浠讹紙杩涘害涓庝氦鎺ワ級
-AGENTS.md              绾﹀畾锛氭瘡娆℃敼鍔ㄥ繀椤?Git commit锛涙祴璇?楠岃瘉鍏ㄧ豢鎵嶄氦浠?
-README.md              杩愯/鏋勫缓/娴嬭瘯/鍐掔儫璇存槑銆佸姛鑳芥竻鍗曘€侀獙璇佽鏁?
-
-src-tauri/             妗岄潰澹筹紙Rust 钖勫３锛屽敮涓€鑱岃矗锛氭枃浠惰鍐?/ 璁剧疆 / 瀛樺偍杩佺Щ锛?
-  src/fs_store.rs        鍏ㄩ儴鍛戒护锛氱瑪璁版枃浠躲€乵eta KV銆乻ettings銆乻torage 鎸囬拡銆佽縼绉汇€佹墦寮€鐩綍銆侀€夋嫨鐩綍
-  src/lib.rs             娉ㄥ唽鍛戒护
-  tauri.conf.json        涓や釜绐楀彛锛歮ain锛?32脳760锛屽彲鏀剁缉锛? settings锛?20脳620锛寁isible:false锛?
-  capabilities/default.json  鏉冮檺锛堝惈 set-size/set-position/always-on-top/show/hide/set-focus/
-                              create-webview-window/event emit+listen锛?
-web/                   鍓嶇锛圫velte 5 + TS + Vite锛屽弻椤典骇鐗╋級
-  src/lib/core/         鏍稿績閫昏緫锛堜笌 Rust 瑙ｈ€︼紝绾?TS锛屽崟娴嬭鐩栵級
-  src/lib/settings/     璁剧疆妯″瀷/褰掍竴鍖?璇诲啓/蹇嵎閿紙涓荤獥鍙ｄ笌璁剧疆绐楀彛鍏辩敤锛?
-  src/lib/desktop/      side-dock锛圦Q 鍚搁檮杩愯鏃讹級+ dock-core锛堢函璁＄畻锛屽崟娴嬭鐩栵級
-  src/shared/           core-client锛堟寜鐜閫夊瓨鍌ㄩ€傞厤鍣級
-  src/main/             涓荤獥鍙ｏ紙App.svelte銆乤pp.css銆乵ain.ts銆乽i/ContextMenu.svelte锛?
-  src/settings/         鐙珛璁剧疆绐楀彛锛圫ettings.svelte銆乵ain.ts锛?
-  scripts/              serve-dist.mjs锛堥潤鎬佹墭绠★級銆乽i-smoke.mjs锛堜富绐楀彛鍐掔儫锛夈€乻ettings-smoke.mjs锛堣缃獥鍙ｅ啋鐑燂級
-scripts/setup.ps1       妗岄潰涓€閿瀯寤猴紙瑁?Rust 鈫?瑁呬緷璧?鈫?tauri build --no-bundle锛?
-tests/                  102 椤?node:test锛坈ore.* + demo 鍥炲綊锛?
-demo/                   娴忚鍣ㄥ師鍨嬶紙宸茶鍙︿竴娆℃敼鍔ㄥ崌绾т负鈥滄枃浠跺す+绗旇鍙屽疄浣?+ IndexedDB鈥濓紝瑙?commit a1cba63锛?
-```
-
-### 0.2 鏈矙绠辩幆澧冪殑纭檺鍒讹紙鍔″繀鍏堢湅锛屽惁鍒欎細韪╁潙锛?
-
-| 浜嬮」 | 鍋氭硶 |
-|---|---|
-| npm 瀹夎 | 蹇呴』娓呯┖ `npm_config_allow_scripts` 涓旂紦瀛樻寚鍚戝伐浣滃尯锛歚$env:npm_config_allow_scripts=''; $env:npm_config_cache='E:\AI瀛︿範\note-app\.npm-cache'; npm install --ignore-scripts`锛堟湰鏈虹敤鎴风骇 `.npmrc` 閰嶄簡 `allow-scripts=["pnpm"]`锛岄」鐩骇瀹夎浼氱洿鎺?EALLOWSCRIPTS锛?|
-| 鍗曟祴 | `node --test --test-isolation=none "tests/**/*.test.mjs"`锛堝繀椤?`--test-isolation=none`锛屾矙绠辩姝㈡祴璇曞瓙杩涚▼绠￠亾锛?|
-| 鏋勫缓/鍐掔儫/build | `vite build` 闇€瑕?esbuild spawn 绠￠亾 鈫?**蹇呴』浠?`danger-full-access` 鍗囩骇鎵ц**锛堟湰浼氳瘽鍐呭凡澶氭鑾锋壒锛屽睘姝ｅ父娴佺▼锛?|
-| 鍐掔儫 | 1) `node web/scripts/serve-dist.mjs`锛?174锛夛紱2) headless Chrome `--remote-debugging-port=9222 --user-data-dir=%TEMP%\...`锛?) `$env:SMOKE_URL='http://127.0.0.1:5174/'; node web/scripts/ui-smoke.mjs`锛堝彟鏈?settings-smoke.mjs锛夈€備袱涓啋鐑熶細鍏堟竻绌?localStorage/IndexedDB 浠ヤ繚璇佺‘瀹氭€?|
-| **Rust 鏃犳硶鍦ㄦ湰娌欑缂栬瘧** | 娌℃湁 cargo/rustc锛屼笖 Rust 涓嬭浇婧愯缃戠粶绛栫暐鎷︺€?*鎵€鏈?Rust 鏀瑰姩鍙兘鍦ㄧ敤鎴锋満鍣ㄤ笂 `npm run desktop:setup` 楠岃瘉**銆傛敼鍔?Rust 鍚庡繀椤绘槑纭憡鐭ョ敤鎴烽噸寤猴紝骞惰浠栧洖璐?cargo 杈撳嚭 |
-| 鏋勫缓浜х墿 | `npm run desktop:setup` = 缁撴潫姝ｅ湪杩愯鐨?`noteapp.exe` 鈫?瑁呬緷璧?鈫?`tauri build --no-bundle` 鈫?浜у嚭 `src-tauri/target/release/NoteApp.exe`锛圡SI/NSIS 闇€ github 鍙揪锛歚npm run desktop:build`锛?|
-
-### 0.3 鏁版嵁浣嶇疆锛堜袱涓洰褰曠殑鍖哄埆锛岀敤鎴峰凡澶氭闂繃锛?
-
-| | 绗旇鐩綍锛堝彲鏀癸細璁剧疆 鈫?瀛樺偍 鈫?杩佺Щ锛?| 搴旂敤鏁版嵁鐩綍锛堜笉鍙敼锛學indows 鍥哄畾锛?|
-|---|---|---|
-| 渚嬪瓙 | `E:\AI瀛︿範\绗旇` | `C:\Users\ASUS\AppData\Roaming\com.noteapp.desktop` |
-| 鍐呭 | `n-xxxxxxxx.md`锛堜竴绗旇涓€鏂囦欢锛宖rontmatter 鑷甫鏍囬/鏂囦欢澶?鏃堕棿/鍥炴敹绔欐爣璁帮級+ `meta.json`锛堟枃浠跺す椤哄簭銆佹墜鎺掋€佸洖鏀剁珯鏂囦欢澶圭櫥璁帮級 | `settings.json`锛堝亸濂斤級銆乣storage.json`锛堟寚閽?`{"notesDir":"E:\\AI瀛︿範\\绗旇"}`锛夈€侀粯璁?`notes\`锛堣縼绉诲墠鐨勬棫鍓湰锛?|
-| 鍒犻櫎鍚庢灉 | 绗旇鍏ㄤ涪 | 鍙涪璁剧疆涓庢寚閽堬細绗旇鏂囦欢浠嶅湪锛屼絾搴旂敤鍥炶惤鍒伴粯璁?`notes\`锛岃〃鐜颁负鈥滅瑪璁颁笉瑙佷簡鈥?|
-| 澶囦唤 | **鍙渶澶囦唤杩欎釜鐩綍** | 鍙€夛紙涓簡鍙槸閲嶇疆璁剧疆銆侀渶閲嶆柊鎸囦竴娆＄洰褰曪級 |
-
-> 娉ㄦ剰锛歚notes_root()` 浼氬湪姣忔鍛戒护鏃剁‘淇濈洰褰曞瓨鍦紱`storage.json` 鎸囧悜榛樿鐩綍鏃朵細琚涓衡€滄湭鑷畾涔夆€濆苟鑷姩娓呯悊銆?
+> 用途：上下文交接。新对话请先读本文件，再读 `AGENTS.md`、`README.md`、`docs/ROADMAP.md`、`docs/TECH_DESIGN.md`。
+> 记录时间：HEAD = `6e1c414`（**回退「回车即换行」**；其前 `2e7e8dc` 启动器、`8771f8e`+`144ede7` 回车即换行【已回退】、`93434ae` 布局修复、`5f7c26f` 使用教程、`30f216f` 格式工具栏、`14e4f0e` 待办聚合、`67d92d2` 标签+置顶、`d904eca` 主题、`518875e` v0.1.0 发布脚手架）。
+> 一句话现状：**P0 MVP 全部完成并已在你的 Windows 桌面端跑通**；在此之上完成了大量增强（回收站、拖拽、多选、面板级联、独立设置窗口、存储迁移、QQ 式侧边吸附、**主题**）。当前**只差你在本机重新构建一次并确认 §2 的清单（含主题观感）**。
 
 ---
 
-## 1. 宸插畬鎴?
+## 0. 新对话上手（必读）
 
-### 1.1 P0 MVP锛圧OADMAP 楠屾敹椤癸紝鍏ㄩ儴瀹屾垚锛?
+### 0.1 仓库地图
 
-| 鍔熻兘 | 瀹炵幇浣嶇疆 | 楠岃瘉 |
+```
+docs/ROADMAP.md        产品需求（P0/P1 范围与验收）
+docs/TECH_DESIGN.md    技术方案（Tauri 2 + Svelte + TS 三层架构）
+docs/PROGRESS.md       本文件（进度与交接）
+AGENTS.md              约定：每次改动必须 Git commit；测试/验证全绿才交付
+README.md              运行/构建/测试/冒烟说明、功能清单、验证计数
+
+src-tauri/             桌面壳（Rust 薄壳，唯一职责：文件读写 / 设置 / 存储迁移）
+  src/fs_store.rs        全部命令：笔记文件、meta KV、settings、storage 指针、迁移、打开目录、选择目录
+  src/lib.rs             注册命令
+  tauri.conf.json        两个窗口：main（232×760，可收缩）+ settings（820×620，visible:false）
+  capabilities/default.json  权限（含 set-size/set-position/always-on-top/show/hide/set-focus/
+                              create-webview-window/event emit+listen）
+web/                   前端（Svelte 5 + TS + Vite，双页产物）
+  src/lib/core/         核心逻辑（与 Rust 解耦，纯 TS，单测覆盖）
+  src/lib/settings/     设置模型/归一化/读写/快捷键（主窗口与设置窗口共用）
+  src/lib/desktop/      side-dock（QQ 吸附运行时）+ dock-core（纯计算，单测覆盖）
+  src/shared/           core-client（按环境选存储适配器）
+  src/main/             主窗口（App.svelte、app.css、main.ts、ui/ContextMenu.svelte）
+  src/settings/         独立设置窗口（Settings.svelte、main.ts）
+  scripts/              serve-dist.mjs（静态托管）、ui-smoke.mjs（主窗口冒烟）、settings-smoke.mjs（设置窗口冒烟）
+scripts/setup.ps1       桌面一键构建（装 Rust → 装依赖 → tauri build --no-bundle）
+tests/                  102 项 node:test（core.* + demo 回归）
+demo/                   浏览器原型（已被另一次改动升级为“文件夹+笔记双实体 + IndexedDB”，见 commit a1cba63）
+```
+
+### 0.2 本沙箱环境的硬限制（务必先看，否则会踩坑）
+
+| 事项 | 做法 |
+|---|---|
+| npm 安装 | 必须清空 `npm_config_allow_scripts` 且缓存指向工作区：`$env:npm_config_allow_scripts=''; $env:npm_config_cache='E:\AI学习\note-app\.npm-cache'; npm install --ignore-scripts`（本机用户级 `.npmrc` 配了 `allow-scripts=["pnpm"]`，项目级安装会直接 EALLOWSCRIPTS） |
+| 单测 | `node --test --test-isolation=none "tests/**/*.test.mjs"`（必须 `--test-isolation=none`，沙箱禁止测试子进程管道） |
+| 构建/冒烟/build | `vite build` 需要 esbuild spawn 管道 → **必须以 `danger-full-access` 升级执行**（本会话内已多次获批，属正常流程） |
+| 冒烟 | 1) `node web/scripts/serve-dist.mjs`（5174）；2) headless Chrome `--remote-debugging-port=9222 --user-data-dir=%TEMP%\...`；3) `$env:SMOKE_URL='http://127.0.0.1:5174/'; node web/scripts/ui-smoke.mjs`（另有 settings-smoke.mjs）。两个冒烟会先清空 localStorage/IndexedDB 以保证确定性 |
+| **Rust 无法在本沙箱编译** | 没有 cargo/rustc，且 Rust 下载源被网络策略拦。**所有 Rust 改动只能在用户机器上 `npm run desktop:setup` 验证**。改动 Rust 后必须明确告知用户重建，并请他回贴 cargo 输出 |
+| 构建产物 | `npm run desktop:setup` = 结束正在运行的 `noteapp.exe` → 装依赖 → `tauri build --no-bundle` → 产出 `src-tauri/target/release/NoteApp.exe`（MSI/NSIS 需 github 可达：`npm run desktop:build`） |
+
+### 0.3 数据位置（两个目录的区别，用户已多次问过）
+
+| | 笔记目录（可改：设置 → 存储 → 迁移） | 应用数据目录（不可改，Windows 固定） |
 |---|---|---|
-| 绗旇鍒楄〃 + 鏂板缓/鍒犻櫎/閲嶅懡鍚?| `web/src/main/App.svelte` + `lib/core/store.ts` | 鍐掔儫 51/51锛涚敤鎴峰湪妗岄潰绔娇鐢ㄨ繃 |
-| Markdown 缂栬緫 + 瀹炴椂棰勮锛堢紪杈?鍒嗗睆/棰勮锛?| `lib/core/markdown.ts`銆乣App.svelte` | 鍗曟祴 core.markdown + 鍐掔儫 |
-| 鍘绘姈鑷姩淇濆瓨 + 鈥滃凡淇濆瓨/鏈繚瀛?淇濆瓨涓€濈姸鎬?| `App.svelte`锛堝啓闃熷垪涓茶鍖栵級 | 鍐掔儫锛涘幓鎶栧彲閰嶏紙璁剧疆锛?|
-| 涓荤獥鍙ｅ叏鏂囨悳绱紙鏍囬+姝ｆ枃銆佸懡涓珮浜€佽烦杞級 | `lib/core/search.ts`銆乣index.ts` | 鍗曟祴 core.search + 鍐掔儫 |
-| 涓€绾ф枃浠跺す鍒嗙被锛堟柊寤?閲嶅懡鍚?鍒犻櫎銆佺Щ鍔ㄧ瑪璁帮級 | `core/store.ts`銆乣App.svelte` | 鍗曟祴 + 鍐掔儫 |
-| 浠ｇ爜鍧楄娉曢珮浜?| `lib/core/markdown.ts`锛坔ighlight.js锛?| 鍗曟祴 + 鍐掔儫 |
-| 寰呭姙鍕鹃€夊洖鍐欐簮鏂?`- [ ]` 鈫?`- [x]` | `core/tasks.ts` + `markdown.ts` 鍋忕Щ娉ㄥ叆 | 鍗曟祴 + 鍐掔儫 |
-| 绾湰鍦板瓨鍌細涓€绗旇涓€ `.md` + frontmatter | `core/frontmatter.ts`銆乣storage/tauri.ts`銆乣src-tauri/src/fs_store.rs` | 鍗曟祴寰€杩?+ 鐢ㄦ埛妗岄潰绔疄娴?|
-| 妗岄潰鍙墽琛岀▼搴?| `src-tauri/`銆乣scripts/setup.ps1` | 鐢ㄦ埛宸插娆℃瀯寤鸿繍琛屾垚鍔?|
+| 例子 | `E:\AI学习\笔记` | `C:\Users\ASUS\AppData\Roaming\com.noteapp.desktop` |
+| 内容 | `n-xxxxxxxx.md`（一笔记一文件，frontmatter 自带标题/文件夹/时间/回收站标记）+ `meta.json`（文件夹顺序、手排、回收站文件夹登记） | `settings.json`（偏好）、`storage.json`（指针 `{"notesDir":"E:\\AI学习\\笔记"}`）、默认 `notes\`（迁移前的旧副本） |
+| 删除后果 | 笔记全丢 | 只丢设置与指针：笔记文件仍在，但应用回落到默认 `notes\`，表现为“笔记不见了” |
+| 备份 | **只需备份这个目录** | 可选（丢了只是重置设置、需重新指一次目录） |
 
-### 1.2 澧炲己浜や簰锛堢敤鎴烽€愭潯鎻愮殑闇€姹傦紝宸插畬鎴愶級
+> 注意：`notes_root()` 会在每次命令时确保目录存在；`storage.json` 指向默认目录时会被视为“未自定义”并自动清理。
 
-- 鍙抽敭鑿滃崟锛氭枃浠跺す锛堝叾涓柊寤?鏂板缓鏂囦欢澶?閲嶅懡鍚?鍒犻櫎杩涘洖鏀剁珯锛夈€佸垪琛ㄧ┖鐧姐€佺瑪璁拌锛堢Щ鍏ュ洖鏀剁珯/杩樺師/褰诲簳鍒犻櫎锛夈€佸洖鏀剁珯鏂囦欢澶?
-- 鍥炴敹绔欙細杞垹闄わ紙frontmatter `deleted/deletedAt`锛夈€佸崟鏉?鏁寸粍杩樺師銆佸交搴曞垹闄ゃ€佹竻绌恒€佹暟閲忔樉绀恒€佹枃浠跺す鏁寸粍杩涘洖鏀剁珯
-- 澶氶€夋壒閲忥細閫夋嫨妯″紡 / Ctrl / Shift / 鍏ㄩ€?鈫?鎵归噺绉诲叆鍥炴敹绔?/ 杩樺師 / 褰诲簳鍒犻櫎锛堝甫纭锛?
-- 鎷栨嫿锛?*鎸囬拡浜嬩欢瀹炵幇锛岄潪 HTML5 DnD**锛屽洜涓?WebView2 涓?HTML5 鎷栨斁涓嶇敓鏁堬級锛?
-  - 鏂囦欢澶规嫋鎷芥帓搴忥紙鎻掑叆鎸囩ず绾裤€佹寔涔呭寲锛?
-  - 绗旇鎷栧埌鏂囦欢澶瑰嵆绉诲姩銆佹嫋鍒板洖鏀剁珯鍗冲垹闄ゃ€佸垪琛ㄥ唴鎷栨嫿鎵嬫帓锛堝彲鈥滄仮澶嶆椂闂村簭鈥濓級
-- 鏂囦欢澶癸細鈻?鈻?鎵嬮鐞淬€佹偓鍋滄暟瀛楀彉 鉁曪紙宸蹭慨鍙冲榻愶級銆佸弻鍑婚噸鍛藉悕
-- 闈㈡澘绾ц仈锛堝浘3/鍥?/鍥?锛夛細榛樿浠呬晶鏍忥紱鐐规枃浠跺す婊戝嚭鍒楄〃銆佺偣绗旇婊戝嚭缂栬緫鍖猴紱鍐嶇偣鍚岀被鎴栬竟缂樻墜鏌勯€愮骇鏀跺洖锛?*绐楀彛瀹藉害闅忓紑鍚堣嚜鍔ㄧ缉鏀?*锛坄computeWidth` + `applyWindowWidth`锛屾敞鎰?`$effect` 蹇呴』鏃犳潯浠惰 `listOpen/editorOpen` 鎵嶈兘寤虹珛渚濊禆锛?
-- 鎼滅储鍖呭惈鍥炴敹绔欏懡涓紙馃棏锔?鏍囪锛岀偣鍑昏浆鍥炴敹绔欏彧璇绘煡鐪嬶級
-- QQ 寮忎晶杈瑰惛闄勶紙`lib/desktop/side-dock.ts`锛夛細瓒婄晫/鎺ヨЕ灞忓箷宸﹀彸杈瑰嵆鍚搁檮锛堟棤灞忓唴纾佸惛锛夆啋 璐磋竟 + 鍨傜洿灞呬腑 + 缃《锛涢紶鏍囩寮€绐楀彛 3 绉?鈫?骞虫粦婊戝嚭锛涘厜鏍囪繘鍏ュ睆骞曡竟缂樼儹鍖?鈫?骞虫粦婊戝洖锛涙嫋绂昏秴杩?80px 鍙栨秷鍋滈潬锛涘睍寮€闈㈡澘鑷姩鍙栨秷鍋滈潬锛堜粎鍥? 鐢熸晥锛?
+---
 
-### 1.3 璁剧疆锛堢嫭绔嬬獥鍙ｏ紝棣栫増锛岀敤鎴风‘璁ょ殑涓夐」鍐冲畾锛?
+## 1. 已完成
 
-- 鐙珛绐楀彛 `settings.html`锛圱auri 绗簩绐楀彛锛屽叧闂椂**闅愯棌涓嶉攢姣?*锛屾壘涓嶅埌鏃舵寜闇€閲嶅缓锛?
-- 鍏釜鍒嗙被锛氶€氱敤 / 蹇嵎閿?/ 瀛樺偍 / 缂栬緫鍣?/ 绐楀彛涓庡惛闄?/ 鍏充簬
-- 蹇嵎閿細鍔ㄤ綔鍒楄〃銆佹崟鑾锋敼閿紙Esc 鍙栨秷銆丅ackspace 娓呴櫎锛夈€佸啿绐佹彁绀恒€佸崟椤?鍏ㄩ儴鎭㈠榛樿锛坄shortcuts` 涓衡€滃綋鍓嶈鐩栭泦鍚堚€濓紝鍒犻櫎蹇呴』鐢熸晥锛涙湭鐭ュ姩浣?id 鎵嶄繚鐣欙級
-- 瀛樺偍锛氭樉绀轰笁涓矾寰勶紙camelCase 濂戠害锛屽墠绔繕鍏煎 snake_case锛夈€佹墦寮€鐩綍锛堟湁鎴愬姛/澶辫触鍙嶉锛夈€?*娴忚鈥︼紙绯荤粺鍘熺敓鏂囦欢澶归€夋嫨锛宺fd锛?*銆?*楠岃瘉骞惰縼绉?*锛堟牎楠岀洰鏍囦负绌烘垨浠?`.md`/`meta.json` 鈫?澶嶅埗 鈫?鍐?`storage.json` 鎸囬拡 鈫?澶辫触涓嶆敼閰嶇疆锛?
-- 缂栬緫鍣細榛樿瑙嗗浘銆佽嚜鍔ㄤ繚瀛樺幓鎶栵紙200鈥?000ms锛夈€佹嫾鍐欐鏌?
-- 绐楀彛涓庡惛闄勶細寮€鍏炽€佸惛闄勪晶銆佺缉杩涘欢杩熴€佺疆椤躲€佺儹鍖哄搴︺€佷粎渚ф爮鐢熸晥
-- 鍏充簬锛氱増鏈€佹暟鎹綅缃?
-- 璁剧疆鏂囦欢 `version` + 鏈煡瀛楁鍘熸牱淇濈暀锛堝悜鍓嶅吋瀹癸級
+### 1.1 P0 MVP（ROADMAP 验收项，全部完成）
 
-### 1.6 涓婚锛堟祬鑹?/ 娣辫壊 / 璺熼殢绯荤粺锛夛紙鏈疆鏂板锛?
+| 功能 | 实现位置 | 验证 |
+|---|---|---|
+| 笔记列表 + 新建/删除/重命名 | `web/src/main/App.svelte` + `lib/core/store.ts` | 冒烟 51/51；用户在桌面端使用过 |
+| Markdown 编辑 + 实时预览（编辑/分屏/预览） | `lib/core/markdown.ts`、`App.svelte` | 单测 core.markdown + 冒烟 |
+| 去抖自动保存 + “已保存/未保存/保存中”状态 | `App.svelte`（写队列串行化） | 冒烟；去抖可配（设置） |
+| 主窗口全文搜索（标题+正文、命中高亮、跳转） | `lib/core/search.ts`、`index.ts` | 单测 core.search + 冒烟 |
+| 一级文件夹分类（新建/重命名/删除、移动笔记） | `core/store.ts`、`App.svelte` | 单测 + 冒烟 |
+| 代码块语法高亮 | `lib/core/markdown.ts`（highlight.js） | 单测 + 冒烟 |
+| 待办勾选回写源文 `- [ ]` → `- [x]` | `core/tasks.ts` + `markdown.ts` 偏移注入 | 单测 + 冒烟 |
+| 纯本地存储：一笔记一 `.md` + frontmatter | `core/frontmatter.ts`、`storage/tauri.ts`、`src-tauri/src/fs_store.rs` | 单测往返 + 用户桌面端实测 |
+| 桌面可执行程序 | `src-tauri/`、`scripts/setup.ps1` | 用户已多次构建运行成功 |
 
-| 浜嬮」 | 瀹炵幇浣嶇疆 |
+### 1.2 增强交互（用户逐条提的需求，已完成）
+
+- 右键菜单：文件夹（其中新建/新建文件夹/重命名/删除进回收站）、列表空白、笔记行（移入回收站/还原/彻底删除）、回收站文件夹
+- 回收站：软删除（frontmatter `deleted/deletedAt`）、单条/整组还原、彻底删除、清空、数量显示、文件夹整组进回收站
+- 多选批量：选择模式 / Ctrl / Shift / 全选 → 批量移入回收站 / 还原 / 彻底删除（带确认）
+- 拖拽（**指针事件实现，非 HTML5 DnD**，因为 WebView2 下 HTML5 拖放不生效）：
+  - 文件夹拖拽排序（插入指示线、持久化）
+  - 笔记拖到文件夹即移动、拖到回收站即删除、列表内拖拽手排（可“恢复时间序”）
+- 文件夹：▶/▼ 手风琴、悬停数字变 ✕（已修右对齐）、双击重命名
+- 面板级联（图3/图4/图5）：默认仅侧栏；点文件夹滑出列表、点笔记滑出编辑区；再点同类或边缘手柄逐级收回；**窗口宽度随开合自动缩放**（`computeWidth` + `applyWindowWidth`，注意 `$effect` 必须无条件读 `listOpen/editorOpen` 才能建立依赖）
+- 搜索包含回收站命中（🗑️ 标记，点击转回收站只读查看）
+- QQ 式侧边吸附（`lib/desktop/side-dock.ts`）：越界/接触屏幕左右边即吸附（无屏内磁吸）→ 贴边 + 垂直居中 + 置顶；鼠标离开窗口 3 秒 → 平滑滑出；光标进入屏幕边缘热区 → 平滑滑回；拖离超过 80px 取消停靠；展开面板自动取消停靠（仅图3 生效）
+
+### 1.3 设置（独立窗口，首版，用户确认的三项决定）
+
+- 独立窗口 `settings.html`（Tauri 第二窗口，关闭时**隐藏不销毁**，找不到时按需重建）
+- 六个分类：通用 / 快捷键 / 存储 / 编辑器 / 窗口与吸附 / 关于
+- 快捷键：动作列表、捕获改键（Esc 取消、Backspace 清除）、冲突提示、单项/全部恢复默认（`shortcuts` 为“当前覆盖集合”，删除必须生效；未知动作 id 才保留）
+- 存储：显示三个路径（camelCase 契约，前端还兼容 snake_case）、打开目录（有成功/失败反馈）、**浏览…（系统原生文件夹选择，rfd）**、**验证并迁移**（校验目标为空或仅 `.md`/`meta.json` → 复制 → 写 `storage.json` 指针 → 失败不改配置）
+- 编辑器：默认视图、自动保存去抖（200–2000ms）、拼写检查
+- 窗口与吸附：开关、吸附侧、缩进延迟、置顶、热区宽度、仅侧栏生效
+- 关于：版本、数据位置
+- 设置文件 `version` + 未知字段原样保留（向前兼容）
+
+### 1.6 主题（浅色 / 深色 / 跟随系统）（本轮新增）
+
+| 事项 | 实现位置 |
 |---|---|
-| 璁剧疆妯″瀷锛歚general.theme`锛坄'light' \| 'dark' \| 'system'`锛岄粯璁?`light`锛?| `web/src/lib/settings/types.ts`锛坄THEME_MODES` / `DARK_QUERY` 涓庤繍琛屾椂鍏辩敤鍚屼竴浠藉父閲忥級 |
-| 褰掍竴鍖栵細闈炴硶/缂虹渷鍊煎洖閫€ `light`锛屾湭鐭ュ瓧娈电収鏃т繚鐣?| `web/src/lib/settings/coerce.ts`锛坄pickEnum(g.theme, THEME_MODES, 鈥?`锛?|
-| 涓婚杩愯鏃讹細`resolveTheme`锛堢函鍑芥暟锛? `applyTheme` / `applyCachedTheme` / `applyThemeMode` / `watchSystemTheme` / `ThemeFollower` | `web/src/lib/desktop/theme.ts` |
-| 瀹炴椂璺熼殢绯荤粺锛歚prefers-color-scheme` 鍙樺寲鍗抽噸绠楋紱**鍙湁妗ｄ綅鏄?system 鏃舵墠璁㈤槄**锛屽垏璧拌嚜鍔ㄩ噴鏀?| `theme.ts` 鐨?`ThemeFollower`锛圓pp.svelte 鎸佹湁瀹炰緥銆佸嵏杞芥椂 `stop()`锛汼ettings.svelte 鍦?`$effect` 閲?update + 杩斿洖娓呯悊锛?|
-| 閰嶈壊鍙橀噺锛歚:root[data-theme='light']` 涓?`:root[data-theme='dark']` 涓ゆ。鍚屾瀯鍙橀噺闆嗭紙鍚?40+ 涓?token锛? `color-scheme` | `web/src/main/app.css` |
-| 绯荤粺娣辫壊鍏滃簳锛氳剼鏈墽琛屽墠 `@media (prefers-color-scheme: dark)` 鍙鐩栧ぇ闈㈢Н搴曡壊 | `web/src/main/app.css`锛坄:root:not([data-theme])`锛?|
-| 棣栧睆闃查棯锛氫袱涓叆鍙?HTML 鐨?head 鍐呰仈寮曞鑴氭湰锛堣 localStorage 蹇収 鈫?鍐?`data-theme`锛?| `web/index.html`銆乣web/settings.html` |
-| 鎸傝浇鍓嶅悓姝ュ簲鐢?+ 璇诲埌璁剧疆鍚庣簿纭簲鐢?+ 璺ㄧ獥鍙ｅ悓姝?| `web/src/main/main.ts`銆乣web/src/settings/main.ts`銆乣App.svelte`锛坙oadSettings / subscribeSettings锛夈€乣Settings.svelte`锛坄$effect` + 閫夋嫨鍣級 |
-| 璁剧疆椤?UI锛氶€氱敤 鈫?涓婚涓夐」 chip锛堝惈褰撳墠瑙ｆ瀽缁撴灉鎻愮ず锛?| `web/src/settings/Settings.svelte`锛坄data-theme-choice` 渚涘啋鐑熷畾浣嶏級 |
-| 娴嬭瘯 | `tests/core.theme.test.mjs`锛?3 椤癸細褰掍竴鍖?瑙ｆ瀽/DOM 搴旂敤/蹇収瀹归敊/鐩戝惉璁㈤槄涓庨噴鏀撅級銆乣tests/theme.css.test.mjs`锛? 椤癸細涓ゆ。鍙橀噺鍚屾瀯銆佹棤纭紪鐮佽壊銆佸紩瀵艰剼鏈氨浣嶏級 |
-| 鍐掔儫鏂█ | 涓荤獥鍙?4 椤癸紙榛樿娴呰壊 鈫?娣辫壊閲嶈浇淇濇寔 鈫?娓呰缃洖娴呰壊 鈫?寮圭獥瀹藉害鏈杈规鎾戝锛夈€佽缃獥鍙?10 椤癸紙娣辫壊绔嬪嵆鐢熸晥 + 鎸佷箙鍖栥€佽窡闅忕郴缁熶笌绯荤粺鍋忓ソ涓€鑷淬€佸垏鍥炴祬鑹层€侀潪 system 妗ｄ笉鎸傜洃鍚€佺郴缁熶富棰樺彉鍖栧疄鏃惰窡闅忋€佸垏璧板悗閲婃斁鐩戝惉锛?|
+| 设置模型：`general.theme`（`'light' \| 'dark' \| 'system'`，默认 `light`） | `web/src/lib/settings/types.ts`（`THEME_MODES` / `DARK_QUERY` 与运行时共用同一份常量） |
+| 归一化：非法/缺省值回退 `light`，未知字段照旧保留 | `web/src/lib/settings/coerce.ts`（`pickEnum(g.theme, THEME_MODES, …)`） |
+| 主题运行时：`resolveTheme`（纯函数）/ `applyTheme` / `applyCachedTheme` / `applyThemeMode` / `watchSystemTheme` / `ThemeFollower` | `web/src/lib/desktop/theme.ts` |
+| 实时跟随系统：`prefers-color-scheme` 变化即重算；**只有档位是 system 时才订阅**，切走自动释放 | `theme.ts` 的 `ThemeFollower`（App.svelte 持有实例、卸载时 `stop()`；Settings.svelte 在 `$effect` 里 update + 返回清理） |
+| 配色变量：`:root[data-theme='light']` 与 `:root[data-theme='dark']` 两档同构变量集（各 40+ 个 token）+ `color-scheme` | `web/src/main/app.css` |
+| 系统深色兜底：脚本执行前 `@media (prefers-color-scheme: dark)` 只覆盖大面积底色 | `web/src/main/app.css`（`:root:not([data-theme])`） |
+| 首屏防闪：两个入口 HTML 的 head 内联引导脚本（读 localStorage 快照 → 写 `data-theme`） | `web/index.html`、`web/settings.html` |
+| 挂载前同步应用 + 读到设置后精确应用 + 跨窗口同步 | `web/src/main/main.ts`、`web/src/settings/main.ts`、`App.svelte`（loadSettings / subscribeSettings）、`Settings.svelte`（`$effect` + 选择器） |
+| 设置页 UI：通用 → 主题三项 chip（含当前解析结果提示） | `web/src/settings/Settings.svelte`（`data-theme-choice` 供冒烟定位） |
+| 测试 | `tests/core.theme.test.mjs`（13 项：归一化/解析/DOM 应用/快照容错/监听订阅与释放）、`tests/theme.css.test.mjs`（5 项：两档变量同构、无硬编码色、引导脚本就位） |
+| 冒烟断言 | 主窗口 4 项（默认浅色 → 深色重载保持 → 清设置回浅色 → 弹窗宽度未被边框撑宽）、设置窗口 10 项（深色立即生效 + 持久化、跟随系统与系统偏好一致、切回浅色、非 system 档不挂监听、系统主题变化实时跟随、切走后释放监听） |
 
-璁捐鍙栬垗锛堜笅娆℃敼涓婚璇峰厛鐪嬶級锛?
-- 榛樿 `light` 鑰屼笉鏄?`system`锛氫笉鍥犵郴缁熸繁鑹茶鏃㈡湁鐢ㄦ埛鈥滈潤榛樺彉鑴糕€濓紱瑕佹敼榛樿鍊煎彧闇€鍔?`DEFAULT_SETTINGS.general.theme`銆?
-- **瀹炴椂璺熼殢鍙湪 `system` 妗ｅ彂鐢?*锛氭樉寮忛€変簡娴?娣卞氨瀹屽叏涓嶈闃?`matchMedia`锛岄伩鍏嶆棤璋撳洖璋冿紱`ThemeFollower` 璁板綍褰撳墠妗ｄ綅锛屽悓妗ｉ噸澶?update 涓嶉噸寤鸿闃呫€?
-- 鑰?WebView 鑻?`MediaQueryList` 娌℃湁 `addEventListener`锛堟垨鐜鏃?`matchMedia`锛夆啋 闈欓粯闄嶇骇涓轰笉璁㈤槄锛屼笉褰卞搷涓婚鏈韩鐢熸晥銆?
-- 浠ｇ爜鍧楅珮浜厤鑹蹭笌娣辫壊浠ｇ爜搴曡壊鍥哄畾锛屼笉闅忎富棰樺垏鎹紙GitHub Dark 椋庢牸锛屾繁娴呬袱妗ｄ笅閮藉彲璇伙級銆?
-- 寮圭獥娴眰鐢?flex 鑰岄潪 grid 灞呬腑锛歚.panel` 甯?1px 杈规锛実rid 浼氭妸杈规绠楄繘 `min(440px, 92vw)` 瀵艰嚧寮圭獥琚拺瀹?2px锛堝凡鏈夊啋鐑熸柇瑷€鐪嬬潃锛夈€?
-- `theme.css.test.mjs` 浼氭嫤涓嬩换浣曟柊澧炵殑纭紪鐮侀鑹诧細鏂板棰滆壊璇峰厛鍔犲埌涓ゆ。鍙橀噺閲岋紙鐧藉悕鍗曞彧鏈?`--mono` 杩欑被涓庝富棰樻棤鍏崇殑 token锛夈€?
+设计取舍（下次改主题请先看）：
+- 默认 `light` 而不是 `system`：不因系统深色让既有用户“静默变脸”；要改默认值只需动 `DEFAULT_SETTINGS.general.theme`。
+- **实时跟随只在 `system` 档发生**：显式选了浅/深就完全不订阅 `matchMedia`，避免无谓回调；`ThemeFollower` 记录当前档位，同档重复 update 不重建订阅。
+- 老 WebView 若 `MediaQueryList` 没有 `addEventListener`（或环境无 `matchMedia`）→ 静默降级为不订阅，不影响主题本身生效。
+- 代码块高亮配色与深色代码底色固定，不随主题切换（GitHub Dark 风格，深浅两档下都可读）。
+- 弹窗浮层用 flex 而非 grid 居中：`.panel` 带 1px 边框，grid 会把边框算进 `min(440px, 92vw)` 导致弹窗被撑宽 2px（已有冒烟断言看着）。
+- `theme.css.test.mjs` 会拦下任何新增的硬编码颜色：新增颜色请先加到两档变量里（白名单只有 `--mono` 这类与主题无关的 token）。
 
-### 1.7 鏍囩涓庣疆椤讹紙鏈疆鏂板锛?
+### 1.7 标签与置顶（本轮新增）
 
-| 浜嬮」 | 瀹炵幇浣嶇疆 |
+| 事项 | 实现位置 |
 |---|---|
-| 鏍囩绾€昏緫锛歚normalizeTag`锛堝幓 #銆佸墧鎺у埗瀛楃銆佹姌鍙犵┖鐧姐€佹埅鏂?24 瀛楋級/ `parseTagInput`锛堢┖鏍?閫楀彿/椤垮彿/鍒嗗彿鍒嗛殧锛屽ぇ灏忓啓涓嶆晱鎰熷幓閲嶄繚搴忥級/ `mergeTags` / `removeTag` / `hasTag` / `countTags` | `web/src/lib/core/tags.ts`锛堟柊澧烇級 |
-| 缃《鎺掑簭锛歚sortPinnedFirst` 鍖呭湪 `liveDocsIn` 涓婏紙鏃堕棿搴忎篃缃《浼樺厛锛夛紱`listNotesOrdered` 鎷嗗嚭 `applyManualOrder`锛?*缃《鍖哄唴鐢ㄦ墜鎺掋€侀潪缃《鍖哄彟绠?*锛屼袱鍖烘嫾鎺?| `web/src/lib/core/store.ts` |
-| 绱㈠紩琛?`pinned` | `web/src/lib/core/types.ts`锛坄IndexEntry.pinned`锛夈€乣web/src/lib/core/index.ts`锛坄entryFromDoc`锛?|
-| UI锛氱紪杈戝尯銆岎煋?缃《銆嶆寜閽?+ 鏍囩缂栬緫琛岋紙chip + 杈撳叆妗嗭紝鍥炶溅娣诲姞銆丅ackspace 鍒犳湯灏俱€佸け鐒︽彁浜わ級锛涘垪琛ㄦ爣绛剧瓫閫夋潯锛坄#tagbar` / `data-tag`锛夛紱琛屽唴 馃搶 寰芥爣涓?`#鏍囩` 鎽樿锛涘閫夋壒閲忕疆椤?鍙栨秷缃《锛涜鍙抽敭銆岀疆椤?鍙栨秷缃《銆?| `web/src/main/App.svelte`锛堝惈鏍峰紡瑙?`app.css` 鐨勩€屾爣绛句笌缃《銆嶆锛?|
-| 鎷栨嫿涓庣疆椤跺垎鍖猴細鎷栧姩椤逛笌钀界偣鍒嗗尯涓嶄竴鑷存椂蹇界暐骞舵彁绀猴紙涓嶅啓鎵嬫帓锛夛紝閬垮厤鎵嬫帓涓庣疆椤朵簰鐩告墦鏋?| `App.svelte` 鐨?`commitReorderWith` |
-| 鎼滅储锛氭爣绛句笉鍙備笌鍏ㄦ枃妫€绱紙鎼滅储浠嶅彧鎼滄爣棰?姝ｆ枃锛夛紝鏍囩鏄嫭绔嬬殑绛涢€夌淮搴?| 鏃犻渶鏀瑰姩 `search.ts` |
-| 娴嬭瘯 | `tests/core.tags-pin.test.mjs`锛? 椤癸細瑙勮寖鍖?瑙ｆ瀽/鍚堝苟/璁℃暟銆佺储寮曞甫 pinned銆佺疆椤舵椂闂村簭涓庢墜鎺掑垎鍖恒€佸啓鐩?閲嶅惎鎭㈠銆佸洖鏀剁珯涓嶅弬涓庯級 |
-| 鍐掔儫鏂█ | 涓荤獥鍙?15 椤癸細鏍囩娣诲姞鈫掔瓫閫夋潯鈫掓寜鏍囩绛涢€夆啋骞傜瓑淇濇寔鈫掓竻闄も啋绉婚櫎鍚庤嚜鍔ㄩ€€鍑虹瓫閫夛紱缃《鎸夐挳鈫掗琛屽窘鏍団啋鍒楄〃澶存潯鏁扳啋鍙抽敭鑿滃崟椤光啋閲嶈浇淇濇寔鈫掑彇娑堢疆椤讹紙鍏?74 椤癸級 |
+| 标签纯逻辑：`normalizeTag`（去 #、剔控制字符、折叠空白、截断 24 字）/ `parseTagInput`（空格/逗号/顿号/分号分隔，大小写不敏感去重保序）/ `mergeTags` / `removeTag` / `hasTag` / `countTags` | `web/src/lib/core/tags.ts`（新增） |
+| 置顶排序：`sortPinnedFirst` 包在 `liveDocsIn` 上（时间序也置顶优先）；`listNotesOrdered` 拆出 `applyManualOrder`，**置顶区内用手排、非置顶区另算**，两区拼接 | `web/src/lib/core/store.ts` |
+| 索引补 `pinned` | `web/src/lib/core/types.ts`（`IndexEntry.pinned`）、`web/src/lib/core/index.ts`（`entryFromDoc`） |
+| UI：编辑区「📌 置顶」按钮 + 标签编辑行（chip + 输入框，回车添加、Backspace 删末尾、失焦提交）；列表标签筛选条（`#tagbar` / `data-tag`）；行内 📌 徽标与 `#标签` 摘要；多选批量置顶/取消置顶；行右键「置顶/取消置顶」 | `web/src/main/App.svelte`（含样式见 `app.css` 的「标签与置顶」段） |
+| 拖拽与置顶分区：拖动项与落点分区不一致时忽略并提示（不写手排），避免手排与置顶互相打架 | `App.svelte` 的 `commitReorderWith` |
+| 搜索：标签不参与全文检索（搜索仍只搜标题+正文），标签是独立的筛选维度 | 无需改动 `search.ts` |
+| 测试 | `tests/core.tags-pin.test.mjs`（9 项：规范化/解析/合并/计数、索引带 pinned、置顶时间序与手排分区、写盘+重启恢复、回收站不参与） |
+| 冒烟断言 | 主窗口 15 项：标签添加→筛选条→按标签筛选→幂等保持→清除→移除后自动退出筛选；置顶按钮→首行徽标→列表头条数→右键菜单项→重载保持→取消置顶（共 74 项） |
 
-椤烘墜淇帀鐨勪袱涓湡瀹炵己闄凤紙鏈疆鍙戠幇锛夛細
-1. **Svelte 5 鍝嶅簲寮忛櫡闃?*锛歚$derived` 涓嶄細杩借釜鈥滆璋冪敤鍑芥暟鍐呴儴鈥濊鍙栫殑鐘舵€侊紝鍘熷厛鍐欐垚 `countTags(core.listNotesOrdered(...))` 鍙細绠椾竴娆★紙棣栨绌哄簱锛変笖姘镐笉鏇存柊 鈫?鏍囩绛涢€夋潯姘歌繙涓嶅嚭鐜般€傜幇鏀逛负 `refresh()` 閲屾樉寮忔洿鏂?`allTags` state锛宍tagChips` 鍙仛绾潯浠跺寘瑁呫€?
-2. **閲嶅懡鍚嶅綋鍓嶆枃浠跺す鍚庡垪琛ㄥ彉绌?*锛歚activeFolder` 浠嶆寚鍚戞棫鍚?鈫?鍒楄〃鏄剧ず鈥滆繖涓枃浠跺す杩樻病鏈夌瑪璁扳€濄€傜幇鍦ㄦ敼鍚嶄細璺熼殢锛屼笖鏂板鍏滃簳妯箙锛堟枃浠跺す鍚嶅凡涓嶅瓨鍦ㄦ椂鎻愮ず骞剁粰銆屾煡鐪嬪叏閮ㄧ瑪璁般€嶅嚭鍙ｏ級銆?
+顺手修掉的两个真实缺陷（本轮发现）：
+1. **Svelte 5 响应式陷阱**：`$derived` 不会追踪“被调用函数内部”读取的状态，原先写成 `countTags(core.listNotesOrdered(...))` 只会算一次（首次空库）且永不更新 → 标签筛选条永远不出现。现改为 `refresh()` 里显式更新 `allTags` state，`tagChips` 只做纯条件包装。
+2. **重命名当前文件夹后列表变空**：`activeFolder` 仍指向旧名 → 列表显示“这个文件夹还没有笔记”。现在改名会跟随，且新增兜底横幅（文件夹名已不存在时提示并给「查看全部笔记」出口）。
 
-璁捐鍙栬垗锛堜笅娆℃敼杩欏潡璇峰厛鐪嬶級锛?
-- 鏍囩鏉＄粺璁＄殑鏄?*鍏ㄩ儴绗旇**鐨勬爣绛撅紙璺ㄦ枃浠跺す瀵艰埅缁村害锛夛紝涓嶆槸褰撳墠鏂囦欢澶癸紱绛涢€夋湰韬粛鍙綔鐢ㄤ簬褰撳墠鍒楄〃銆?
-- 鐐规爣绛炬槸**骞傜瓑绛涢€?*锛堜笉鍋?toggle锛夛紝閫€鍑虹瓫閫夌敤銆屾竻闄ゆ爣绛俱€嶆寜閽紝閬垮厤鈥滅偣浜嗘病鍙嶅簲鈥濈殑姝т箟銆?
-- 缃《鏄?*鐙珛鍒嗗尯**锛屼笉鍐欒繘 `meta.json` 鐨勬墜鎺掓暟缁勶細鎷栨嫿璺ㄥ垎鍖鸿鎷﹀苟鎻愮ず锛屾敼缃《鐘舵€佷笉闇€瑕侀噸鎺掋€?
+设计取舍（下次改这块请先看）：
+- 标签条统计的是**全部笔记**的标签（跨文件夹导航维度），不是当前文件夹；筛选本身仍只作用于当前列表。
+- 点标签是**幂等筛选**（不做 toggle），退出筛选用「清除标签」按钮，避免“点了没反应”的歧义。
+- 置顶是**独立分区**，不写进 `meta.json` 的手排数组：拖拽跨分区被拦并提示，改置顶状态不需要重排。
 
-### 1.8 寰呭姙鑱氬悎瑙嗗浘锛堟湰杞柊澧烇級
+### 1.8 待办聚合视图（本轮新增）
 
-| 浜嬮」 | 瀹炵幇浣嶇疆 |
+| 事项 | 实现位置 |
 |---|---|
-| 鑱氬悎绾€昏緫锛歚extractTaskLines`锛堟寜琛屾壂鎻忥紝璇嗗埆 `-`/`*`/`+` + `[ ]`/`[x]`/`[X]`锛岀粰鍑烘爣璁板亸绉汇€佽鍙枫€佸幓鏍囪鏂囨湰锛夈€乣collectTodos`锛堟湭瀹屾垚鍦ㄥ墠 鈫?绗旇鏇存柊鏃堕棿鍊掑簭 鈫?鍚岀瑪璁版寜琛屽彿锛夈€乣countTodos`銆乣filterTodos` | `web/src/lib/core/todos.ts`锛堟柊澧烇級 |
-| 涓庨瑙堢殑鍏崇郴锛?*浜掍笉鐗佃繛**銆傞瑙堢锛坄markdown.ts`锛変粛鐢?markdown-it 鐨?`token.map` + 琛屽唴 `index` 瀹氫綅锛涜仛鍚堢鐩存帴鎸夎鎵弿 body銆備袱鑰呴兘淇濊瘉 offset 鎸囧悜浠诲姟琛屾爣璁帮紝鍥犳閮借兘鐩存帴鍠?`tasks.toggleTask` 鍥炲啓 | `markdown.ts` 椤堕儴宸插啓娓呰繖鏉¤竟鐣?|
-| `tasks.ts` 鐨勬爣璁版鍒欑敱 `[-*]` 鏀惧涓?`[-*+]`锛堜笌 `markdown.ts` 鐨?`MARKER_RE` 涓€鑷达級锛屽苟瀵煎嚭 `TASK_MARKER_RE` 渚涜仛鍚堝鐢?| `web/src/lib/core/tasks.ts` |
-| UI锛氫晶鏍忋€屸槕锔?寰呭姙銆嶏紙甯︽湭瀹屾垚瑙掓爣锛夆啋 鍒楄〃鏍忔覆鏌?`.todo-row`锛坈heckbox + 浠诲姟鏂囨湰 + `馃搫 鏍囬 路 鏂囦欢澶?路 绗?N 琛宍锛夛紱鍕鹃€夊嵆 `core.toggleTask` 鍥炲啓骞堕噸绠楋紱鐐逛换鍔℃枃鏈?`openTodoSource()` 璺冲洖绗旇銆佹寜姣斾緥婊氬姩鏂囨湰妗嗗苟缁欑紪杈戝櫒鍔?`.todo-flash` 1.8s 楂樹寒锛涖€屾樉绀哄凡瀹屾垚銆嶅垏鎹紙`#todo-show-done`锛?| `web/src/main/App.svelte`銆乣app.css` 鐨勩€屽緟鍔炶仛鍚堣鍥俱€嶆 |
-| 瑙嗗浘鐘舵€侊細`view` 鐢?`'notes' \| 'trash'` 鎵╀负 `+ 'todos'`锛沗todoItems`/`todoCounts` 鍦?`refresh()` 閲屾洿鏂帮紙閬垮厤 Svelte 5 娲剧敓闄烽槺锛夛紱鎼滅储妗嗗湪鑱氬悎瑙嗗浘鍐呰蛋 `filterTodos` | `App.svelte` |
-| 娴嬭瘯 | `tests/core.todos.test.mjs`锛?3 椤癸細琛屾壂鎻忚涔変笌杈圭晫銆丆RLF銆佸亸绉诲彲鍥炲啓銆佹眹鎬绘帓搴忋€佽鏁般€佽繃婊ゃ€佸嬀閫夊悗鑱氬悎缁撴灉鍙樺寲锛?|
-| 鍐掔儫鏂█ | 涓荤獥鍙?9 椤癸細寰呭姙鍏ュ彛 鈫?瑙嗗浘娓叉煋浠诲姟琛?鈫?鏉ユ簮淇℃伅 鈫?鍕鹃€夊悗浠庢湭瀹屾垚娓呭崟娑堝け 鈫?鏄剧ず宸插畬鎴愶紙鍒犻櫎绾匡級鈫?鐐逛换鍔¤烦鍥炴簮绗旇 鈫?缂栬緫鍣ㄩ珮浜?鈫?鍥炲埌鍏ㄩ儴绗旇锛堝叡 83 椤癸級 |
+| 聚合纯逻辑：`extractTaskLines`（按行扫描，识别 `-`/`*`/`+` + `[ ]`/`[x]`/`[X]`，给出标记偏移、行号、去标记文本）、`collectTodos`（未完成在前 → 笔记更新时间倒序 → 同笔记按行号）、`countTodos`、`filterTodos` | `web/src/lib/core/todos.ts`（新增） |
+| 与预览的关系：**互不牵连**。预览端（`markdown.ts`）仍用 markdown-it 的 `token.map` + 行内 `index` 定位；聚合端直接按行扫描 body。两者都保证 offset 指向任务行标记，因此都能直接喂 `tasks.toggleTask` 回写 | `markdown.ts` 顶部已写清这条边界 |
+| `tasks.ts` 的标记正则由 `[-*]` 放宽为 `[-*+]`（与 `markdown.ts` 的 `MARKER_RE` 一致），并导出 `TASK_MARKER_RE` 供聚合复用 | `web/src/lib/core/tasks.ts` |
+| UI：侧栏「☑️ 待办」（带未完成角标）→ 列表栏渲染 `.todo-row`（checkbox + 任务文本 + `📄 标题 · 文件夹 · 第 N 行`）；勾选即 `core.toggleTask` 回写并重算；点任务文本 `openTodoSource()` 跳回笔记、按比例滚动文本框并给编辑器加 `.todo-flash` 1.8s 高亮；「显示已完成」切换（`#todo-show-done`） | `web/src/main/App.svelte`、`app.css` 的「待办聚合视图」段 |
+| 视图状态：`view` 由 `'notes' \| 'trash'` 扩为 `+ 'todos'`；`todoItems`/`todoCounts` 在 `refresh()` 里更新（避免 Svelte 5 派生陷阱）；搜索框在聚合视图内走 `filterTodos` | `App.svelte` |
+| 测试 | `tests/core.todos.test.mjs`（13 项：行扫描语义与边界、CRLF、偏移可回写、汇总排序、计数、过滤、勾选后聚合结果变化） |
+| 冒烟断言 | 主窗口 9 项：待办入口 → 视图渲染任务行 → 来源信息 → 勾选后从未完成清单消失 → 显示已完成（删除线）→ 点任务跳回源笔记 → 编辑器高亮 → 回到全部笔记（共 83 项） |
 
-璁捐鍙栬垗锛?
-- 鎺掑簭鍙ｅ緞锛氭湭瀹屾垚鎭掑湪鍓嶏紱宸插畬鎴愰」鎸夌瑪璁版洿鏂版椂闂村€掑簭锛堜笉鏄寜鍕鹃€夋椂闂粹€斺€斿嬀閫夋椂闂存病鏈夎惤鐩樺瓧娈碉紝閬垮厤涓烘鏀瑰瓨鍌ㄦ牸寮忥級銆?
-- 宸插畬鎴愪换鍔￠粯璁や笉鏄剧ず锛堣仛鍚堣鍥剧殑鐢ㄩ€斿氨鏄€滆繕鍓╀粈涔堟病鍋氣€濓級锛岄渶瑕佸鐩樻椂鐢ㄣ€屾樉绀哄凡瀹屾垚銆嶃€?
-- 璺宠浆瀹氫綅鐢ㄢ€滄寜琛屽彿姣斾緥浼扮畻 `textarea.scrollTop`鈥濊€屼笉鏄簿纭粴鍔細`textarea` 鏃犳硶鎸夊瓧绗﹀亸绉荤簿纭粴鍔紝姣斾緥浼扮畻鍦ㄩ暱鏂囬噷宸茶冻澶熸妸鐩爣琛屽甫杩涜鍙ｃ€?
-- 鑱氬悎鍙**娲昏穬绗旇**锛坄core.listNotes()`锛夛紝鍥炴敹绔欓噷鐨勪换鍔′笉鍙備笌姹囨€汇€?
+设计取舍：
+- 排序口径：未完成恒在前；已完成项按笔记更新时间倒序（不是按勾选时间——勾选时间没有落盘字段，避免为此改存储格式）。
+- 已完成任务默认不显示（聚合视图的用途就是“还剩什么没做”），需要复盘时用「显示已完成」。
+- 跳转定位用“按行号比例估算 `textarea.scrollTop`”而不是精确滚动：`textarea` 无法按字符偏移精确滚动，比例估算在长文里已足够把目标行带进视口。
+- 聚合只读**活跃笔记**（`core.listNotes()`），回收站里的任务不参与汇总。
 
-### 1.9 Markdown 鏍煎紡宸ュ叿鏍忥紙鏈疆鏂板锛?
+### 1.9 Markdown 格式工具栏（本轮新增）
 
-> 璧峰洜锛氱敤鎴锋彁鍑恒€屼笉澶細鐢?Markdown锛屼笉浼氬姞绮?鏂滀綋/浠ｇ爜鍧椼€嶃€傝璁哄悗鐨勭粨璁烘槸**涓嶈璁╃敤鎴疯儗绗﹀彿**锛?
-> 鐢ㄤ竴缁勬寜閽浛浠栨妸璇硶鎵撳ソ锛涘悓鏃舵槑纭笉鍋氬瘜鏂囨湰锛堜細鐮村潖鈥滅瑪璁版槸绾枃鏈€濈殑鏍瑰熀锛夈€?
+> 起因：用户提出「不太会用 Markdown，不会加粗/斜体/代码块」。讨论后的结论是**不要让用户背符号**，
+> 用一组按钮替他把语法打好；同时明确不做富文本（会破坏“笔记是纯文本”的根基）。
 
-| 浜嬮」 | 瀹炵幇浣嶇疆 |
+| 事项 | 实现位置 |
 |---|---|
-| 绾€昏緫锛歚toggleWrap`锛堣鍐呭寘瑁?鍙栨秷锛屽悓瀛楃鏍囪鎸夆€滃眰鈥濆垽瀹氾級銆乣toggleLinePrefix`锛堣棣栧墠缂€锛屼簰鏂ュ墠缂€鎸夋渶闀垮尮閰嶅綊灞烇級銆乣toggleOrderedList`锛堥€愯缂栧彿锛夈€乣codeBlock`/`link`/`table`/`horizontalRule`锛堝潡鎻掑叆锛夈€乣FORMAT_BUTTONS`/`FORMAT_GROUPS`/`FORMAT_SHORTCUTS` 鐩綍 | `web/src/lib/core/md-format.ts`锛堟柊澧烇級 |
-| 缁熶竴琛ㄨ揪锛氭瘡涓搷浣滈兘浜у嚭銆屾浛鎹?[replaceStart, replaceEnd) 涓?replacement + 鏂伴€夊尯銆嶏紝UI 鎹鏃㈣兘鐩存敼鍊笺€佷篃鑳借蛋鍘熺敓鎻掑叆閫氶亾 | `FormatResult` |
-| 娓叉煋鏀寔锛歚==楂樹寒==` 鈫?`<mark>` | `markdown.ts` 閲?`md.use(mark)`锛坄markdown-it-mark@4`锛宍mark` 鏈氨鍦ㄦ竻娲楃櫧鍚嶅崟閲岋級锛涚被鍨嬭ˉ鍏呰 `web/src/types/markdown-it-mark.d.ts` |
-| UI锛氱紪杈戝尯涓婃柟 `.format-bar`锛屾寜 inline/heading/block/insert 鍒嗙粍銆佺粍闂寸粏绔栫嚎锛宍鈰?鏇村` 鏀剁撼 `inline-code` 涓?`hr`锛屽彸渚х嫭绔嬩竴缁勬挙閿€/閲嶅仛锛涢瑙堣鍥句笅闅愯棌 | `App.svelte`锛坄#format-bar` / `#fmt-<id>` / `#fmt-more` / `#fmt-undo` / `#fmt-redo`锛夈€乣app.css` |
-| 浜や簰锛氶€変腑鏂囧瓧鈫掑寘瑁癸紱鏈€変腑鈫掓彃鍏ユā鏉垮苟瀹氫綅鍏夋爣锛涘啀鐐逛竴娆″彇娑堬紱鎸夐挳 `onmousedown` 闃绘榛樿浠ヤ繚浣?textarea 閫夊尯 | `App.svelte` 鐨?`applyFormatAction` / `replaceEditorRange` |
-| 鎾ら攢/閲嶅仛锛氭寜閽笌 `Ctrl+Z`/`Ctrl+Y` 鍏辩敤娴忚鍣?*鍘熺敓鎾ら攢鏍?*锛堟牸寮忕紪杈戠粡 `execCommand('insertText')` 钀藉湴锛屽洜姝ゅ彲琚師鐢熸挙閿€锛?| `editorUndo` / `editorRedo` |
-| 蹇嵎閿細`format-bold`(Ctrl+B)銆乣format-italic`(Ctrl+I) 杩涜缃洰褰曪紝鍙湪璁剧疆閲屾敼閿?| `web/src/lib/settings/catalog.ts` |
-| 娴嬭瘯 | `tests/core.md-format.test.mjs`锛?8 椤癸級銆乣tests/core.markdown.test.mjs` 鏂板 6 椤归珮浜覆鏌?|
-| 鍐掔儫鏂█ | 涓荤獥鍙?15 椤癸細宸ュ叿鏍忔覆鏌?鎸夐挳榻愬叏 鈫?鍔犵矖閫愬瓧姣斿 鈫?鎾ら攢 鈫?閲嶅仛 鈫?楂樹寒閫愬瓧姣斿 鈫?`<mark>` 娓叉煋 鈫?H1 琛岄鍓嶇紑閫愬瓧姣斿锛堥槻鈥滄彃鍏ヨ€岄潪鏇挎崲鈥濓級 鈫?鍐嶆鐐瑰嚮杩樺師 鈫?鍙栨秷楂樹寒 鈫?鎶樺彔鍖哄睍寮€/鏀惰捣 鈫?棰勮涓嬮殣钘忎笌鎭㈠锛堝叡 98 椤癸級 |
+| 纯逻辑：`toggleWrap`（行内包裹/取消，同字符标记按“层”判定）、`toggleLinePrefix`（行首前缀，互斥前缀按最长匹配归属）、`toggleOrderedList`（逐行编号）、`codeBlock`/`link`/`table`/`horizontalRule`（块插入）、`FORMAT_BUTTONS`/`FORMAT_GROUPS`/`FORMAT_SHORTCUTS` 目录 | `web/src/lib/core/md-format.ts`（新增） |
+| 统一表达：每个操作都产出「替换 [replaceStart, replaceEnd) 为 replacement + 新选区」，UI 据此既能直改值、也能走原生插入通道 | `FormatResult` |
+| 渲染支持：`==高亮==` → `<mark>` | `markdown.ts` 里 `md.use(mark)`（`markdown-it-mark@4`，`mark` 本就在清洗白名单里）；类型补充见 `web/src/types/markdown-it-mark.d.ts` |
+| UI：编辑区上方 `.format-bar`，按 inline/heading/block/insert 分组、组间细竖线，`⋯ 更多` 收纳 `inline-code` 与 `hr`，右侧独立一组撤销/重做；预览视图下隐藏 | `App.svelte`（`#format-bar` / `#fmt-<id>` / `#fmt-more` / `#fmt-undo` / `#fmt-redo`）、`app.css` |
+| 交互：选中文字→包裹；未选中→插入模板并定位光标；再点一次取消；按钮 `onmousedown` 阻止默认以保住 textarea 选区 | `App.svelte` 的 `applyFormatAction` / `replaceEditorRange` |
+| 撤销/重做：按钮与 `Ctrl+Z`/`Ctrl+Y` 共用浏览器**原生撤销栈**（格式编辑经 `execCommand('insertText')` 落地，因此可被原生撤销） | `editorUndo` / `editorRedo` |
+| 快捷键：`format-bold`(Ctrl+B)、`format-italic`(Ctrl+I) 进设置目录，可在设置里改键 | `web/src/lib/settings/catalog.ts` |
+| 测试 | `tests/core.md-format.test.mjs`（38 项）、`tests/core.markdown.test.mjs` 新增 6 项高亮渲染 |
+| 冒烟断言 | 主窗口 15 项：工具栏渲染/按钮齐全 → 加粗逐字比对 → 撤销 → 重做 → 高亮逐字比对 → `<mark>` 渲染 → H1 行首前缀逐字比对（防“插入而非替换”） → 再次点击还原 → 取消高亮 → 折叠区展开/收起 → 预览下隐藏与恢复（共 98 项） |
 
-**鏈疆鎶撳埌骞朵慨鎺夌殑涓€涓湡瀹炵己闄?*锛堝€煎緱璁颁綇锛夛細
-`execCommand('insertText')` 鏄?*鍦ㄥ厜鏍囧鎻掑叆**銆佸苟涓嶅垹闄ら€夊尯銆傛渶鍒濇垜绠椾簡 `replaceStart/replaceEnd` 鍗?*娌℃湁鍦ㄨ皟鐢ㄥ墠鎶婇€夊尯璁炬垚杩欎釜鍖洪棿**锛?
-浜庢槸琛岄鍓嶇紑绫绘搷浣滐紙H1/鍒楄〃锛夋妸鏁磋鍙堟嫾浜嗕竴閬嶁€斺€斿€煎彉鎴?`# ==鍐呭==...==鍐呭==...` 杩欑閲嶅涓层€?
-鏇寸碂鐨勬槸鎴戞渶鍒濈殑鏂█鍙煡 `startsWith('# ')`锛?*鎭板ソ鑳介€氳繃**锛屾墍浠ュ樊鐐规紡鎺夈€?
-鐜板湪涓ゅ閮戒慨浜嗭細鈶?璋冪敤鍓?`setSelectionRange(res.replaceStart, res.replaceEnd)`锛?
-鈶?璋冪敤鍚庣敤 `ta.value === res.text` 鏍￠獙锛屼笉涓€鑷村氨璧板洖閫€璺緞绾犳锛?
-鈶?鍐掔儫鏂█鏀逛负**閫愬瓧姣斿**锛坄value === 鏈熸湜瀹屾暣瀛楃涓瞏锛夛紝杩欑被鈥滃彧鍦ㄥ眬閮ㄧ湅璧锋潵瀵光€濈殑缂洪櫡鍐嶄篃杩囦笉鍘汇€?
+**本轮抓到并修掉的一个真实缺陷**（值得记住）：
+`execCommand('insertText')` 是**在光标处插入**、并不删除选区。最初我算了 `replaceStart/replaceEnd` 却**没有在调用前把选区设成这个区间**，
+于是行首前缀类操作（H1/列表）把整行又拼了一遍——值变成 `# ==内容==...==内容==...` 这种重复串。
+更糟的是我最初的断言只查 `startsWith('# ')`，**恰好能通过**，所以差点漏掉。
+现在两处都修了：① 调用前 `setSelectionRange(res.replaceStart, res.replaceEnd)`；
+② 调用后用 `ta.value === res.text` 校验，不一致就走回退路径纠正；
+③ 冒烟断言改为**逐字比对**（`value === 期望完整字符串`），这类“只在局部看起来对”的缺陷再也过不去。
 
-璁捐鍙栬垗锛?
-- **涓嶅仛瀵屾枃鏈紙WYSIWYG锛?*锛氫細鐮村潖鈥滀竴鏉＄瑪璁颁竴涓函鏂囨湰 `.md`銆佷换浣曠紪杈戝櫒閮借兘鎵撳紑鈥濈殑鏍规湰浼樼偣锛屼笖鐗靛姩鎼滅储/寰呭姙鍥炲啓/鍥炴敹绔欎竴鏁翠覆鏃㈡湁鑳藉姏銆?
-- **涓嶅仛瀛椾綋棰滆壊**锛歁arkdown 鏃犳爣鍑嗚娉曪紝鍙兘鐢ㄥ唴鑱?HTML锛岃€岀幇鏈夊畨鍏ㄦ竻娲椾細鍓ユ帀鍐呰仈鏍峰紡锛涙敼鐢?`==楂樹寒==`锛堣儗鏅壊鏍囪锛夋弧瓒斥€滅獊鍑烘樉绀衡€濈殑闇€姹傘€?
-- 鍚屽瓧绗︽爣璁扮殑鈥滃凡鐢熸晥鈥濆垽瀹氾細鍗曞瓧绗︽爣璁帮紙`*` 鏂滀綋銆乣` ` ``锛夊綋杩炵画瀛楃鏁颁负**濂囨暟**鏃舵墠绠楃敓鏁堬紱澶氬瓧绗︼紙`**`銆乣~~`銆乣==`锛夎繛缁暟 鈮?鏍囪闀垮害鍗崇畻銆?
-  杩欐牱鍦?`**绮?*` 涓婄偣鏂滀綋浼氳ˉ鎴?`***绮?**`锛堜繚鐣欑矖浣擄級锛岃€?`***x***` 涓婄偣绮椾綋浼氬幓鎺夌矖浣撶暀鏂滀綋銆?
-- 琛岄鍓嶇紑褰掑睘鎸?*鏈€闀垮尮閰?*锛歚- [ ] x` 绠楀緟鍔炶€屼笉鏄棤搴忓垪琛紝鎵€浠ャ€屽緟鍔?鈫?鍒楄〃銆嶄簰杞兘姝ｇ‘鏁存鏇挎崲鍓嶇紑銆?
+设计取舍：
+- **不做富文本（WYSIWYG）**：会破坏“一条笔记一个纯文本 `.md`、任何编辑器都能打开”的根本优点，且牵动搜索/待办回写/回收站一整串既有能力。
+- **不做字体颜色**：Markdown 无标准语法，只能用内联 HTML，而现有安全清洗会剥掉内联样式；改用 `==高亮==`（背景色标记）满足“突出显示”的需求。
+- 同字符标记的“已生效”判定：单字符标记（`*` 斜体、`` ` ``）当连续字符数为**奇数**时才算生效；多字符（`**`、`~~`、`==`）连续数 ≥ 标记长度即算。
+  这样在 `**粗**` 上点斜体会补成 `***粗***`（保留粗体），而 `***x***` 上点粗体会去掉粗体留斜体。
+- 行首前缀归属按**最长匹配**：`- [ ] x` 算待办而不是无序列表，所以「待办 ↔ 列表」互转能正确整段替换前缀。
 
-### 1.10 甯冨眬淇锛氬搴﹀垎閰?/ 涓嶇暀鐧?/ 鍙嫋鎷藉垎闅旀潯锛堟湰杞柊澧烇級
+### 1.10 布局修复：宽度分配 / 不留白 / 可拖拽分隔条（本轮新增）
 
-> 璧峰洜锛氱敤鎴峰弽棣堛€屾斁澶у悗浠嶇劧鍑虹幇绌虹櫧鍦版柟锛岀紪杈?鍒嗗睆/棰勮閭ｄ竴鍒椾笉鑳介殢鎰忔帶鍒跺ぇ灏忥紝鏄惧緱绗旇寰堢獎锛屾粴鍔ㄦ潯浠嶇劧鍦ㄤ腑闂淬€嶃€?
-> 鐢?CDP 閲忎簡鐪熷疄瀹藉害鍚庣‘璁ゆ槸**涓変釜鐙珛缂洪櫡**锛堣鍙ｅ浐瀹?1600px 鏃剁殑瀹炴祴鍊硷級锛?
+> 起因：用户反馈「放大后仍然出现空白地方，编辑/分屏/预览那一列不能随意控制大小，显得笔记很窄，滚动条仍然在中间」。
+> 用 CDP 量了真实宽度后确认是**三个独立缺陷**（视口固定 1600px 时的实测值）：
 
-| 妯″紡 | 绐楀彛 | app-shell | 缂栬緫鍖?| workspace | 缂栬緫鍣?| 棰勮 |
+| 模式 | 窗口 | app-shell | 编辑区 | workspace | 编辑器 | 预览 |
 |---|---|---|---|---|---|---|
-| 鍒嗗睆锛堜慨澶嶅墠锛?| 1600 | **1220** | 680 | 680 | **340** | **340** |
-| 浠呴瑙堬紙淇鍓嶏級 | 1600 | **1220** | 680 | 680 | 鈥?| **340** 鈫?鍙崰涓€鍗?|
-| 浠呯紪杈戯紙淇鍓嶏級 | 1600 | **1220** | 680 | 680 | **340** 鈫?鍙崰涓€鍗?| 鈥?|
+| 分屏（修复前） | 1600 | **1220** | 680 | 680 | **340** | **340** |
+| 仅预览（修复前） | 1600 | **1220** | 680 | 680 | — | **340** ← 只占一半 |
+| 仅编辑（修复前） | 1600 | **1220** | 680 | 680 | **340** ← 只占一半 | — |
 
-| 缂洪櫡 | 鏍瑰洜 | 淇硶 |
+| 缺陷 | 根因 | 修法 |
 |---|---|---|
-| 鈶?浠呴瑙?浠呯紪杈戞椂鍐呭鍙崰涓€鍗娿€佹粴鍔ㄦ潯钀藉湪涓棿 | `.workspace > .editor/.preview { width: 50% }` 鏄粰鍒嗗睆鍐欑殑锛屼絾鍙覆鏌撲竴涓瓙鍏冪礌鏃跺畠**浠嶇劧鍙嬁 50%** | 鏀圭敤涓嬫枃鐨?flex-grow 鍒嗛厤 + `:only-child` 鍏滃簳 |
-| 鈶?绐楀彛鏀惧ぇ/鏈€澶у寲鍚庡彸渚х暀鐧?| `.app-shell { width: max-content }` 鎶婂唴瀹瑰搴﹂拤姝诲湪 224+8+300+8+680 = 1220px | `.app-shell` 鏀?`width: 100%`锛沗.editor-pane.open` 鏀?`flex: 1 1 680px`锛坄min-width: 360px`锛夎缂栬緫鍖哄惛鏀跺浣欑┖闂?|
-| 鈶?闈㈡澘瀹藉害瀹屽叏鍥哄畾銆佹棤娉曡皟鏁?| 涓ゆ潯 seam 鍙兘鐐瑰嚮寮€鍚堬紝`cursor: pointer`锛屽搴﹀叏鏄啓姝荤殑甯搁噺 | 缂栬緫鈬勯瑙堜箣闂存柊澧?`.split-handle` 鍒嗛殧鏉★紝鎸囬拡鎷栧姩鏀规瘮渚嬨€佸弻鍑绘仮澶嶅悇鍗?|
+| ① 仅预览/仅编辑时内容只占一半、滚动条落在中间 | `.workspace > .editor/.preview { width: 50% }` 是给分屏写的，但只渲染一个子元素时它**仍然只拿 50%** | 改用下文的 flex-grow 分配 + `:only-child` 兜底 |
+| ② 窗口放大/最大化后右侧留白 | `.app-shell { width: max-content }` 把内容宽度钉死在 224+8+300+8+680 = 1220px | `.app-shell` 改 `width: 100%`；`.editor-pane.open` 改 `flex: 1 1 680px`（`min-width: 360px`）让编辑区吸收多余空间 |
+| ③ 面板宽度完全固定、无法调整 | 两条 seam 只能点击开合，`cursor: pointer`，宽度全是写死的常量 | 编辑⇄预览之间新增 `.split-handle` 分隔条，指针拖动改比例、双击恢复各半 |
 
-**杩欓噷韪╁埌涓€涓緢闅愯斀鐨?CSS 瑙勮寖缁嗚妭锛堝姟蹇呰浣忥級**锛?
-flex-grow 鐢ㄦ瘮渚嬪垎閰嶆椂锛?*褰撴墍鏈?flex-grow 涔嬪拰灏忎簬 1**锛屾祻瑙堝櫒鎸夈€岃嚜宸辩殑 grow 脳 鍓╀綑绌洪棿銆嶅垎閰嶏紝
-**浣欓噺鐣欏湪鍘熷涓嶅垎閰?*锛堜笉鏄綊涓€鍖栧埌 100%锛夈€傛墍浠?`flex: 0.5 1 0` 鍗曠嫭涓€涓瓙鍏冪礌鍙兘鎷垮埌涓€鍗婂搴︹€斺€?
-瀹炴祴 552/1060銆傚垎灞忔椂 0.5+0.5=1 鎭板ソ姝ｅ父锛屾墍浠ュ彧鏈夈€屼粎缂栬緫/浠呴瑙堛€嶄細闇查銆?
-淇硶鏄樉寮忓厹搴曪細
+**这里踩到一个很隐蔽的 CSS 规范细节（务必记住）**：
+flex-grow 用比例分配时，**当所有 flex-grow 之和小于 1**，浏览器按「自己的 grow × 剩余空间」分配，
+**余量留在原处不分配**（不是归一化到 100%）。所以 `flex: 0.5 1 0` 单独一个子元素只能拿到一半宽度——
+实测 552/1060。分屏时 0.5+0.5=1 恰好正常，所以只有「仅编辑/仅预览」会露馅。
+修法是显式兜底：
 
 ```css
 .workspace > .editor  { flex: var(--split-left, 0.5) 1 0; min-width: 0; }
@@ -226,363 +226,364 @@ flex-grow 鐢ㄦ瘮渚嬪垎閰嶆椂锛?*褰撴墍鏈?flex-grow 涔嬪拰灏忎
 .workspace > .preview:only-child { flex-grow: 1; }
 ```
 
-| 浜嬮」 | 瀹炵幇浣嶇疆 |
+| 事项 | 实现位置 |
 |---|---|
-| 姣斾緥鐘舵€?+ 鎷栨嫿 + 鎸佷箙鍖栵紙鍋滄墜 400ms 鍐欑洏锛岄伩鍏嶆嫋鍔ㄥ埛鐖嗚缃枃浠讹級 | `App.svelte` 鐨?`splitRatio` / `onSplitPointerDown/Move/Up` / `resetSplitRatio` / `scheduleSplitSave` |
-| 姣斾緥浣滀负 CSS 鍙橀噺娉ㄥ叆 workspace | `<div class="workspace" style="--split-left: {splitRatio}; --split-right: {1 - splitRatio}">` |
-| 璁剧疆椤?`editor.splitRatio`锛?.2鈥?.8锛岄粯璁?0.5锛夆€斺€旂敤 `clampFloat` 鑰屼笉鏄?`clampNum`锛?*姣斾緥涓嶈兘琚洓鑸嶄簲鍏ユ垚鏁存暟** | `settings/types.ts`锛坄SPLIT_RATIO_RANGE`锛夈€乣settings/coerce.ts` |
-| 绐楀彛瀹藉害绛栫暐璋冩暣锛氱紪杈戝尯鍏抽棴鏃剁簿纭创鍚堝唴瀹癸紱缂栬緫鍖烘墦寮€鏃?*鍙斁澶т笉缂╁皬**锛堝凡鏇村灏变氦缁欑紪杈戝尯鍚告敹锛?| `App.svelte` 鐨?`applyWindowWidth`锛堢敤 `innerSize()/scaleFactor()` 绠楀綋鍓嶉€昏緫瀹藉害锛?|
-| 璺ㄧ獥鍙ｅ悓姝ワ細璁剧疆鍙樻洿鏃惰窡闅忔瘮渚嬶紝浣?*姝ｅ湪鎷栧姩鏃朵互鏈湴涓哄噯**锛堥伩鍏嶆墜鎶栵級 | `subscribeSettings` 鍥炶皟 |
-| 娴嬭瘯 | `tests/core.settings.test.mjs` 鏂板 1 椤癸紙姣斾緥閽冲埗/涓嶅彇鏁?闈炴硶鍥為€€锛?|
-| 鍐掔儫鏂█ | 涓荤獥鍙?10 椤癸細鍒嗗睆鍚勫崐 鈫?鍒嗛殧鏉″瓨鍦?鈫?浠呴瑙堝崰婊?鈫?浠呯紪杈戝崰婊?鈫?鎷栧姩鏀规瘮渚?鈫?姣斾緥鎸佷箙鍖?鈫?鍙屽嚮鎭㈠鍚勫崐 鈫?濉弧绐楀彛涓嶇暀鐧?鈫?鍥? 涓や釜闈㈡澘瀹藉害涓?0 鈫?渚ф爮瀹藉害鈮?24锛堝叡 107 椤癸級 |
+| 比例状态 + 拖拽 + 持久化（停手 400ms 写盘，避免拖动刷爆设置文件） | `App.svelte` 的 `splitRatio` / `onSplitPointerDown/Move/Up` / `resetSplitRatio` / `scheduleSplitSave` |
+| 比例作为 CSS 变量注入 workspace | `<div class="workspace" style="--split-left: {splitRatio}; --split-right: {1 - splitRatio}">` |
+| 设置项 `editor.splitRatio`（0.2–0.8，默认 0.5）——用 `clampFloat` 而不是 `clampNum`，**比例不能被四舍五入成整数** | `settings/types.ts`（`SPLIT_RATIO_RANGE`）、`settings/coerce.ts` |
+| 窗口宽度策略调整：编辑区关闭时精确贴合内容；编辑区打开时**只放大不缩小**（已更宽就交给编辑区吸收） | `App.svelte` 的 `applyWindowWidth`（用 `innerSize()/scaleFactor()` 算当前逻辑宽度） |
+| 跨窗口同步：设置变更时跟随比例，但**正在拖动时以本地为准**（避免手抖） | `subscribeSettings` 回调 |
+| 测试 | `tests/core.settings.test.mjs` 新增 1 项（比例钳制/不取整/非法回退） |
+| 冒烟断言 | 主窗口 10 项：分屏各半 → 分隔条存在 → 仅预览占满 → 仅编辑占满 → 拖动改比例 → 比例持久化 → 双击恢复各半 → 填满窗口不留白 → 图3 两个面板宽度为 0 → 侧栏宽度≈224（共 107 项） |
 
-椤哄甫淇鐨勬棦鏈夋柇瑷€锛氬師鏉ャ€屾敹鍥炲悗鍐呭瀹藉害鈮堜晶鏍忋€嶆柇瑷€ `.app-shell` < 260锛?
-瀹冧緷璧栫殑鏄€渟hell 缂╁埌鍐呭瀹解€濊繖涓棫琛屼负锛涚幇鍦?shell 濉弧绐楀彛銆?*绐楀彛缂╂斁鐢辨闈㈢ `setSize` 璐熻矗**锛?
-鎵€浠ユ敼鎴愭柇瑷€鈥滃垪琛?缂栬緫鍖哄搴︿负 0 涓斾晶鏍忊増224鈥濓紙Web 棰勮涓嬫祻瑙堝櫒绐楀彛鏈潵灏变笉鑳借椤甸潰缂╂斁锛夈€?
+顺带修正的既有断言：原来「收回后内容宽度≈侧栏」断言 `.app-shell` < 260，
+它依赖的是“shell 缩到内容宽”这个旧行为；现在 shell 填满窗口、**窗口缩放由桌面端 `setSize` 负责**，
+所以改成断言“列表/编辑区宽度为 0 且侧栏≈224”（Web 预览下浏览器窗口本来就不能被页面缩放）。
 
-### 1.11 宸插洖閫€锛氬洖杞﹀嵆鎹㈣锛坔ardBreaks锛夆€斺€?*褰撳墠鐗堟湰娌℃湁杩欎釜鍔熻兘**
+### 1.11 已回退：回车即换行（hardBreaks）——**当前版本没有这个功能**
 
-> **缁撹鍏堣**锛氳繖涓姛鑳藉疄鐜拌繃锛堟彁浜?`144ede7`锛夛紝**宸叉寜鐢ㄦ埛瑕佹眰瀹屾暣鍥為€€**銆傜幇鍦ㄥ崟涓洖杞︿粛鐒?
-> 鎸夋爣鍑?Markdown 鎶樺彔杩涘悓涓€娈佃惤锛堝嵆"鍙宠竟涓嶆崲琛?锛夈€傚疄鐜扮暀鍦?git 鍘嗗彶閲岋紝鎯虫仮澶嶅氨 revert 閭ｄ釜鎻愪氦銆?
+> **结论先说**：这个功能实现过（提交 `144ede7`），**已按用户要求完整回退**。现在单个回车仍然
+> 按标准 Markdown 折叠进同一段落（即"右边不换行"）。实现留在 git 历史里，想恢复就 revert 那个提交。
 
-**涓轰粈涔堝仛**锛氱敤鎴峰弽棣?涓轰粈涔堟垜鎸夊洖杞﹀彸杈规病鏈夋崲琛?鈥斺€斾竴琛屼竴涓瘝鍐欏崟璇嶈〃锛岄瑙堥噷琚嫾鎴愪竴鍙ャ€?
-`breaks: true`锛圙FM 鍦ㄨ瘎璁?Issue 閲岀殑琛屼负锛夎兘璁╁崟涓洖杞︾洿鎺ユ崲琛岋紝瀵逛笉鎯冲 Markdown 鐨勭敤鎴锋洿鍙嬪ソ銆?
+**为什么做**：用户反馈"为什么我按回车右边没有换行"——一行一个词写单词表，预览里被拼成一句。
+`breaks: true`（GFM 在评论/Issue 里的行为）能让单个回车直接换行，对不想学 Markdown 的用户更友好。
 
-**涓轰粈涔堝洖閫€**锛氱敤鎴疯姹?鏃犺濡備綍鍏堝洖閫€鍒颁笉鑳芥崲琛岀殑鎯呭喌"銆傚洖閫€鐨勫瑙備緷鎹槸杩欐潯鏃堕棿绾匡細
+**为什么回退**：用户要求"无论如何先回退到不能换行的情况"。回退的客观依据是这条时间线：
 
-| 鏃堕棿 | 浜嬩欢 |
+| 时间 | 事件 |
 |---|---|
-| 21:12 | 鎻愪氦 `144ede7`锛堝洖杞﹀嵆鎹㈣锛夎繘浠撳簱 |
-| **21:14** | app **鑳芥甯稿惎鍔?*锛坄%LOCALAPPDATA%\com.noteapp.desktop\EBWebView` 琚啓鍏?= webview 璧锋潵浜嗭級锛涙鏃剁鐩樹笂鐨?exe 鏄?*鏀瑰姩涔嬪墠**缂栬瘧鐨?|
-| 21:15 | 閲嶆柊缂栬瘧鍑?exe锛?*鍖呭惈 144ede7**锛夛細`noteapp_lib.lib` 21:15:07 鈫?`.dll` 21:15:08 鈫?`.rlib` 21:15:08 鈫?`noteapp.exe` 21:15:09 |
-| 21:22 | 鍚姩杩欎釜鏂?exe 鈫?**鏈夎繘绋嬨€佹棤绐楀彛**锛圕PU 浠?0.06 绉掞紝8 鍒嗛挓鍚庝粛鏃犱富绐楀彛锛?|
+| 21:12 | 提交 `144ede7`（回车即换行）进仓库 |
+| **21:14** | app **能正常启动**（`%LOCALAPPDATA%\com.noteapp.desktop\EBWebView` 被写入 = webview 起来了）；此时磁盘上的 exe 是**改动之前**编译的 |
+| 21:15 | 重新编译出 exe（**包含 144ede7**）：`noteapp_lib.lib` 21:15:07 → `.dll` 21:15:08 → `.rlib` 21:15:08 → `noteapp.exe` 21:15:09 |
+| 21:22 | 启动这个新 exe → **有进程、无窗口**（CPU 仅 0.06 秒，8 分钟后仍无主窗口） |
 
-**"鑳借窇鐨勭増鏈?涓?璺戜笉璧锋潵鐨勭増鏈?涔嬮棿锛屼唬鐮佷笂鐨勫敮涓€宸埆灏辨槸杩欎釜鏀瑰姩**锛屾墍浠ュ厛鍥為€€瀹冩槸姝ｇ‘鐨勬帓鏌ュ姩浣溿€?
+**"能跑的版本"与"跑不起来的版本"之间，代码上的唯一差别就是这个改动**，所以先回退它是正确的排查动作。
 
-**浣嗚璁板綍涓€涓弽璇?*锛氳繖涓敼鍔ㄥ湪鍘熺悊涓?*涓嶅簲璇?*瀵艰嚧绐楀彛鍒涘缓澶辫触鈥斺€?
-- 涓荤獥鍙ｇ敱 Rust 鎸?`tauri.conf.json` 澹版槑寮忓垱寤猴紝**鍙戠敓鍦?webview 鍔犺浇鍓嶇涔嬪墠**锛涘墠绔?JS 鍑洪敊鍙細鐧藉睆锛屼笉浼氳绐楀彛涓嶅瓨鍦紱
-- `lib.rs` 鍏ㄦ枃鍙湁 `Builder::default().invoke_handler(...).run(...)`锛?*娌℃湁 setup 閽╁瓙銆佹病鏈夋墭鐩樸€佹病鏈夐殣钘?鍏抽棴绐楀彛鐨勯€昏緫**锛?
-- 鍓嶇鍏ㄥ眬鎼?`.hide()` / `.close()` 鍙懡涓缃獥鍙ｈ嚜宸辩殑 `win.hide()`銆?
+**但要记录一个反证**：这个改动在原理上**不应该**导致窗口创建失败——
+- 主窗口由 Rust 按 `tauri.conf.json` 声明式创建，**发生在 webview 加载前端之前**；前端 JS 出错只会白屏，不会让窗口不存在；
+- `lib.rs` 全文只有 `Builder::default().invoke_handler(...).run(...)`，**没有 setup 钩子、没有托盘、没有隐藏/关闭窗口的逻辑**；
+- 前端全局搜 `.hide()` / `.close()` 只命中设置窗口自己的 `win.hide()`。
 
-鐪熸鐨勫惎鍔ㄩ殰纰嶅凡鍙﹁瀹氫綅骞跺鐞嗭紙瑙?搂2 绗?14/15 鏉★級锛?*Windows 瀵规湭绛惧悕 exe 鐨?鏃犳硶楠岃瘉鍙戝竷鑰?纭妗?*锛堢偣"鍙栨秷"灏辩瓑浜庢病鍚姩锛?
-+ **鍚姩鍗宠创杈硅Е鍙戜晶杈瑰惛闄勩€? 绉掑悗鎶婄獥鍙ｆ粦鍑哄睆骞?*锛堝凡鎶婄敤鎴疯缃噷鐨?`dock.enabled` 鏀逛负 `false`锛夈€?
+真正的启动障碍已另行定位并处理（见 §2 第 14/15 条）：**Windows 对未签名 exe 的"无法验证发布者"确认框**（点"取消"就等于没启动）
++ **启动即贴边触发侧边吸附、2 秒后把窗口滑出屏幕**（已把用户设置里的 `dock.enabled` 改为 `false`）。
 
-**鍥為€€鏂瑰紡**锛歚git revert --no-commit 144ede7`锛圥ROGRESS 鑷姩鍚堝苟锛屾棤鍐茬獊锛夛紝鍐?*鎵嬪伐琛ュ洖琚繛甯︽挙鎺夌殑
-`settingsEq` 鏂█鍔犲浐**锛堣 搂1.14 鏈鈥斺€旈偅閮ㄥ垎涓庢崲琛屾棤鍏筹紝涓嶈璺熺潃鍥為€€锛夈€?
-楠岃瘉锛氬崟娴嬪洖鍒?**187 椤瑰叏缁?*銆佷富绐楀彛鍐掔儫 **107/107**銆佽缃獥鍙?**25/25**锛堣繛璺?4 娆″叏杩囷級锛?
-涓?`vite build` 浜х墿鍝堝笇鍥炲埌鏀瑰姩鍓嶇殑 `main-CNU6PkJd.js`锛?81.80 kB锛夆€斺€?*閫愬瓧鑺傜瓑浠凤紝纭鍥為€€骞插噣**銆?
+**回退方式**：`git revert --no-commit 144ede7`（PROGRESS 自动合并，无冲突），再**手工补回被连带撤掉的
+`settingsEq` 断言加固**（见 §1.14 末段——那部分与换行无关，不该跟着回退）。
+验证：单测回到 **187 项全绿**、主窗口冒烟 **107/107**、设置窗口 **25/25**（连跑 4 次全过），
+且 `vite build` 产物哈希回到改动前的 `main-CNU6PkJd.js`（281.80 kB）——**逐字节等价，确认回退干净**。
 
-**濡傛灉浠ュ悗鎯冲啀瑕?*锛歳evert 鍥炴潵鍗冲彲锛堝惈璁剧疆椤广€佽缃〉寮€鍏炽€? 椤规祴璇曚笌涓ょ粍鍐掔儫鏂█锛夈€?
-寤鸿閭ｆ椂**榛樿鍏抽棴**锛坄hardBreaks: false`锛夛紝璁╃敤鎴疯嚜宸卞湪 璁剧疆 鈫?缂栬緫鍣?閲屾墦寮€锛?
-閬垮厤鍐嶆鍥?榛樿琛屼负琚敼鍙?鑰屽紩鍙戝洶鎯戙€?
+**如果以后想再要**：revert 回来即可（含设置项、设置页开关、8 项测试与两组冒烟断言）。
+建议那时**默认关闭**（`hardBreaks: false`），让用户自己在 设置 → 编辑器 里打开，
+避免再次因"默认行为被改变"而引发困惑。
 
-### 1.12 鍚姩鏁呴殰鎺掓煡锛?026-09-30 浜嬫晠锛氬簲鐢?*褰诲簳鎵撲笉寮€**锛夆€斺€旀牴鍥犱笌闃叉不
+### 1.12 启动故障排查（2026-09-30 事故：应用**彻底打不开**）——根因与防治
 
-> **涓€鍙ヨ瘽缁撹**锛?*寮烘潃搴旂敤鏃?WebView2 姝ｅ湪浣跨敤瀹冪殑 profile**锛宲rofile 琚啓鍧忥紝涔嬪悗姣忔鍚姩閮藉け璐ュ湪
-> Tauri 鍒涘缓绐楀彛/WebView2 鐨勯偅涓€姝ャ€?*涓?NoteApp 浠ｇ爜銆佷笌閭ｆ銆屽洖杞﹀嵆鎹㈣銆嶆敼鍔ㄩ兘鏃犲叧**
-> 锛堝凡鐢?鍥為€€鍚庨噸鏂扮紪璇戜粛澶辫触"鍋氳繃瀵圭収锛夈€?*淇锛氶噸鍚?+ 鍒犻櫎 `%LOCALAPPDATA%\com.noteapp.desktop`銆?*
-> **闃叉不锛堝凡瀹炵幇锛?*锛歚scripts/kill-running-app.mjs` 鍦ㄥ己鏉€鍚?*杞崲** WebView2 profile銆?
+> **一句话结论**：**强杀应用时 WebView2 正在使用它的 profile**，profile 被写坏，之后每次启动都失败在
+> Tauri 创建窗口/WebView2 的那一步。**与 NoteApp 代码、与那次「回车即换行」改动都无关**
+> （已用"回退后重新编译仍失败"做过对照）。**修复：重启 + 删除 `%LOCALAPPDATA%\com.noteapp.desktop`。**
+> **防治（已实现）**：`scripts/kill-running-app.mjs` 在强杀后**轮换** WebView2 profile。
 
-**鐢ㄦ埛鐪嬪埌鐨勭幇璞?*锛氬弻鍑?exe 鈫?寮?鏃犳硶楠岃瘉鍙戝竷鑰? 鈫?鏈夋椂"绐楀彛闂竴涓嬪氨娑堝け" 鈫?鏈夋椂骞茶剢娌℃湁绐楀彛銆?
-杩涚▼鍗村湪璺戙€?*release 鏄?GUI 瀛愮郴缁燂紙`windows_subsystem = "windows"`锛夛紝panic 鏂囨湰琚洿鎺ヤ涪寮?*锛?
-鎵€浠ヤ竴鐩存病鏈夋姤閿欏彲鐪嬧€斺€旇繖鏄帓鏌ュ洶闅剧殑鏍规簮銆?
+**用户看到的现象**：双击 exe → 弹"无法验证发布者" → 有时"窗口闪一下就消失" → 有时干脆没有窗口、
+进程却在跑。**release 是 GUI 子系统（`windows_subsystem = "windows"`），panic 文本被直接丢弃**，
+所以一直没有报错可看——这是排查困难的根源。
 
-**璇佹嵁閾撅紙鎸夋椂闂达級**
+**证据链（按时间）**
 
-| 鏃堕棿 | 浜嬩欢 | 鍏抽敭璇佹嵁 |
+| 时间 | 事件 | 关键证据 |
 |---|---|---|
-| 21:12 | 鎻愪氦 `144ede7`锛堝洖杞﹀嵆鎹㈣锛?| 鏃堕棿涓婄揣閭绘晠闅滐紝**璇浜嗗洜鏋滃垽鏂?* |
-| **21:13:57/58** | `EBWebView\Local State`銆乣Default` 琚啓鍏?| **姝ゅ埢 WebView2 姝ｅ湪娲昏穬浣跨敤 profile** |
-| ~21:14 | `npm run desktop:setup` 寮€澶寸殑 `Stop-Process -Force` 寮烘潃搴旂敤 | WebView2 娴忚鍣ㄨ繘绋?*涓嶉殢瀹夸富閫€鍑?*锛宲rofile 琚爫鍦ㄥ啓鍏ヤ腑 |
-| 21:15:09 | 缂栬瘧鍑烘柊 exe锛堝惈 `144ede7`锛?| 鈥斺€?|
-| 21:22:57 璧?| 姣忔鍚姩閮藉け璐?| 瑙佷笅涓夊眰琛ㄧ幇 |
+| 21:12 | 提交 `144ede7`（回车即换行） | 时间上紧邻故障，**误导了因果判断** |
+| **21:13:57/58** | `EBWebView\Local State`、`Default` 被写入 | **此刻 WebView2 正在活跃使用 profile** |
+| ~21:14 | `npm run desktop:setup` 开头的 `Stop-Process -Force` 强杀应用 | WebView2 浏览器进程**不随宿主退出**，profile 被砍在写入中 |
+| 21:15:09 | 编译出新 exe（含 `144ede7`） | —— |
+| 21:22:57 起 | 每次启动都失败 | 见下三层表现 |
 
-**澶辫触鐨勪笁灞傝〃鐜帮紙閮藉凡瀹炴祴锛?*
-1. **浜嬩欢鏃ュ織**锛?2:30鈥?2:33 鏈?**12 鏉?* Application Error(1000)锛?
-   `msedgewebview2.exe` 宕╁湪 `msedge.dll`锛宍Exception code: 0x80000003`
-   锛圫TATUS_BREAKPOINT = Chromium `CHECK()` 鑷村懡鏂█锛夆啋 **寮曟搸鍦ㄦ嫆缁濊繖浠?profile**銆?
-2. **甯︽帶鍒跺彴鐨勮皟璇曠増鎶撳埌 panic 鍘熸枃**锛?
-   `tauri-2.11.5/src/app.rs:1425` 鈫?`Failed to setup app: 鎷掔粷璁块棶銆?(os error 5)`
-   鈥斺€?`app.rs:1425` 鏄?`RuntimeRunEvent::Ready` 閲岀殑 `setup(&mut self)`锛屽嵆**鍒涘缓绐楀彛/WebView2 鐨勯偅涓€姝?*锛?
-   **鍙戠敓鍦ㄥ墠绔?HTML/JS 琚姞杞戒箣鍓?* 鈫?鎵€浠?*浠讳綍鍓嶇鏀瑰姩閮戒笉鍙兘閫犳垚瀹?*銆?
-3. **鍗℃鐨勫舰鎬?*锛氬彧鏈?tao 鐨?16脳16 鍐呴儴杈呭姪绐楀彛锛坄.NET` 鐨?`MainWindowHandle` 浼氭妸瀹冭鎶ヤ负涓荤獥鍙ｏ紒
-   宸插湪璇婃柇鑴氭湰閲屾爣娉?`Tao helper window, NOT the app window`锛夈€乣EmbeddedBrowserWebView.dll` 宸插姞杞姐€?
-   绾跨▼鍋滃湪 `Wait/EventPairLow`锛圓LPC锛夈€?*鍙湁 5 涓嚎绋?*銆丆PU 0.05 绉掋€佹棤 stderr銆佷笉閫€鍑恒€?
+**失败的三层表现（都已实测）**
+1. **事件日志**：22:30–22:33 有 **12 条** Application Error(1000)：
+   `msedgewebview2.exe` 崩在 `msedge.dll`，`Exception code: 0x80000003`
+   （STATUS_BREAKPOINT = Chromium `CHECK()` 致命断言）→ **引擎在拒绝这份 profile**。
+2. **带控制台的调试版抓到 panic 原文**：
+   `tauri-2.11.5/src/app.rs:1425` → `Failed to setup app: 拒绝访问。 (os error 5)`
+   —— `app.rs:1425` 是 `RuntimeRunEvent::Ready` 里的 `setup(&mut self)`，即**创建窗口/WebView2 的那一步**，
+   **发生在前端 HTML/JS 被加载之前** → 所以**任何前端改动都不可能造成它**。
+3. **卡死的形态**：只有 tao 的 16×16 内部辅助窗口（`.NET` 的 `MainWindowHandle` 会把它误报为主窗口！
+   已在诊断脚本里标注 `Tao helper window, NOT the app window`）、`EmbeddedBrowserWebView.dll` 已加载、
+   线程停在 `Wait/EventPairLow`（ALPC）、**只有 5 个线程**、CPU 0.05 秒、无 stderr、不退出。
 
-**鏄粈涔堜慨濂界殑**锛?*閲嶅惎 + 鍒犻櫎 `%LOCALAPPDATA%\com.noteapp.desktop`**銆傛仮澶嶅悗鐨勮瘖鏂姤鍛婏細
-鐪熺獥鍙?`pos=(52,52) size=248x799`銆?5 绉掔ǔ瀹氬瓨娲汇€乣msedgewebview2` 6 鈫?13 涓€乸rofile 閲嶅缓 167 鏂囦欢銆?
-**`msedgewebview2.exe crashes: 0`**銆乻tderr 绌恒€?3 涓瑪璁板畬濂姐€?
+**是什么修好的**：**重启 + 删除 `%LOCALAPPDATA%\com.noteapp.desktop`**。恢复后的诊断报告：
+真窗口 `pos=(52,52) size=248x799`、25 秒稳定存活、`msedgewebview2` 6 → 13 个、profile 重建 167 文件、
+**`msedgewebview2.exe crashes: 0`**、stderr 空、13 个笔记完好。
 
-**宸插疄鐜扮殑闃叉不**锛歚scripts/kill-running-app.mjs` 寮烘潃 NoteApp 鍚庢妸 `EBWebView` 鏀瑰悕涓?
-`EBWebView.rotated-<yyyyMMddHHmmssSSS>`锛堜繚鐣欐渶杩?2 浠斤級锛屼笅娆″惎鍔ㄦ嬁鍒板共鍑€ profile銆?
-浠ｄ环鍙湁"鏋勫缓鍚庨娆″惎鍔ㄩ噸寤?webview 缂撳瓨"鈥斺€旀闈㈡ā寮忎笅 localStorage 浠呭瓨涓婚蹇収
-锛堣缃湡婧愭槸 `settings.json`锛夛紝绗旇鍦?`%APPDATA%`锛岄兘涓嶅彈褰卞搷銆?
-鏂板 `tests/scripts.build-guard.test.mjs` 鎶婅繖浜涙帴绾夸笌鏂囦欢鏍煎紡涓嶅彉閲忛攣浣忋€?
+**已实现的防治**：`scripts/kill-running-app.mjs` 强杀 NoteApp 后把 `EBWebView` 改名为
+`EBWebView.rotated-<yyyyMMddHHmmssSSS>`（保留最近 2 份），下次启动拿到干净 profile。
+代价只有"构建后首次启动重建 webview 缓存"——桌面模式下 localStorage 仅存主题快照
+（设置真源是 `settings.json`），笔记在 `%APPDATA%`，都不受影响。
+新增 `tests/scripts.build-guard.test.mjs` 把这些接线与文件格式不变量锁住。
 
-**鎴戝湪杩欒疆鎺掓煡閲屽垽鏂敊鐨勫湴鏂癸紙璁板綍浠ュ厤閲嶇姱锛?*
-- 鉂屻€屽惛闄勬妸绐楀彛钘忓埌灞忓箷澶栥€嶏細`side-dock.ts` 鍏ㄦ枃鍙湁 `setSize/setPosition/setAlwaysOnTop`锛?*浠庝笉 close**銆?
-- 鉂屻€孉CL 琚牬鍧忋€嶏細瀹炴祴 `%LOCALAPPDATA%`/`%APPDATA%` 鎵€鏈夎€呬笌缁ф壙**瀹屽叏姝ｅ父**銆?
-- 鉂屻€屾矙绠遍噷鐨勫鐜版湁鏁堛€嶏細娌欑**涓嶈兘鍐?* `%LOCALAPPDATA%`锛堝疄娴嬫嫆缁濓級锛屾墍浠ラ偅鏄垜鑷繁閫犳垚鐨勫崱娉曪紱
-  浣嗗畠涓庣敤鎴风幆澧冪殑**鐥囩姸涓€鑷?*锛屼竴搴﹁鎴戣鍒ゃ€?
-- 鉂屻€孲top-Process 鏉€涓嶆帀 鈫?鏈夊畨鍏ㄥ眰淇濇姢銆嶏細瀹炴祴鍦ㄦ湰娌欑**杞绘澗鏉€鎺?*锛宍taskkill` 鐨?Access denied
-  鍙槸鍥犱负杩涚▼宸蹭笉瀛樺湪銆?
-- 鉂屻€宮sedgewebview2 灞炰簬鍒殑杞欢銆嶏細WebView2 娴忚鍣ㄨ繘绋?*涓嶉殢瀹夸富閫€鍑?*锛屽畠浠緢鍙兘灏辨槸鏈簲鐢ㄧ殑瀛ゅ効銆?
-- 鉂屻€屾帹鑽愮敤 WebView2 寮曞绋嬪簭淇銆嶏細瀹?*鍙兘"娌¤鏃跺畨瑁?锛屼笉鑳戒慨澶?*锛堢敤鎴风湅鍒?瀹夎澶辫触锛屽凡涓虹郴缁熷畨瑁?锛夈€?
+**我在这轮排查里判断错的地方（记录以免重犯）**
+- ❌「吸附把窗口藏到屏幕外」：`side-dock.ts` 全文只有 `setSize/setPosition/setAlwaysOnTop`，**从不 close**。
+- ❌「ACL 被破坏」：实测 `%LOCALAPPDATA%`/`%APPDATA%` 所有者与继承**完全正常**。
+- ❌「沙箱里的复现有效」：沙箱**不能写** `%LOCALAPPDATA%`（实测拒绝），所以那是我自己造成的卡法；
+  但它与用户环境的**症状一致**，一度让我误判。
+- ❌「Stop-Process 杀不掉 → 有安全层保护」：实测在本沙箱**轻松杀掉**，`taskkill` 的 Access denied
+  只是因为进程已不存在。
+- ❌「msedgewebview2 属于别的软件」：WebView2 浏览器进程**不随宿主退出**，它们很可能就是本应用的孤儿。
+- ❌「推荐用 WebView2 引导程序修复」：它**只能"没装时安装"，不能修复**（用户看到"安装失败，已为系统安装"）。
 
-**鍚屾椂纭涓庢湰娆℃棤鍏崇殑**锛歚Cargo.lock` 鏈彉锛坢time 9/17銆乬it 骞插噣锛夈€乣tauri.conf.json` 鏈彉銆?
-`src-tauri` 鏃犳湭鎻愪氦鏀瑰姩銆佹ā鍧楀垪琛?*鏃犱换浣曠涓夋柟娉ㄥ叆 DLL**锛堝彧鏈?noteapp.exe + 寰蒋鐨?
-`EmbeddedBrowserWebView.dll`锛夈€佹棤 ASR/AppLocker/SmartAppControl銆佹棤鍏煎鎬ф爣蹇椼€佹棤 IFEO 鍔寔銆?
-`WEBVIEW2_*` 鐜鍙橀噺涓嶅瓨鍦ㄣ€乄ebView2 杩愯鏃舵枃浠跺畬鏁翠笖**绛惧悕鏈夋晥**銆?
+**同时确认与本次无关的**：`Cargo.lock` 未变（mtime 9/17、git 干净）、`tauri.conf.json` 未变、
+`src-tauri` 无未提交改动、模块列表**无任何第三方注入 DLL**（只有 noteapp.exe + 微软的
+`EmbeddedBrowserWebView.dll`）、无 ASR/AppLocker/SmartAppControl、无兼容性标志、无 IFEO 劫持、
+`WEBVIEW2_*` 环境变量不存在、WebView2 运行时文件完整且**签名有效**。
 
-### 1.13 妗岄潰澹充笌鏋勫缓
+### 1.13 桌面壳与构建
 
-- Rust 钖勫３锛歚list/read/write/remove_note_file`銆乣read/write/remove_meta`銆乣read/write_settings`銆乣get_storage_info`銆乣open_path`銆乣pick_folder`銆乣migrate_notes`
-- 鏉冮檺銆佸弻绐楀彛閰嶇疆銆佸簲鐢ㄥ浘鏍囷紙`src-tauri/icons/`锛?
-- `scripts/setup.ps1`锛欰SCII 鍖栵紙閬垮厤 PowerShell 5.1 缂栫爜闂锛夈€佽嚜鍔ㄧ粨鏉熻繍琛屼腑鐨?`noteapp.exe`锛堥伩鍏?exe 琚崰鐢級銆乣--no-bundle` 榛樿浜у嚭鍙繍琛?exe
-- README 鍏ㄩ噺璇存槑锛沗demo/` 淇濈暀涓哄師鍨嬶紙鍙︽湁涓€娆℃彁浜?`a1cba63` 鎶婂畠鍗囩骇鎴愭枃浠跺す+绗旇鍙屽疄浣?+ IndexedDB锛屽苟甯﹁嚜宸辩殑娴嬭瘯锛?
+- Rust 薄壳：`list/read/write/remove_note_file`、`read/write/remove_meta`、`read/write_settings`、`get_storage_info`、`open_path`、`pick_folder`、`migrate_notes`
+- 权限、双窗口配置、应用图标（`src-tauri/icons/`）
+- `scripts/setup.ps1`：ASCII 化（避免 PowerShell 5.1 编码问题）、自动结束运行中的 `noteapp.exe`（避免 exe 被占用）、`--no-bundle` 默认产出可运行 exe
+- README 全量说明；`demo/` 保留为原型（另有一次提交 `a1cba63` 把它升级成文件夹+笔记双实体 + IndexedDB，并带自己的测试）
 
-### 1.14 楠岃瘉鐜扮姸锛堟湰娌欑锛涗富棰樿惤鍦板墠鐨勫巻鍙插熀绾匡級
+### 1.14 验证现状（本沙箱；主题落地前的历史基线）
 
-- 鍗曞厓/闆嗘垚娴嬭瘯锛?02 椤瑰叏缁匡紙`npm test`锛?
-- 鐪熷疄 Chrome 鍐掔儫锛氫富绐楀彛 51/51銆佽缃獥鍙?14/14
-- `tsc --noEmit` 閫氳繃锛沗vite build` 閫氳繃锛堝弻椤典骇鐗╋級
-- 瑕嗙洊鐐癸細frontmatter 寰€杩斻€佸洖鏀剁珯鍏ㄦ祦绋嬨€佹墜鎺?鏂囦欢澶规帓搴忋€佹悳绱㈣浆涔夈€丮arkdown/XSS銆佸姩浣滄敞鍐岃〃銆佽缃綊涓€鍖?鍐茬獊/鏈煡瀛楁銆佸瓨鍌ㄥ瓧娈靛绾︺€丵Q 鍚搁檮绾绠椼€乁I 闈㈡澘瀹藉害鏂█
+- 单元/集成测试：102 项全绿（`npm test`）
+- 真实 Chrome 冒烟：主窗口 51/51、设置窗口 14/14
+- `tsc --noEmit` 通过；`vite build` 通过（双页产物）
+- 覆盖点：frontmatter 往返、回收站全流程、手排/文件夹排序、搜索转义、Markdown/XSS、动作注册表、设置归一化/冲突/未知字段、存储字段契约、QQ 吸附纯计算、UI 面板宽度断言
 
-### 1.15 楠岃瘉鐜扮姸锛堟湰娌欑锛屽綋鍓嶏級
+### 1.15 验证现状（本沙箱，当前）
 
-- **鍗曞厓/闆嗘垚娴嬭瘯锛?93 椤瑰叏缁?*锛坄npm test`锛?02 鈫?116锛堜富棰橈級鈫?120锛堝疄鏃惰窡闅忥級鈫?129锛堟爣绛?缃《锛夆啋 142锛堝緟鍔炶仛鍚堬級鈫?186锛堟牸寮忓伐鍏锋爮锛夆啋 187锛堝垎灞忔瘮渚嬶級鈫?**193锛?6 椤规瀯寤鸿剼鏈畧鍗紝瑙?搂1.12锛?*銆傚洖杞﹀嵆鎹㈣閭?8 椤瑰凡闅忓洖閫€绉婚櫎锛岃 搂1.11锛?
-- **鐪熷疄 Chrome 鍐掔儫锛氫富绐楀彛 107/107銆佽缃獥鍙?25/25**锛堝竷灞€ 10 椤癸紱璁剧疆绐楀彛杩炶窇 4 娆″叏杩囷級
-- `tsc --noEmit` 閫氳繃锛沗vite build` 閫氳繃锛堝弻椤典骇鐗╋紝鍚?head 鍐呰仈涓婚寮曞鑴氭湰锛?
-- **妗岄潰绔惎鍔?*锛?026-09-30 浜嬫晠宸插畾浣嶅苟淇锛埪?.12锛夛紱鎭㈠鍚庣敤鎴峰疄娴嬬獥鍙ｆ甯?
-  锛坄pos=(52,52) size=248x799`銆?5 绉掔ǔ瀹氥€亀ebview 宕╂簝 0 娆★級
-- 鐜鎻愮ず锛氭湰娌欑閲?`vite build` 涓?headless Chrome 閮藉繀椤讳互 `danger-full-access` 鍗囩骇鎵ц锛坋sbuild spawn / Chrome mojo 鍛藉悕绠￠亾锛夛紱鍐掔儫鑴氭湰瑕佹斁鍒板悗鍙颁綔涓氶噷璺戯紝閬垮厤鍓嶅彴瓒呮椂琚腑鏂鑷磋鍒わ紱**CDP 瀹炰緥璺戝嚑杞悗瑕佹崲绔彛閲嶅惎**锛堟爣绛鹃〉绱Н浼氬鑷?WS 寮傚父锛岃〃鐜颁负鑴氭湰鎸備綇鎴?`Inspected target navigated or closed`锛夛紝涓?`$env:TEMP` 姣忔璋冪敤閮戒笉鍚屻€佷笉瑕佺敤瀹冨仛璺ㄨ皟鐢ㄤ复鏃舵枃浠惰矾寰?
-- **宸茬煡鍋跺彂锛堜笉鏄簲鐢ㄧ己闄凤級**锛氳缃獥鍙ｅ啋鐑熺殑 `娣辫壊閫夋嫨鍐欏叆 localStorage` 鍦?*鏈哄櫒楂樿礋杞?*鏃跺伓鍙戝け璐ワ紙鏈矙绠卞悓鏃惰窇鏋勫缓 + 澶氫釜 headless Chrome + CDP 鑴氭湰鏃跺嚭鐜拌繃 2 娆★級銆傚凡鎺掓煡杩囧苟鎺掗櫎锛氫笉鏄爣绛鹃〉娈嬬暀锛坄/json/close` 鏀跺熬姝ｅ父锛岃窇瀹屽彧鍓?`chrome://newtab`锛夈€佷笉鏄姞杞界珵鎬侊紙`{#if !ready}` 宸叉妸璁剧疆 UI 鎷﹀湪鍔犺浇瀹屾垚涔嬪悗锛夈€佷笉鏄簲鐢ㄥ啓鐩橀棶棰橈紙鐩磋繛 CDP 璇婃柇閲岀偣鍑诲悗 1.5 绉掑唴 `localStorage` 灏辨槸 `dark`锛夈€佷篃涓嶆槸鏈鍥為€€寮曞叆锛堣鏂█鍦ㄦ湰鍔熻兘涔嬪墠灏卞け璐ヨ繃涓€娆★級銆?*浣庤礋杞戒笅杩炶窇 4 娆″叏 25/25**銆傝嫢鍐嶉亣鍒帮紝鐩存帴閲嶈窇锛屼笉瑕佽姳鏃堕棿鍘绘煡搴旂敤浠ｇ爜銆?
-- **涓嶈鐢ㄥ師濮嬪瓧绗︿覆鍖归厤 localStorage**锛氬啓鐩樻槸 300ms 鍘绘姈锛宍raw.includes('"dark"')` 杩欑被鏂█鍙湅鏌愪竴鐬棿銆傜粺涓€鐢?`settingsEq(璺緞, 鏈熸湜鍊?`锛堣В鏋?JSON 鍚庢寜閿矾寰勪弗鏍兼瘮杈冿紝瓒呮椂 15s锛夈€?
-
----
-
-## 2. 寰呬綘鍦ㄦ湰鏈虹‘璁わ紙鏈獙璇?/ 鏈‘璁わ級
-
-> 杩欎簺鏀瑰姩鏈矙绠遍兘鏃犳硶楠岃瘉锛堣涔堟槸 Rust锛岃涔堟槸鍘熺敓绐楀彛浜や簰锛夈€傝 `npm run desktop:setup` 鍚庢寜椤哄簭纭锛?
-
-1. **鏈€鏂版彁浜?`dfbf888`**锛氬瓨鍌ㄩ〉鐨勨€滃綋鍓嶇瑪璁扮洰褰曗€濅笉鍐嶆樉绀?`\\?\` 鍓嶇紑锛涜嫢鎸囬拡鎸囧悜榛樿鐩綍锛岀晫闈㈡樉绀衡€滄湭鑷畾涔夆€濅笖鍐椾綑 `storage.json` 琚竻鐞嗐€?
-2. **`rfd` 鍘熺敓鐩綍閫夋嫨**锛坄128f7d5` 寮曞叆锛夛細`cargo` 鏄惁鑳芥垚鍔熸媺鍙?`rfd = "0.15"` 骞剁紪璇戯紱銆屾祻瑙堚€︺€嶆槸鍚﹀脊鍑虹郴缁熼€夋嫨鏂囦欢澶瑰璇濇銆?
-3. **杩佺Щ瀹屾暣娴佺▼**锛氶€変竴涓┖鐩綍 鈫?楠岃瘉骞惰縼绉?鈫?鎻愮ず鎴愬姛銆佷笁涓矾寰勫埛鏂般€侀噸鍚簲鐢ㄥ悗浠嶆槸鏂扮洰褰曘€佸師鐩綍鏂囦欢淇濈暀銆?
-4. **渚ц竟鍚搁檮鎵嬫劅**锛堟渶杩戞敼鍔ㄦ湭纭锛夛細鎷栧埌灞忓箷宸?鍙宠秺鐣屽嵆鍚搞€佸瀭鐩村眳涓€佺疆椤讹紱榧犳爣绉诲紑 3 绉掑钩婊戞粦鍑猴紱鍏夋爣璐磋繎灞忓箷杈圭紭婊戝洖銆傝嫢涓庣郴缁熲€滃崐灞忚创闈犫€濅粛鎵撴灦鎴栨墜鎰熶笉瀵癸紝璁板綍鐜拌薄锛堣秺鐣屽灏戞墠鍚革紵婊戝嚭蹇參锛熺儹鍖哄绐勶紵锛夊啀璋?`side-dock.ts` 椤堕儴甯搁噺銆?
-5. 椤哄甫纭涓婁竴杞凡淇殑锛氬揩鎹烽敭鐐光€滈粯璁も€濅笉鍐嶅洖寮癸紱璁剧疆绐楀彛鍏抽棴鍚庤兘鍐嶆鎵撳紑銆?
-6. **涓婚**锛堝墠绔敼鍔紝鏈矙绠卞凡鐢ㄧ湡瀹?Chrome 楠岃瘉閫昏緫涓庨厤鑹插彉閲忥紝浣?*妗岄潰绔鎰熼渶浣犳湰鏈虹‘璁?*锛夛細
-   - 璁剧疆 鈫?閫氱敤 鈫?涓婚锛氬垏銆屾繁鑹层€嶅簲绔嬪嵆鍙樻殫锛?*涓荤獥鍙ｄ笌璁剧疆绐楀彛鍚屾椂鍙?*锛?
-   - 閲嶅惎搴旂敤鍚庝粛鏄繁鑹诧紙`settings.json` 鎸佷箙鍖栵級锛?
-   - 鍒囥€岃窡闅忕郴缁熴€嶅悗锛?*鐩存帴鍦?Windows 璁剧疆閲屽垏鎹㈠簲鐢?绯荤粺涓婚锛屼袱涓獥鍙ｅ簲绔嬪嵆璺熼殢**锛堟棤闇€閲嶅紑绐楀彛锛夛紱鍐嶅垏鍒板浐瀹氥€屾祬鑹层€嶅悗锛岀郴缁熶富棰樺彉鍖栦笉搴斿啀褰卞搷搴旂敤锛?
-   - 棣栧睆涓嶉棯鐧斤細娣辫壊涓嬮噸鍚紝鍚姩閭ｄ竴鐬笉搴斿嚭鐜板埡鐪肩櫧搴曪紱
-   - 缁嗙湅娣辫壊涓嬬殑**棰勮鎺掔増涓庢诞灞?*锛氫唬鐮佸潡鍥哄畾娣卞簳銆佽〃鏍?寮曠敤/寰呭姙鍒犻櫎绾挎槸鍚﹀彲璇伙紱纭/閲嶅懡鍚嶅脊绐楀簳鑹蹭笌杈规鏄惁娓呮櫚锛堟湰鏈虹湅娣辫壊涓嬪脊绐楄竟妗嗕笌閬尅鏄惁鑸掓湇锛夛紱鏈変笉瀵圭殑璇锋埅鍥炬垨璇存槑浣嶇疆銆?
-7. **鏈疆鏍囩涓庣疆椤?*锛堝墠绔紝鏈矙绠卞凡鐢ㄧ湡瀹?Chrome 楠岃瘉浜や簰涓庤惤鐩橈紝浣?*妗岄潰绔鎰熼渶浣犳湰鏈虹‘璁?*锛夛細
-   - 鎵撳紑涓€绡囩瑪璁?鈫?缂栬緫鍖恒€屾爣绛俱€嶄竴琛岃緭鍏?`宸ヤ綔` 鍥炶溅 鈫?鏍囩鍑虹幇鍦ㄧ瑪璁拌涓庢爣绛炬潯锛涚偣鏍囩鏉℃寜鏍囩绛涢€夛紝鐐广€屾竻闄ゆ爣绛俱€嶉€€鍑猴紱
-   - 缂栬緫鍖恒€岎煋?缃《銆嶁啋 璇ョ瑪璁拌烦鍒板垪琛ㄦ渶鍓嶅苟甯?馃搶锛?*閲嶅惎鍚庝粛鍦ㄦ渶鍓?*锛涘啀鐐广€屽凡缃《銆嶅彇娑堬紱
-   - 琛屽彸閿簲鏈夈€岀疆椤?/ 鍙栨秷缃《銆嶏紱澶氶€夊悗鎿嶄綔鏉℃湁銆岀疆椤?/ 鍙栨秷缃《銆嶏紱
-   - 鏍囩涓庣疆椤堕兘鍐欏湪 `.md` 鐨?frontmatter锛坄tags: [...]` / `pinned: true`锛夛紝鐢ㄨ浜嬫湰/鍏跺畠缂栬緫鍣ㄦ墦寮€搴旇兘鐪嬪埌锛?
-   - 缃《绗旇**涓嶈兘**琚嫋鍒伴潪缃《鍖猴紙浼氳鎷﹀苟鎻愮ず锛夛紝杩欐槸鏈夋剰璁捐銆?
-8. **寰呭姙鑱氬悎**锛堝墠绔紝鏈矙绠卞凡鐢ㄧ湡瀹?Chrome 楠岃瘉浜や簰涓庡洖鍐欙紝浣?*妗岄潰绔鎰熼渶浣犳湰鏈虹‘璁?*锛夛細
-   - 渚ф爮銆屸槕锔?寰呭姙銆嶁啋 搴旀眹鎬诲叏搴撴湭瀹屾垚浠诲姟锛堟湭瀹屾垚鍦ㄥ墠锛岃鏍囦负鏈畬鎴愭暟锛夛紱
-   - 鍕鹃€夋煇鏉?鈫?璇ユ潯浠庢湭瀹屾垚娓呭崟娑堝け锛?*鎵撳紑瀵瑰簲绗旇鑳界湅鍒版簮鏂囧凡鍙樻垚 `- [x]`**锛?
-   - 鐐逛换鍔℃枃鏈?鈫?璺冲洖鍘熺瑪璁般€佺紪杈戝尯婊氬姩鍒拌琛岄檮杩戝苟鐭殏楂樹寒锛?.8s锛夛紱
-   - 銆屾樉绀哄凡瀹屾垚銆嶁啋 宸插畬鎴愰」甯﹀垹闄ょ嚎鏄剧ず锛?
-   - 鑻ユ煇绡囩瑪璁颁换鍔″緢澶氾紝纭璺宠浆鍚庣殑婊氬姩浣嶇疆鏄惁澶熷噯锛堟枃鏈鍙兘鎸夎鍙锋瘮渚嬩及绠楋級銆?
-9. **鏈疆鏍煎紡宸ュ叿鏍?*锛堝墠绔紝鏈矙绠卞凡鐢ㄧ湡瀹?Chrome 閫愬瓧鏍￠獙锛屼絾**妗岄潰绔鎰熶笌鎵嬫劅闇€浣犳湰鏈虹‘璁?*锛夛細
-   - 鎵撳紑浠绘剰绗旇锛岀紪杈戝尯涓婃柟搴斿嚭鐜颁竴鎺掓寜閽紙B / I / S / 楂樹寒 / H1 H2 H3 / 鈥?1. 鈽?鉂?</> / 馃敆 鈻?/ 鈰?/ 鈫?鈫凤級锛?
-   - **閫変腑涓€娈垫枃瀛楃偣 B** 鈫?鏂囧瓧涓よ竟鍑虹幇 `**`锛岄瑙堥噷鍙樼矖锛涘啀鐐逛竴娆?B 鈫?鎭㈠锛?
-   - **鐐广€岄珮浜€?* 鈫?棰勮閲岃娈垫枃瀛楁湁榛勫簳锛堣繖灏辨槸浣犺鐨勨€滄崲鑹测€濇晥鏋滐級锛?
-   - **鐐广€?/>銆嶄唬鐮佸潡** 鈫?鎻掑叆涓€瀵瑰洿鏍忋€佸厜鏍囧湪涓棿锛?*鐐广€屸枽銆嶈〃鏍?* 鈫?鎻掑叆涓€寮犵┖琛紱
-   - **鐐广€屸嫰銆?* 鈫?灞曞紑琛屽唴浠ｇ爜涓庡垎闅旂嚎锛涚偣绌虹櫧澶勫簲鏀惰捣锛?
-   - **鎾ら攢/閲嶅仛鎸夐挳**涓?`Ctrl+Z` / `Ctrl+Y` 搴旇鏄悓涓€濂楋紙鐢ㄦ寜閽敼浜嗘牸寮忓悗鎸?Ctrl+Z 涔熻兘鍥為€€锛夛紱
-   - 鍒囧埌銆岄瑙堛€嶈鍥炬椂宸ュ叿鏍忎細闅愯棌锛堝彧璇伙級锛屽垏鍥炪€岀紪杈?鍒嗗睆銆嶅洖鏉ワ紱
-   - 鑻ユ煇涓寜閽湪浣犵殑浣跨敤涔犳儻涓嬪簲璇ユ崲涓綅缃垨鍚嶅瓧锛岀洿鎺ヨ锛屾敼鍚?鎹綅鏄函鍓嶇灏忔敼鍔ㄣ€?
-11. **鏈疆甯冨眬淇**锛堝墠绔紝鏈矙绠卞凡鐢ㄧ湡瀹炲搴︽祴閲?+ 鍐掔儫鏂█楠岃瘉锛屼絾**妗岄潰绔殑绐楀彛缂╂斁鎵嬫劅闇€浣犳湰鏈虹‘璁?*锛夛細
-   - **鎶婄獥鍙ｆ媺澶?*锛氱紪杈戝尯搴旇窡鐫€鍙樺銆佸彸渚т笉鐣欑┖鐧斤紙鍘熸潵鏄浐瀹?1220px锛屾斁澶у悗鍙宠竟涓€鐗囩┖锛夛紱
-   - **鍒囧埌銆岄瑙堛€?*锛氭鏂囧簲鍗犳弧鏁翠釜缂栬緫鍖猴紝婊氬姩鏉¤创鍦ㄧ紪杈戝尯鍙宠竟缂橈紙鍘熸潵鍙崰涓€鍗娿€佹粴鍔ㄦ潯鍗″湪涓棿锛夆€斺€旇繖鏄綘鎴浘閲岄偅涓棶棰橈紱
-   - **鍒囧埌銆岀紪杈戙€?*锛氬悓涓婏紝杈撳叆妗嗗崰婊★紱
-   - **鍒嗗睆鏃舵嫋鍔ㄤ腑闂撮偅鏉″垎闅旀潯**锛氱紪杈?棰勮姣斾緥搴旈殢鎵嬫敼鍙橈紱**鍙屽嚮**瀹冩仮澶嶅悇鍗婏紱鎷栧姩鍚庨噸鍚簲鐢ㄦ瘮渚嬪簲淇濇寔锛?
-   - **绐楀彛宸茬粡鎷夊ぇ鏃剁偣寮€/鏀惰捣闈㈡澘**锛氫笉搴旀妸绐楀彛绐佺劧缂╁洖 1220px锛堝彧鏈夌紪杈戝尯鍏抽棴鏃舵墠浼氳创鍚堝唴瀹规敹缂╋級锛?
-   - 濡傛灉瑙夊緱鈥滃浘3 鏃剁獥鍙ｄ粛浼氭敹缂╂垚绐勬潯鈥濅笉鍚堥€傦紝鎴栬€呭笇鏈涗晶鏍?鍒楄〃涔熻兘鎷栧姩鏀瑰锛岀洿鎺ヨ銆?
-12. ~~**鈿狅笍 鍚姩闂锛?026-09-30锛氬簲鐢ㄦ墦涓嶅紑锛?*~~ 鈫?**宸茶В鍐?*锛堟牴鍥犱笌璇佹嵁瑙?搂1.12锛屼慨澶?閲嶅惎+鍒犻櫎 WebView2 profile 鐩綍锛涢槻娌诲凡瀹炵幇鍦?`kill-running-app.mjs`锛夈€傛帓鏌ヨ繃绋嬩腑纭鐨勪袱鏉?*浠嶇劧鏈夋晥**鐨勮繍缁寸煡璇嗭細
-    - **Windows銆屾墦寮€鏂囦欢 - 瀹夊叏璀﹀憡 / 鏃犳硶楠岃瘉鍙戝竷鑰呫€嶇‘璁ゆ**锛氬弻鍑绘湭绛惧悕鐨?`noteapp.exe` 鏃朵細寮癸紝**鐐?鍙栨秷"灏辩瓑浜庢病鍚姩**銆備笉鏄晠闅滐紝鏄?Windows 瀵规湭绛惧悕 exe 鐨勭‘璁ゃ€?
-      宸叉帓闄わ細鏃?`Zone.Identifier`锛坄dir /r` 纭锛夈€佹櫤鑳藉簲鐢ㄦ帶鍒跺叧闂紙`VerifiedAndReputablePolicyState = 0`锛夈€佹棤绗笁鏂规潃杞紙鍙浜?360 娴忚鍣紝**娌℃湁 360 瀹夊叏鍗＋**锛夈€乣E:` 鏄湰鍦板浐瀹氱洏 NTFS銆?
-      **搴斿**锛氣憼 寮规涓婄偣銆岃繍琛?R)銆嶏紱鈶?鎴栫敤浠撳簱鏍圭洰褰曠殑 `launch-noteapp.bat`锛堢粫杩?shell 灞傚脊妗嗭級锛涒憿 鎯冲交搴曚笉寮癸紝鎶?`E:\AI瀛︿範\note-app\src-tauri\target` 鍔犲叆瀹夊叏杞欢鎺掗櫎椤广€?
-      **娉ㄦ剰**锛氭瘡娆￠噸鏂扮紪璇戯紝exe 閮芥槸鏂版枃浠讹紝Windows 浼?*鍐嶉棶涓€閬?*鈥斺€旇繖鏄甯哥幇璞°€?
-    - **渚ц竟鍚搁檮锛坄dock.enabled`锛夌洰鍓嶈鎴戞敼鎴?`false`**锛堝浠藉湪 `.tmp-settings-backup.json`锛岄殢鏃跺彲杩樺師锛涚瑪璁颁竴涓湭鍔級銆傚師鍥狅細瀹冧細鎶婄獥鍙ｈ棌鍒板睆骞曞锛岃€?*娌℃湁甯歌鎵嬫鍞ゅ洖**锛堢偣浠诲姟鏍忓浘鏍囨棤鏁堬紝鍙湁灞忓箷杈圭紭 14px 鐑尯锛夛紝涓旂獥鍙ｉ粯璁よ创宸︿笂瑙?鈫?涓€鍚姩灏卞惛闄勩€?*瑕佷笉瑕佹仮澶嶇敱鐢ㄦ埛鍐冲畾**锛氳缃?鈫?绐楀彛涓庡惛闄?鈫?鎵撳紑鍚搁檮銆?
-      **鑻ユ仮澶嶅惛闄勶紝寤鸿鍏堝仛**锛氬惎鍔ㄥ悗鍓嶅嚑绉掍笉鍚搁檮 / 蹇呴』鐪熺殑琚嫋鍒拌竟缂樻墠鍚搁檮 / 棣栨鍚搁檮缁欎竴娆℃彁绀恒€?
-13. **鍙戝竷纭**锛氭寜 搂8 鎺ㄩ€佸苟鍒涘缓 Release锛坄v0.1.0`锛岃鏄庝腑宸叉敞鏄庘€滀笉鍚揩閫熶究绛?鎮诞绐椻€濓級锛岀‘璁?Release 閲岃兘鐪嬪埌 `NoteApp.exe`锛堢敤 Actions 鏋勫缓鍒欒繕鏈?MSI/NSIS锛夈€?
+- **单元/集成测试：193 项全绿**（`npm test`；102 → 116（主题）→ 120（实时跟随）→ 129（标签/置顶）→ 142（待办聚合）→ 186（格式工具栏）→ 187（分屏比例）→ **193（+6 项构建脚本守卫，见 §1.12）**。回车即换行那 8 项已随回退移除，见 §1.11）
+- **真实 Chrome 冒烟：主窗口 107/107、设置窗口 25/25**（布局 10 项；设置窗口连跑 4 次全过）
+- `tsc --noEmit` 通过；`vite build` 通过（双页产物，含 head 内联主题引导脚本）
+- **桌面端启动**：2026-09-30 事故已定位并修复（见 §1.12）；恢复后用户实测窗口正常
+  （`pos=(52,52) size=248x799`、25 秒稳定、webview 崩溃 0 次、13 个笔记完好）
+- 环境提示：本沙箱里 `vite build` 与 headless Chrome 都必须以 `danger-full-access` 升级执行（esbuild spawn / Chrome mojo 命名管道）；冒烟脚本要放到后台作业里跑，避免前台超时被中断导致误判；**CDP 实例跑几轮后要换端口重启**（标签页累积会导致 WS 异常，表现为脚本挂住或 `Inspected target navigated or closed`），且 `$env:TEMP` 每次调用都不同、不要用它做跨调用临时文件路径
+- **已知偶发（不是应用缺陷）**：设置窗口冒烟的 `深色选择写入 localStorage` 在**机器高负载**时偶发失败（本沙箱同时跑构建 + 多个 headless Chrome + CDP 脚本时出现过 2 次）。已排查过并排除：不是标签页残留（`/json/close` 收尾正常，跑完只剩 `chrome://newtab`）、不是加载竞态（`{#if !ready}` 已把设置 UI 拦在加载完成之后）、不是应用写盘问题（直连 CDP 诊断里点击后 1.5 秒内 `localStorage` 就是 `dark`）、也不是本次回退引入（该断言在本功能之前就失败过一次）。**低负载下连跑 4 次全 25/25**。若再遇到，直接重跑，不要花时间去查应用代码。
+- **不要用原始字符串匹配 localStorage**：写盘是 300ms 去抖，`raw.includes('"dark"')` 这类断言只看某一瞬间。统一用 `settingsEq(路径, 期望值)`（解析 JSON 后按键路径严格比较，超时 15s）。
 
 ---
 
-## 3. 鏈疄鐜帮紙鍔熻兘寰呭姙锛?
+## 2. 待你在本机确认（未验证 / 未确认）
 
-### 3.1 P1锛圧OADMAP 閲屾槑纭垪鍑虹殑锛屽皻鏈仛锛?
+> 这些改动本沙箱都无法验证（要么是 Rust，要么是原生窗口交互）。请 `npm run desktop:setup` 后按顺序确认：
 
-| 鍔熻兘 | 澶囨敞 |
+1. **最新提交 `dfbf888`**：存储页的“当前笔记目录”不再显示 `\\?\` 前缀；若指针指向默认目录，界面显示“未自定义”且冗余 `storage.json` 被清理。
+2. **`rfd` 原生目录选择**（`128f7d5` 引入）：`cargo` 是否能成功拉取 `rfd = "0.15"` 并编译；「浏览…」是否弹出系统选择文件夹对话框。
+3. **迁移完整流程**：选一个空目录 → 验证并迁移 → 提示成功、三个路径刷新、重启应用后仍是新目录、原目录文件保留。
+4. **侧边吸附手感**（最近改动未确认）：拖到屏幕左/右越界即吸、垂直居中、置顶；鼠标移开 3 秒平滑滑出；光标贴近屏幕边缘滑回。若与系统“半屏贴靠”仍打架或手感不对，记录现象（越界多少才吸？滑出快慢？热区宽窄？）再调 `side-dock.ts` 顶部常量。
+5. 顺带确认上一轮已修的：快捷键点“默认”不再回弹；设置窗口关闭后能再次打开。
+6. **主题**（前端改动，本沙箱已用真实 Chrome 验证逻辑与配色变量，但**桌面端观感需你本机确认**）：
+   - 设置 → 通用 → 主题：切「深色」应立即变暗，**主窗口与设置窗口同时变**；
+   - 重启应用后仍是深色（`settings.json` 持久化）；
+   - 切「跟随系统」后：**直接在 Windows 设置里切换应用/系统主题，两个窗口应立即跟随**（无需重开窗口）；再切到固定「浅色」后，系统主题变化不应再影响应用；
+   - 首屏不闪白：深色下重启，启动那一瞬不应出现刺眼白底；
+   - 细看深色下的**预览排版与浮层**：代码块固定深底、表格/引用/待办删除线是否可读；确认/重命名弹窗底色与边框是否清晰（本机看深色下弹窗边框与遮挡是否舒服）；有不对的请截图或说明位置。
+7. **本轮标签与置顶**（前端，本沙箱已用真实 Chrome 验证交互与落盘，但**桌面端观感需你本机确认**）：
+   - 打开一篇笔记 → 编辑区「标签」一行输入 `工作` 回车 → 标签出现在笔记行与标签条；点标签条按标签筛选，点「清除标签」退出；
+   - 编辑区「📌 置顶」→ 该笔记跳到列表最前并带 📌；**重启后仍在最前**；再点「已置顶」取消；
+   - 行右键应有「置顶 / 取消置顶」；多选后操作条有「置顶 / 取消置顶」；
+   - 标签与置顶都写在 `.md` 的 frontmatter（`tags: [...]` / `pinned: true`），用记事本/其它编辑器打开应能看到；
+   - 置顶笔记**不能**被拖到非置顶区（会被拦并提示），这是有意设计。
+8. **待办聚合**（前端，本沙箱已用真实 Chrome 验证交互与回写，但**桌面端观感需你本机确认**）：
+   - 侧栏「☑️ 待办」→ 应汇总全库未完成任务（未完成在前，角标为未完成数）；
+   - 勾选某条 → 该条从未完成清单消失，**打开对应笔记能看到源文已变成 `- [x]`**；
+   - 点任务文本 → 跳回原笔记、编辑区滚动到该行附近并短暂高亮（1.8s）；
+   - 「显示已完成」→ 已完成项带删除线显示；
+   - 若某篇笔记任务很多，确认跳转后的滚动位置是否够准（文本框只能按行号比例估算）。
+9. **本轮格式工具栏**（前端，本沙箱已用真实 Chrome 逐字校验，但**桌面端观感与手感需你本机确认**）：
+   - 打开任意笔记，编辑区上方应出现一排按钮（B / I / S / 高亮 / H1 H2 H3 / • 1. ☑ ❝ </> / 🔗 ▦ / ⋯ / ↶ ↷）；
+   - **选中一段文字点 B** → 文字两边出现 `**`，预览里变粗；再点一次 B → 恢复；
+   - **点「高亮」** → 预览里该段文字有黄底（这就是你要的“换色”效果）；
+   - **点「</>」代码块** → 插入一对围栏、光标在中间；**点「▦」表格** → 插入一张空表；
+   - **点「⋯」** → 展开行内代码与分隔线；点空白处应收起；
+   - **撤销/重做按钮**与 `Ctrl+Z` / `Ctrl+Y` 应该是同一套（用按钮改了格式后按 Ctrl+Z 也能回退）；
+   - 切到「预览」视图时工具栏会隐藏（只读），切回「编辑/分屏」回来；
+   - 若某个按钮在你的使用习惯下应该换个位置或名字，直接说，改名/换位是纯前端小改动。
+11. **本轮布局修复**（前端，本沙箱已用真实宽度测量 + 冒烟断言验证，但**桌面端的窗口缩放手感需你本机确认**）：
+   - **把窗口拉大**：编辑区应跟着变宽、右侧不留空白（原来是固定 1220px，放大后右边一片空）；
+   - **切到「预览」**：正文应占满整个编辑区，滚动条贴在编辑区右边缘（原来只占一半、滚动条卡在中间）——这是你截图里那个问题；
+   - **切到「编辑」**：同上，输入框占满；
+   - **分屏时拖动中间那条分隔条**：编辑/预览比例应随手改变；**双击**它恢复各半；拖动后重启应用比例应保持；
+   - **窗口已经拉大时点开/收起面板**：不应把窗口突然缩回 1220px（只有编辑区关闭时才会贴合内容收缩）；
+   - 如果觉得“图3 时窗口仍会收缩成窄条”不合适，或者希望侧栏/列表也能拖动改宽，直接说。
+12. ~~**⚠️ 启动问题（2026-09-30：应用打不开）**~~ → **已解决**（根因与完整证据见 §1.12；修复=重启 + 删除 WebView2 profile 目录；防治已实现在 `kill-running-app.mjs`）。排查中确认的两条**仍然有效**的运维知识：
+    - **Windows「打开文件 - 安全警告 / 无法验证发布者」确认框**：双击未签名的 `noteapp.exe` 时会弹，**点"取消"就等于没启动**。**不是故障**，是 Windows 对未签名 exe 的确认。
+      已排除：无 `Zone.Identifier`（`dir /r` 确认）、智能应用控制关闭（`VerifiedAndReputablePolicyState = 0`）、无第三方杀软（只装了 360 浏览器，**没有 360 安全卫士**）、`E:` 是本地固定盘 NTFS。
+      **应对**：① 弹框上点「运行(R)」；② 或用仓库根目录的 `launch-noteapp.bat`（绕过 shell 层弹框）；③ 想彻底不弹，把 `E:\AI学习\note-app\src-tauri\target` 加入安全软件排除项。
+      **注意**：每次重新编译，exe 都是新文件，Windows 会**再问一遍**——这是正常现象。
+    - **侧边吸附（`dock.enabled`）目前被我改成 `false`**（备份在 `.tmp-settings-backup.json`，随时可还原；笔记一个未动）。原因是它会把窗口藏到屏幕外，而**没有常规手段唤回**（点任务栏图标无效，只有屏幕边缘 14px 热区），且窗口默认贴左上角 → 一启动就吸附。**要不要恢复由用户决定**：设置 → 窗口与吸附 → 打开吸附。
+      **若恢复吸附，建议先做**：启动后前几秒不吸附 / 必须真的被拖到边缘才吸附 / 首次吸附给一次提示。
+13. **发布确认**：按 §8 推送并创建 Release（`v0.1.0`，说明中已注明“不含快速便签/悬浮窗”），确认 Release 里能看到 `NoteApp.exe`（用 Actions 构建则还有 MSI/NSIS）。
+
+---
+
+## 3. 未实现（功能待办）
+
+### 3.1 P1（ROADMAP 里明确列出的，尚未做）
+
+| 功能 | 备注 |
 |---|---|
-| ~~涓婚锛堟祬鑹?娣辫壊/璺熼殢绯荤粺锛墌~ | **宸插畬鎴?*锛岃 搂1.6 |
-| ~~鏍囩绯荤粺 / 绗旇缃《锛坧in锛墌~ | **宸插畬鎴?*锛岃 搂1.7 |
-| ~~寰呭姙鑱氬悎瑙嗗浘锛堟眹鎬绘墍鏈夋湭瀹屾垚锛墌~ | **宸插畬鎴?*锛岃 搂1.8 |
-| ~~鏍煎紡宸ュ叿鏍忥紙Markdown 璇硶鍙鍖栵級~~ | **宸插畬鎴?*锛岃 搂1.9锛堜笉鍦ㄥ師 ROADMAP 閲岋紝鏉ヨ嚜鐢ㄦ埛鈥滀笉浼氱敤 Markdown鈥濈殑鍙嶉锛?|
-| ~~甯冨眬锛氬搴﹀垎閰?/ 涓嶇暀鐧?/ 鍙嫋鎷藉垎闅旀潯~~ | **宸插畬鎴?*锛岃 搂1.10锛堢敤鎴锋埅鍥惧弽棣堬級 |
-| 澶氱骇鐩綍 | 鐩墠涓€绾э紙瀛愭枃浠跺す锛?|
-| 闄勪欢锛氱矘璐?鎷栨嫿鍥剧墖鍏ュ簱 | 闇€瀹氶檮浠剁洰褰曡鍒欙紙瀛樺偍椤靛凡鐣欌€滈檮浠剁洰褰曗€濊璁轰綅锛?|
-| 鍛戒护闈㈡澘锛圕trl+K 宸茬敤浜庢悳绱㈣仛鐒︼級+ 鍏ㄥ眬鐑敭璁剧疆椤?| 鍔ㄤ綔娉ㄥ唽琛ㄥ凡灏辩华锛屽彧闇€鎺?Tauri global-shortcut 鎻掍欢 |
-| 鎮诞閫熻/蹇悳绐楋紙P1 閲嶇偣锛?| 闇€绗簩绐楀彛 + tray锛涘綋鍓嶈缃獥鍙ｆ彁渚涗簡澶氱獥鍙ｆ牱鏉?|
-| 鎵樼洏甯搁┗ / 鍏崇獥涓嶉€€ | |
-| **灞忓箷杈圭紭鑷姩闅愯棌锛堢湡路OS 绾э級** | 鐜颁负鈥滅獥鍙ｅ唴鏀惰竟 + 瓒婄晫鍚搁檮缂╄繘鈥濓紝涓庣郴缁熻创闈犲叡瀛橈紱濡傞渶瀹屽叏绂佺敤绯荤粺璐撮潬闇€鍙︽兂鍔炴硶 |
-| 鍥炴敹绔欒嚜鍔ㄦ竻鐞嗙瓥鐣ワ紙姘镐箙/30澶╋級 | 瀛樺偍椤靛凡鐣欎綅 |
-| 绗旇鍘嗗彶鐗堟湰 | |
-| 瀵煎嚭 HTML / PDF | PDF 闇€璇勪及 Tauri 鎵撳嵃鑳藉姏 |
-| 瀛楁暟缁熻鎵╁睍锛堣瘝/琛岋級 | 宸叉湁瀛楃鏁?|
-| 璁剧疆椤规悳绱€佸揩鎹烽敭鏂规瀵煎叆瀵煎嚭 | |
+| ~~主题（浅色/深色/跟随系统）~~ | **已完成**，见 §1.6 |
+| ~~标签系统 / 笔记置顶（pin）~~ | **已完成**，见 §1.7 |
+| ~~待办聚合视图（汇总所有未完成）~~ | **已完成**，见 §1.8 |
+| ~~格式工具栏（Markdown 语法可视化）~~ | **已完成**，见 §1.9（不在原 ROADMAP 里，来自用户“不会用 Markdown”的反馈） |
+| ~~布局：宽度分配 / 不留白 / 可拖拽分隔条~~ | **已完成**，见 §1.10（用户截图反馈） |
+| 多级目录 | 目前一级（子文件夹） |
+| 附件：粘贴/拖拽图片入库 | 需定附件目录规则（存储页已留“附件目录”讨论位） |
+| 命令面板（Ctrl+K 已用于搜索聚焦）+ 全局热键设置页 | 动作注册表已就绪，只需接 Tauri global-shortcut 插件 |
+| 悬浮速记/快搜窗（P1 重点） | 需第二窗口 + tray；当前设置窗口提供了多窗口样板 |
+| 托盘常驻 / 关窗不退 | |
+| **屏幕边缘自动隐藏（真·OS 级）** | 现为“窗口内收边 + 越界吸附缩进”，与系统贴靠共存；如需完全禁用系统贴靠需另想办法 |
+| 回收站自动清理策略（永久/30天） | 存储页已留位 |
+| 笔记历史版本 | |
+| 导出 HTML / PDF | PDF 需评估 Tauri 打印能力 |
+| 字数统计扩展（词/行） | 已有字符数 |
+| 设置项搜索、快捷键方案导入导出 | |
 
-### 3.2 浣庨闄╁彲閫夊寮猴紙宸插悜鐢ㄦ埛鎻愯锛屾湭寰楀埌鏄庣‘閫夋嫨锛?
+### 3.2 低风险可选增强（已向用户提议，未得到明确选择）
 
-- 杩佺Щ鍓嶈嚜鍔?zip 澶囦唤锛堜繚鐣欐渶杩?N 浠斤級
-- 鍚姩鏍￠獙锛歚storage.json` 鎸囧悜鐩綍涓嶅瓨鍦ㄦ椂寮规彁绀猴紙閲嶆柊閫夋嫨 / 鍥為€€榛樿锛夛紝閬垮厤鈥滈潤榛樺洖钀界湅璧锋潵鍍忎涪绗旇鈥?
-- 鈥滅洿鎺ユ寚鍚戝凡鏈夌瑪璁扮洰褰曪紙涓嶅鍒讹級鈥濓細鎹㈢數鑴戞椂鐩存帴鎺ヤ笂宸叉湁鐩綍锛堢洰鍓嶁€滈獙璇佸苟杩佺Щ鈥濇槸澶嶅埗璇箟锛岀洰鏍囧凡鏈夌瑪璁版椂浼氬鍒惰鐩栧悓鍚嶆枃浠讹級
+- 迁移前自动 zip 备份（保留最近 N 份）
+- 启动校验：`storage.json` 指向目录不存在时弹提示（重新选择 / 回退默认），避免“静默回落看起来像丢笔记”
+- “直接指向已有笔记目录（不复制）”：换电脑时直接接上已有目录（目前“验证并迁移”是复制语义，目标已有笔记时会复制覆盖同名文件）
 
-### 3.3 鎶€鏈€?/ 宸茬煡灏忛棶棰橈紙涓嶅奖鍝嶅姛鑳斤級
+### 3.3 技术债 / 已知小问题（不影响功能）
 
-- Svelte 缂栬瘧鍛婅锛氳嫢骞?`a11y_*`锛坉iv 甯?click/contextmenu 缂?role/閿洏澶勭悊锛変笌 `core` 鏈敤 `$state` 鐨?non_reactive 鎻愮ず锛涙瀯寤洪€氳繃锛屽睘鎻愮ず銆?
-- Rust 渚ф病鏈夋湰鍦扮紪璇戦獙璇侀€氶亾锛堟棤 cargo锛夛紝渚濊禆鐢ㄦ埛鏈哄櫒鏋勫缓锛涘缓璁瘡娆℃敼 Rust 鍚庤鐢ㄦ埛鍥炶创 cargo 杈撳嚭銆?
-- `demo/` 涓庤 `a1cba63` 鍗囩骇鍚庣殑 `demo/js/db.mjs`銆乣tests/store.test.mjs` 鐩稿叧娴嬭瘯浠嶅湪璺戯紝灞炰簬鍘熷瀷灞傦紝涓嶅奖鍝嶇敓浜у疄鐜般€?
-- **Svelte 5 鍝嶅簲寮忓潙锛堝凡韪╄繃涓ゆ锛屽姟蹇呰浣忥級**锛歚$derived` 涓嶄細杩借釜銆岃瀹冭皟鐢ㄧ殑鍑芥暟鍐呴儴銆嶈鍙栫殑 state銆傚嚒鏄闅忔暟鎹彉鍖栫殑娲剧敓鍊硷紝蹇呴』鍦?`$derived` 琛ㄨ揪寮忛噷**鐩存帴璇?* state锛堝 `listItems`锛夛紝鎴栨敼鐢?`refresh()` 鏄惧紡鍐欏叆 state锛堝 `allTags`锛夈€傚啓鎴?`someFn(core.xxx())` 鍙細绠椾竴娆″苟姘镐箙鍋滅暀鍦ㄩ娆＄粨鏋溿€?
-- **`execCommand('insertText')` 鐨勫潙锛堣 搂1.9锛?*锛氬畠鏄€滃湪鍏夋爣澶勬彃鍏モ€濓紝**涓嶄細**鏇夸綘鍒犻櫎閫夊尯銆傝鐢ㄥ畠鏇挎崲涓€娈靛尯闂达紝蹇呴』鍏?`setSelectionRange(replaceStart, replaceEnd)`锛屽苟鍦ㄨ皟鐢ㄥ悗鐢?`textarea.value === 鏈熸湜鏂囨湰` 鏍￠獙缁撴灉銆傚悓鐞嗭紝鍐欐柇瑷€鏃朵笉瑕佸彧鐢?`startsWith`/`includes`鈥斺€旂敤**閫愬瓧姣斿**鎵嶈兘鎷︿綇鈥滃眬閮ㄧ湅璧锋潵瀵光€濈殑缂洪櫡銆?
-- **flex-grow 涔嬪拰 < 1 鐨勫潙锛堣 搂1.10锛?*锛歠lex 鍒嗛厤鍓╀綑绌洪棿鏃讹紝鑻ユ墍鏈?flex-grow 涔嬪拰**灏忎簬 1**锛屾祻瑙堝櫒鎸夈€屽悇鑷殑 grow 脳 鍓╀綑绌洪棿銆嶅垎閰嶏紝浣欓噺**鐣欏湪鍘熷**锛堜笉褰掍竴鍖栵級銆俙flex: 0.5 1 0` 鍗曠嫭涓€涓瓙鍏冪礌鍙兘鎷垮埌涓€鍗婂搴︺€傛墍浠モ€滃崟涓瓙鍏冪礌鍗犳弧鈥濊涔堣 grow 鍜屼负 1锛岃涔堟樉寮?`:only-child { flex-grow: 1 }`銆?
-- **鏂█閲岀殑鈥滄寜浣嶇疆鍙栧厓绱犫€濆緢鑴?*锛歚document.querySelector('.settings-body select')` 杩欑被鈥滅涓€涓笅鎷?绗竴涓寜閽€濈殑瀹氫綅锛屽湪椤甸潰涓婃彃鍏ユ柊琛屽悗灏变細鎸囧埌鍒殑鍏冪礌锛埪?.10 涓庝富棰橀偅杞兘韪╄繃锛夈€傛柊鍐欐柇瑷€璇锋寜 **id 鎴栬涔夋爣绛?* 瀹氫綅銆?
-- **缁濅笉瑕佸湪 WebView2 姝ｅ湪浣跨敤 profile 鏃跺己鏉€搴旂敤锛堣 搂1.12锛屼唬浠锋渶澶х殑涓€鏉℃暀璁級**锛歐ebView2 鐨勬祻瑙堝櫒杩涚▼**涓嶉殢瀹夸富閫€鍑?*锛岃鐮嶆柇鐨?profile 浼氭崯鍧忥紝姝ゅ悗姣忔鍚姩閮藉け璐ュ湪 Tauri 鐨?`setup()`锛堝缓绐楀彛/寤?webview锛夛紝鑰?release 鏄?GUI 瀛愮郴缁熲€斺€?*panic 鏂囨湰琚涪寮冿紝鐢ㄦ埛鍙湅鍒?绐楀彛闂竴涓?鎴?娌＄獥鍙?**銆傝涔堜紭闆呭叧闂紝瑕佷箞寮烘潃鍚?*杞崲 profile**锛坄kill-running-app.mjs` 宸茬粡杩欎箞鍋氫簡锛夈€?
-- **`launch-noteapp.bat` 蹇呴』 CRLF**锛堣 搂1.12锛夛細cmd.exe 瑙ｆ瀽 LF-only 鐨勬壒澶勭悊浼氶敊涔憋紝**鎶?REM 娉ㄩ噴褰撳懡浠ゆ墽琛?*锛屾姤涓€灞?涓嶆槸鍐呴儴鎴栧閮ㄥ懡浠?銆傚凡鐢?`.gitattributes`锛坄*.bat eol=crlf`锛? 鍗曟祴鍙岄噸閿佷綇銆?
-- **`*.ps1` 蹇呴』绾?ASCII**锛堣 搂1.12锛夛細Windows PowerShell 5.1 鍦?*娌℃湁 BOM** 鏃舵寜 ANSI 璇诲彇 `.ps1`锛孶TF-8 涓枃浼氬彉涔辩爜骞?*鎾戝潖璇硶**锛坄Unexpected token`锛夈€俙setup.ps1` 寮€澶存棭灏卞啓浜嗚繖鏉＄害瀹氾紝`diagnose-startup.ps1` 璧峰垵杩濆弽浜嗗畠銆傝涓枃灏辩敤**甯?BOM 鐨?UTF-8**锛屽惁鍒欎繚鎸?ASCII銆傚凡鍔犲崟娴嬨€?
-- **楠岃瘉瑕侀拡瀵规渶缁堜骇鐗╂湰韬紝涓嶈楠岃瘉"绛変环鍓湰"**锛堣 搂1.12锛夛細鎴戞浘鐢?`Out-File` 鍙﹀啓涓€涓瓑浠?`.bat` 鍋氶獙璇侊紙PowerShell 榛樿缁?CRLF锛夛紝鍓湰閫氳繃鑰岀湡鏂囦欢鏄潖鐨勩€傚悓鐞?`.ps1` 鐨勮娉曡鐢?`Parser::ParseFile` 瀵圭潃鐪熸枃浠惰窇銆?
-- **鍒妸鍛戒护杈撳嚭绠″埌 `Select-Object -First N`**锛堣 搂1.12锛夛細PowerShell 鎻愬墠鍏抽棴绠￠亾浼?*鏉€鎺変笂娓歌繘绋?*锛岃剼鏈殑鍚庡崐娈碉紙渚嬪 profile 鍓灊锛夋牴鏈笉浼氭墽琛屸€斺€旀垜鍥犳璇垽"鍓灊澶辨晥"銆?
-- `App.svelte` 閲屼繚鐣欎簡涓€涓?Web 棰勮涓撶敤鐨勮瘖鏂挬瀛?`window.__diag()`锛堜粎 `!isTauri()` 鏃舵寕杞斤級锛岀敤浜庢帓闅滀笌鍐掔儫瀹氫綅锛涘鏋滆寰楃浜嬪彲浠ュ垹銆?
-
----
-
-## 4. 涓嬩竴涓璇濈殑鎸囩ず锛堢洿鎺ョ収鐫€鍋氾級
-
-### Step 0锛氭仮澶嶄笂涓嬫枃
-1. `git status` 纭骞插噣锛沗git log --oneline -5` 纭 HEAD锛堟湰娆′氦鎺ユ彁浜ゅ悗浠?`git log -1` 涓哄噯锛涙鍓嶄负 `518875e`锛夈€?
-2. 璇?`docs/PROGRESS.md`锛堟湰鏂囦欢锛夆啋 `AGENTS.md` 鈫?`README.md`銆?
-3. 璺戜竴閬嶅熀绾匡細`node --test --test-isolation=none "tests/**/*.test.mjs"`锛堝簲 187 閫氳繃锛夈€?
-
-### Step 1锛氬厛鏀跺彛鈥滃緟纭椤光€?
-- 璁╃敤鎴锋墽琛?`npm run desktop:setup`锛?*娉ㄦ剰锛氬畠浼氬己鏉€姝ｅ湪杩愯鐨?app锛屼笖缂栬瘧澶辫触鏃跺彲鑳戒粈涔堥兘涓嶇暀锛涘缓璁厛鎵嬪姩澶囦唤 `src-tauri\target\release\noteapp.exe`**锛夛紝鎸?搂2 鐨?1鈥?3 鏉￠€愰」纭锛堝惈涓婚瑙傛劅銆佹爣绛句笌缃《銆佸緟鍔炶仛鍚堛€佹牸寮忓伐鍏锋爮銆佸竷灞€涓庢嫋鎷藉垎闅旀潯锛夈€?
-- 鏈夋姤閿欏氨淇紱Rust 鎶ラ敊浼樺厛鐪?`src-tauri/src/fs_store.rs` 涓庡疄闄?cargo 杈撳嚭銆?
-
-### Step 2锛氭寜浼樺厛绾у仛鏂板姛鑳斤紙姣忔涓€椤癸紝璧板畬鏁撮棴鐜級
-寤鸿椤哄簭锛堝厛鏄撳悗闅俱€佸厛浣庨闄╋級锛?
-1. **鍚姩鏍￠獙 + 杩佺Щ鍓?zip 澶囦唤**锛埪?.2锛夛細Rust 鍔?`validate_storage`/`backup_notes` 鍛戒护锛岃缃〉缁欏紑鍏筹紱琛ュ崟娴嬶紙绾€昏緫锛? 鏇存柊 README銆?
-2. **鍛戒护闈㈡澘 + 鍏ㄥ眬鐑敭**锛氬姩浣滄敞鍐岃〃鎵╁睍锛孴auri `global-shortcut` 鎻掍欢 + 璁剧疆椤电儹閿〉绛撅紱鍐茬獊妫€娴嬪鐢?`findShortcutConflict`銆?
-3. **鎮诞閫熻/蹇悳绐?*锛氫互璁剧疆绐楀彛涓烘牱鏉垮姞绗笁绐楀彛 + tray锛坄tauri-plugin-*` 闇€鏂板渚濊禆锛屾敞鎰忚鐢ㄦ埛鏈満鏋勫缓楠岃瘉锛夈€?
-4. **澶氱骇鐩綍 / 瀵煎嚭 HTML / 瀛楁暟缁熻鎵╁睍 / 鍥炴敹绔欒嚜鍔ㄦ竻鐞?* 绛夋寜闇€鎺ㄨ繘锛埪?.1 鍓╀綑椤癸級銆?
-5. 涓婚涓庢爣绛剧殑鍚庣画灏忛」锛堝彲閫夛級锛氫唬鐮佸潡涓婚璺熼殢銆侀珮瀵规瘮妗ｏ紱鏍囩閲嶅懡鍚?鎵归噺绠＄悊銆佹爣绛惧嚭鐜板湪鎼滅储缁撴灉閲屻€佹寜鏍囩缁熻闈㈡澘锛涘緟鍔炶仛鍚堢殑鈥滄寜鏂囦欢澶?鏍囩鍒嗙粍鈥濃€滃凡鍔炰繚鐣欐湡鈥濄€?
-6. 鏍煎紡宸ュ叿鏍忕殑鍚庣画灏忛」锛堝彲閫夛級锛氬瓧鍙?瀵归綈绫伙紙Markdown 鏃犳爣鍑嗚娉曪紝闇€璇勪及锛夈€佹彃鍏ュ浘鐗囷紙绛夐檮浠跺姛鑳斤級銆佹妸甯哥敤鎸夐挳鍋氭垚鍙嚜瀹氫箟鎺掑簭銆佺粰鎸夐挳鍔犫€滃綋鍓嶆槸鍚︾敓鏁堚€濈殑楂樹寒鎬侊紙闇€鎸夊厜鏍囦綅缃弽鏌ヨ娉曪級銆?
-
-### Step 3锛氭瘡椤规敼鍔ㄧ殑鍥哄畾鍔ㄤ綔锛圓GENTS.md 瑕佹眰锛?
-1. 鍏堝啓/鏀规祴璇曪紙core 绾€昏緫鏀?`tests/core.*.test.mjs`锛涜缃浉鍏虫斁 `tests/core.settings.test.mjs`/`core.storage-info.test.mjs`锛夈€?
-2. 璺戯細`node --test --test-isolation=none "tests/**/*.test.mjs"` + `npm --prefix web run typecheck`锛堥兘搴斾负 0锛夈€?
-3. 鑻ュ姩鍓嶇锛歚npm --prefix web run build`锛堥渶 `danger-full-access` 鍗囩骇锛夆啋 璧?`serve-dist.mjs` + headless Chrome锛堜篃闇€鍗囩骇锛涘缓璁崲涓鍙ｅ `--remote-debugging-port=9244`锛夆啋 **鎶婁袱涓啋鐑熸斁鍒板悗鍙颁綔涓氶噷璺?*锛堝墠鍙板鏄撹瓒呮椂涓柇鑰岃鍒ゅけ璐ワ級鈫?蹇呰鏃剁粰鍐掔儫**鍔犳柇瑷€**鍐嶈窇銆?
-4. 鑻ュ姩 Rust锛氭槑纭憡璇夌敤鎴烽渶瑕侀噸寤猴紝骞跺湪绛斿閲屽垪鍑衡€滆纭椤光€濄€?
-5. **鎻愪氦 Git**锛堟秷鎭啓娓呭姩鏈轰笌楠岃瘉缁撴灉锛涗笉瑕?`git add` `src-tauri/target`銆乣src-tauri/gen`锛屽凡鍦?`.gitignore`锛夈€?
-
-### Step 4锛氫氦浠樿瘽鏈ā鏉?
-- 鏀逛簡浠€涔?/ 涓轰粈涔?
-- 鏈矙绠遍獙璇佺粨鏋滐紙娴嬭瘯鏁般€佸啋鐑熸暟銆乥uild/tsc锛?
-- 闇€瑕佺敤鎴锋湰鏈虹‘璁ょ殑娓呭崟锛堝惈 `npm run desktop:setup`锛?
-- 椋庨櫓涓庡洖閫€鏂瑰紡锛堟敼浜?Rust 灏ゅ叾瑕佸啓锛?
+- Svelte 编译告警：若干 `a11y_*`（div 带 click/contextmenu 缺 role/键盘处理）与 `core` 未用 `$state` 的 non_reactive 提示；构建通过，属提示。
+- Rust 侧没有本地编译验证通道（无 cargo），依赖用户机器构建；建议每次改 Rust 后让用户回贴 cargo 输出。
+- `demo/` 与被 `a1cba63` 升级后的 `demo/js/db.mjs`、`tests/store.test.mjs` 相关测试仍在跑，属于原型层，不影响生产实现。
+- **Svelte 5 响应式坑（已踩过两次，务必记住）**：`$derived` 不会追踪「被它调用的函数内部」读取的 state。凡是要随数据变化的派生值，必须在 `$derived` 表达式里**直接读** state（如 `listItems`），或改由 `refresh()` 显式写入 state（如 `allTags`）。写成 `someFn(core.xxx())` 只会算一次并永久停留在首次结果。
+- **`execCommand('insertText')` 的坑（见 §1.9）**：它是“在光标处插入”，**不会**替你删除选区。要用它替换一段区间，必须先 `setSelectionRange(replaceStart, replaceEnd)`，并在调用后用 `textarea.value === 期望文本` 校验结果。同理，写断言时不要只用 `startsWith`/`includes`——用**逐字比对**才能拦住“局部看起来对”的缺陷。
+- **flex-grow 之和 < 1 的坑（见 §1.10）**：flex 分配剩余空间时，若所有 flex-grow 之和**小于 1**，浏览器按「各自的 grow × 剩余空间」分配，余量**留在原处**（不归一化）。`flex: 0.5 1 0` 单独一个子元素只能拿到一半宽度。所以“单个子元素占满”要么让 grow 和为 1，要么显式 `:only-child { flex-grow: 1 }`。
+- **断言里的“按位置取元素”很脆**：`document.querySelector('.settings-body select')` 这类“第一个下拉/第一个按钮”的定位，在页面上插入新行后就会指到别的元素（§1.10 与主题那轮都踩过）。新写断言请按 **id 或语义标签** 定位。
+- **绝不要在 WebView2 正在使用 profile 时强杀应用（见 §1.12，代价最大的一条教训）**：WebView2 的浏览器进程**不随宿主退出**，被砍断的 profile 会损坏，此后每次启动都失败在 Tauri 的 `setup()`（建窗口/建 webview），而 release 是 GUI 子系统——**panic 文本被丢弃，用户只看到"窗口闪一下"或"没窗口"**。要么优雅关闭，要么强杀后**轮换 profile**（`kill-running-app.mjs` 已经这么做了）。
+- **`launch-noteapp.bat` 必须 CRLF**（见 §1.12）：cmd.exe 解析 LF-only 的批处理会错乱，**把 REM 注释当命令执行**，报一屏"不是内部或外部命令"。已用 `.gitattributes`（`*.bat eol=crlf`）+ 单测双重锁住。
+- **`*.ps1` 必须纯 ASCII**（见 §1.12）：Windows PowerShell 5.1 在**没有 BOM** 时按 ANSI 读取 `.ps1`，UTF-8 中文会变乱码并**撑坏语法**（`Unexpected token`）。`setup.ps1` 开头早就写了这条约定，`diagnose-startup.ps1` 起初违反了它。要中文就用**带 BOM 的 UTF-8**，否则保持 ASCII。已加单测。
+- **绝不要用 PowerShell 的 `Get-Content`/`Set-Content` 改本仓库的 UTF-8 文件（本人已因此毁掉一次 PROGRESS.md）**：5.1 默认按 ANSI 读，中文变乱码后写回就**不可逆**（实测 1057 处字节丢失，逆变换只能恢复 99%）。要改文本请用编辑工具；必须用脚本时显式指定 `[System.IO.File]::ReadAllText($p,[Text.Encoding]::UTF8)` + `WriteAllText(..., UTF8Encoding($false))`。已加乱码特征的单测守卫。
+- **验证要针对最终产物本身，不要验证"等价副本"**（见 §1.12）：我曾用 `Out-File` 另写一个等价 `.bat` 做验证（PowerShell 默认给 CRLF），副本通过而真文件是坏的。同理 `.ps1` 的语法要用 `Parser::ParseFile` 对着真文件跑。
+- **别把命令输出管到 `Select-Object -First N`**（见 §1.12）：PowerShell 提前关闭管道会**杀掉上游进程**，脚本的后半段（例如 profile 剪枝）根本不会执行——我因此误判"剪枝失效"。
+- `App.svelte` 里保留了一个 Web 预览专用的诊断钩子 `window.__diag()`（仅 `!isTauri()` 时挂载），用于排障与冒烟定位；如果觉得碍事可以删。
 
 ---
 
-## 5. 鍏抽敭鏂囦欢閫熸煡
+## 4. 下一个对话的指示（直接照着做）
 
-| 鎯虫敼鈥?| 鐪嬭繖閲?|
+### Step 0：恢复上下文
+1. `git status` 确认干净；`git log --oneline -5` 确认 HEAD（本次交接提交后以 `git log -1` 为准；此前为 `518875e`）。
+2. 读 `docs/PROGRESS.md`（本文件）→ `AGENTS.md` → `README.md`。
+3. 跑一遍基线：`node --test --test-isolation=none "tests/**/*.test.mjs"`（应 187 通过）。
+
+### Step 1：先收口“待确认项”
+- 让用户执行 `npm run desktop:setup`（**注意：它会强杀正在运行的 app，且编译失败时可能什么都不留；建议先手动备份 `src-tauri\target\release\noteapp.exe`**），按 §2 的 1–13 条逐项确认（含主题观感、标签与置顶、待办聚合、格式工具栏、布局与拖拽分隔条）。
+- 有报错就修；Rust 报错优先看 `src-tauri/src/fs_store.rs` 与实际 cargo 输出。
+
+### Step 2：按优先级做新功能（每次一项，走完整闭环）
+建议顺序（先易后难、先低风险）：
+1. **启动校验 + 迁移前 zip 备份**（§3.2）：Rust 加 `validate_storage`/`backup_notes` 命令，设置页给开关；补单测（纯逻辑）+ 更新 README。
+2. **命令面板 + 全局热键**：动作注册表扩展，Tauri `global-shortcut` 插件 + 设置页热键页签；冲突检测复用 `findShortcutConflict`。
+3. **悬浮速记/快搜窗**：以设置窗口为样板加第三窗口 + tray（`tauri-plugin-*` 需新增依赖，注意让用户本机构建验证）。
+4. **多级目录 / 导出 HTML / 字数统计扩展 / 回收站自动清理** 等按需推进（§3.1 剩余项）。
+5. 主题与标签的后续小项（可选）：代码块主题跟随、高对比档；标签重命名/批量管理、标签出现在搜索结果里、按标签统计面板；待办聚合的“按文件夹/标签分组”“已办保留期”。
+6. 格式工具栏的后续小项（可选）：字号/对齐类（Markdown 无标准语法，需评估）、插入图片（等附件功能）、把常用按钮做成可自定义排序、给按钮加“当前是否生效”的高亮态（需按光标位置反查语法）。
+
+### Step 3：每项改动的固定动作（AGENTS.md 要求）
+1. 先写/改测试（core 纯逻辑放 `tests/core.*.test.mjs`；设置相关放 `tests/core.settings.test.mjs`/`core.storage-info.test.mjs`）。
+2. 跑：`node --test --test-isolation=none "tests/**/*.test.mjs"` + `npm --prefix web run typecheck`（都应为 0）。
+3. 若动前端：`npm --prefix web run build`（需 `danger-full-access` 升级）→ 起 `serve-dist.mjs` + headless Chrome（也需升级；建议换个端口如 `--remote-debugging-port=9244`）→ **把两个冒烟放到后台作业里跑**（前台容易被超时中断而误判失败）→ 必要时给冒烟**加断言**再跑。
+4. 若动 Rust：明确告诉用户需要重建，并在答复里列出“请确认项”。
+5. **提交 Git**（消息写清动机与验证结果；不要 `git add` `src-tauri/target`、`src-tauri/gen`，已在 `.gitignore`）。
+
+### Step 4：交付话术模板
+- 改了什么 / 为什么
+- 本沙箱验证结果（测试数、冒烟数、build/tsc）
+- 需要用户本机确认的清单（含 `npm run desktop:setup`）
+- 风险与回退方式（改了 Rust 尤其要写）
+
+---
+
+## 5. 关键文件速查
+
+| 想改… | 看这里 |
 |---|---|
-| 鏁版嵁妯″瀷 / 鏂囦欢鏍煎紡 | `web/src/lib/core/types.ts`銆乣frontmatter.ts` |
-| 鍥炴敹绔?/ 鏂囦欢澶?/ 鎵嬫帓閫昏緫 | `web/src/lib/core/store.ts`锛坄deleteNotes/restoreNote/purgeNote/deleteFolder/restoreFolder/setNoteOrder/listNotesOrdered`锛?|
-| 鎼滅储 | `web/src/lib/core/search.ts`銆乣index.ts` |
-| Markdown / 寰呭姙鍥炲啓 | `web/src/lib/core/markdown.ts`銆乣tasks.ts` |
-| 涓荤獥鍙ｅ叏閮ㄤ氦浜?| `web/src/main/App.svelte`锛堥潰鏉跨骇鑱斻€佹嫋鎷芥寚閽堜簨浠躲€佸彸閿彍鍗曡皟鐢ㄣ€佺獥鍙ｅ搴﹀悓姝ワ級 |
-| 鍙抽敭鑿滃崟缁勪欢 | `web/src/main/ui/ContextMenu.svelte` |
-| 璁剧疆妯″瀷/鍚堝苟/蹇嵎閿?| `web/src/lib/settings/*.ts` |
-| 璁剧疆绐楀彛 UI | `web/src/settings/Settings.svelte` |
-| 瀛樺偍淇℃伅濂戠害 | `web/src/lib/settings/storage-info.ts`锛堝悗绔瓧娈?camelCase 濂戠害锛?|
-| 渚ц竟鍚搁檮 | `web/src/lib/desktop/side-dock.ts`锛堝父閲忓湪鏂囦欢椤堕儴锛夈€乣dock-core.ts`锛堢函璁＄畻+鍗曟祴锛?|
-| 涓婚 | `web/src/lib/desktop/theme.ts`锛堣В鏋?搴旂敤/棣栧睆寮曞锛夈€乣web/src/main/app.css` 椤堕儴涓ゆ。鍙橀噺銆乣web/index.html`+`web/settings.html` 鍐呰仈寮曞銆乣tests/theme.css.test.mjs`锛堟牱寮忓绾︼級 |
-| 鏍囩 / 缃《 | `web/src/lib/core/tags.ts`锛堢函閫昏緫+鍗曟祴锛夈€乣store.ts` 鐨?`sortPinnedFirst`/`applyManualOrder`銆乣App.svelte` 鐨?`#tagbar`/`#tag-editor`/`#pin-toggle`銆乣tests/core.tags-pin.test.mjs` |
-| 寰呭姙鑱氬悎 | `web/src/lib/core/todos.ts`锛堣鎵弿+姹囨€?杩囨护锛岀函閫昏緫+鍗曟祴锛夈€乣App.svelte` 鐨?`.todo-row`/`todoItems`/`openTodoSource`/`toggleShowDoneTodos`銆乣tests/core.todos.test.mjs` |
-| 鏍煎紡宸ュ叿鏍?| `web/src/lib/core/md-format.ts`锛堢函閫昏緫 + `FORMAT_BUTTONS` 鐩綍锛屽崟娴?`tests/core.md-format.test.mjs`锛夈€乣App.svelte` 鐨?`#format-bar`/`applyFormatAction`/`replaceEditorRange`/`editorUndo`銆乣app.css` 鐨?`.format-bar` 娈点€侀珮浜覆鏌撳湪 `markdown.ts`锛坄md.use(mark)`锛?|
-| 闈㈡澘瀹藉害 / 鍒嗗睆姣斾緥 | `App.svelte` 鐨?`splitRatio`/`onSplitPointer*`/`applyWindowWidth`/`computeWidth`銆乣app.css` 鐨?`.app-shell`/`.editor-pane.open`/`.workspace > *`/`.split-handle`銆佽缃」 `editor.splitRatio`锛坄settings/types.ts` + `coerce.ts` 鐨?`clampFloat`锛?|
-| Rust 鍛戒护 | `src-tauri/src/fs_store.rs`锛堟墍鏈夊懡浠わ級銆乣src-tauri/src/lib.rs`锛堟敞鍐岋級 |
-| 鏉冮檺/绐楀彛閰嶇疆 | `src-tauri/capabilities/default.json`銆乣src-tauri/tauri.conf.json` |
-| 鏋勫缓鑴氭湰 | `scripts/setup.ps1`銆佹牴 `package.json` 鑴氭湰 |
-| 鍙戝竷 | `scripts/release.ps1`銆乣.github/workflows/release.yml`銆乣docs/RELEASE_NOTES_v0.1.0.md`锛堣瑙?搂8锛?|
+| 数据模型 / 文件格式 | `web/src/lib/core/types.ts`、`frontmatter.ts` |
+| 回收站 / 文件夹 / 手排逻辑 | `web/src/lib/core/store.ts`（`deleteNotes/restoreNote/purgeNote/deleteFolder/restoreFolder/setNoteOrder/listNotesOrdered`） |
+| 搜索 | `web/src/lib/core/search.ts`、`index.ts` |
+| Markdown / 待办回写 | `web/src/lib/core/markdown.ts`、`tasks.ts` |
+| 主窗口全部交互 | `web/src/main/App.svelte`（面板级联、拖拽指针事件、右键菜单调用、窗口宽度同步） |
+| 右键菜单组件 | `web/src/main/ui/ContextMenu.svelte` |
+| 设置模型/合并/快捷键 | `web/src/lib/settings/*.ts` |
+| 设置窗口 UI | `web/src/settings/Settings.svelte` |
+| 存储信息契约 | `web/src/lib/settings/storage-info.ts`（后端字段 camelCase 契约） |
+| 侧边吸附 | `web/src/lib/desktop/side-dock.ts`（常量在文件顶部）、`dock-core.ts`（纯计算+单测） |
+| 主题 | `web/src/lib/desktop/theme.ts`（解析/应用/首屏引导）、`web/src/main/app.css` 顶部两档变量、`web/index.html`+`web/settings.html` 内联引导、`tests/theme.css.test.mjs`（样式契约） |
+| 标签 / 置顶 | `web/src/lib/core/tags.ts`（纯逻辑+单测）、`store.ts` 的 `sortPinnedFirst`/`applyManualOrder`、`App.svelte` 的 `#tagbar`/`#tag-editor`/`#pin-toggle`、`tests/core.tags-pin.test.mjs` |
+| 待办聚合 | `web/src/lib/core/todos.ts`（行扫描+汇总+过滤，纯逻辑+单测）、`App.svelte` 的 `.todo-row`/`todoItems`/`openTodoSource`/`toggleShowDoneTodos`、`tests/core.todos.test.mjs` |
+| 格式工具栏 | `web/src/lib/core/md-format.ts`（纯逻辑 + `FORMAT_BUTTONS` 目录，单测 `tests/core.md-format.test.mjs`）、`App.svelte` 的 `#format-bar`/`applyFormatAction`/`replaceEditorRange`/`editorUndo`、`app.css` 的 `.format-bar` 段、高亮渲染在 `markdown.ts`（`md.use(mark)`） |
+| 面板宽度 / 分屏比例 | `App.svelte` 的 `splitRatio`/`onSplitPointer*`/`applyWindowWidth`/`computeWidth`、`app.css` 的 `.app-shell`/`.editor-pane.open`/`.workspace > *`/`.split-handle`、设置项 `editor.splitRatio`（`settings/types.ts` + `coerce.ts` 的 `clampFloat`） |
+| Rust 命令 | `src-tauri/src/fs_store.rs`（所有命令）、`src-tauri/src/lib.rs`（注册） |
+| 权限/窗口配置 | `src-tauri/capabilities/default.json`、`src-tauri/tauri.conf.json` |
+| 构建脚本 | `scripts/setup.ps1`、根 `package.json` 脚本 |
+| 发布 | `scripts/release.ps1`、`.github/workflows/release.yml`、`docs/RELEASE_NOTES_v0.1.0.md`（详见 §8） |
 
 ---
 
-## 6. 鐢ㄦ埛宸茬‘璁ょ殑鍐崇瓥璁板綍锛堜笉瑕佸啀鍙嶅闂級
+## 6. 用户已确认的决策记录（不要再反复问）
 
-- 瀹炵幇褰㈡€侊細**Tauri 2 妗岄潰杞欢**锛堟枃妗ｉ€夊瀷锛夛紝Web 鐗堜粎浣滀负寮€鍙戦瑙?
-- 闈㈡澘褰㈡€侊細**涓夋爮 + 涓棿鏍忓睍寮€**锛堜笉鏄乏鏍忓唴宓屾爲锛?
-- 鎺掑簭锛?*鎵嬪姩鎺掑簭浼樺厛 + 鍙竴閿垏鍥炴椂闂村簭**锛堜笉鎸佷箙鍖栤€滄案涔呮墜鎺掆€濅互澶栫殑涓滆タ閮藉湪 `meta.json`锛?
-- 闈㈡澘寮€鍚堬細**榛樿鍥?锛堜粎渚ф爮锛夈€佷笉璁板繂**锛堣缃噷鍙︽湁鈥滆浣忛潰鏉库€濆紑鍏筹級
-- 鏀惰捣鏂瑰紡锛?*鍐嶇偣鍚岀被鏀惰捣 + 杈圭紭鎵嬫焺**
-- 鏃р€滄敹杈圭獎鏉♀€濓細**寮冪敤**锛屾敼涓洪潰鏉跨骇鑱?+ 绐楀彛鑷€傚簲
-- 渚ц竟鍚搁檮锛?*浠呭浘3 鐢熸晥銆佸乏鍙抽兘鏀寔銆佸畬鍏ㄩ殣钘?+ 鍏夋爣鐑尯鍞ゅ嚭锛堟柟妗?锛夈€佺缉杩涘悗缃《**
-- 璁剧疆闈㈡澘褰㈡€侊細**鐙珛绐楀彛**
-- 瀛樺偍浣嶇疆锛?*棣栫増灏辫鑳芥洿鏀瑰苟杩佺Щ**
-- 姣忔鏀瑰姩锛?*Git commit + 娴嬭瘯鍏ㄧ豢**锛圓GENTS.md锛?
-- 涓婚锛?*涓夋。锛堟祬鑹?/ 娣辫壊 / 璺熼殢绯荤粺锛夛紝榛樿娴呰壊**锛涖€岃窡闅忕郴缁熴€嶅疄鏃惰窡闅忕郴缁熶富棰樺彉鍖栵紙鍙湪 system 妗ｈ闃咃級
-- 鏍煎紡宸ュ叿鏍忥細**涓嶅仛瀵屾枃鏈墍瑙佸嵆鎵€寰?*锛堜細鐮村潖鈥滅函鏂囨湰 .md鈥濈殑鏍瑰熀锛夈€?*涓嶅仛瀛椾綋棰滆壊**锛圡arkdown 鏃犳爣鍑嗚娉曪紝鏀圭敤 `==楂樹寒==` 鑳屾櫙鏍囪锛夛紱鍙仛鈥滅偣鎸夐挳鏇夸綘鎵撶鍙封€?
-- 甯冨眬瀹藉害锛?*缂栬緫鍖哄惛鏀跺浣欑┖闂?*锛堢獥鍙ｆ斁澶у悗缂栬緫鍖哄彉瀹姐€佷笉鐣欑櫧锛夛紱**缂栬緫鈬勯瑙堝彲鍒嗗睆姣斾緥鍙嫋鍔ㄥ苟鎸佷箙鍖?*锛坄editor.splitRatio`锛?0%鈥?0%锛屽弻鍑绘仮澶嶅悇鍗婏級锛涚獥鍙ｅ彧鍦ㄢ€滄瘮鐩爣绐勨€濇椂鏀惧ぇ锛屽凡鏇村灏变笉鍔紙閬垮厤鏈€澶у寲鐘舵€佷笅鐐瑰紑闈㈡澘琚墦鍥炲師瀹藉害锛?
-- 鎹㈣锛?*涓嶅仛銆屽洖杞﹀嵆鎹㈣銆?*锛堝疄鐜拌繃銆佸凡鎸夌敤鎴疯姹傚畬鏁村洖閫€锛岃 搂1.11锛夆€斺€斾繚鎸佹爣鍑?Markdown锛氬崟涓洖杞︽姌鍙犺繘鍚屼竴娈佃惤
-- 鏈鍚?exe 鐨勩€屾棤娉曢獙璇佸彂甯冭€呫€嶅脊妗嗭細**瑙嗕负姝ｅ父鐜拌薄**锛屼笉鍘绘敼鏈哄櫒绛栫暐锛涙彁渚?`launch-noteapp.bat` 缁曡繃锛坰hell 灞傚脊妗嗗彧鐢辫祫婧愮鐞嗗櫒鍙屽嚮瑙﹀彂锛?
-- 渚ц竟鍚搁檮锛?*浠呭浘3 鐢熸晥銆佸乏鍙抽兘鏀寔銆佸畬鍏ㄩ殣钘?+ 鍏夋爣鐑尯鍞ゅ嚭**銆?*宸茬煡鍙敤鎬х己闄?*锛氱獥鍙ｈ棌鍒板睆骞曞鍚?*娌℃湁甯歌鎵嬫鍞ゅ洖**锛堢偣浠诲姟鏍忓浘鏍囨棤鏁堬紝鍙湁灞忓箷杈圭紭 14px 鐑尯锛夛紝涓?`tauri.conf.json` 鐨?`"center": false` 璁╃獥鍙ｉ粯璁ゅ氨璐村乏涓婅銆佸ぉ鐒舵弧瓒?璐磋竟鍗冲惛闄?锛屼簬鏄?*涓€鍚姩灏变細鍦?2 绉掑悗鎶婅嚜宸辫棌璧锋潵**銆?*鐢ㄦ埛褰撳墠璁剧疆閲?`dock.enabled` 宸茶鎴戞敼鎴?`false` 浠ヤ究鎺掗殰锛堝浠藉湪 `.tmp-settings-backup.json`锛?*銆傝嫢瑕佹敼锛屾渶灏忔柟妗堟槸"鍚姩鍚庡墠鍑犵涓嶅惛闄?鎴?蹇呴』鐪熺殑琚嫋鍒拌竟缂樻墠鍚搁檮" + 棣栨鍚搁檮缁欎竴娆℃彁绀恒€?
-- WebView2锛?*姘歌繙涓嶈鍦?WebView2 浣跨敤 profile 鏃跺己鏉€搴旂敤**锛涙瀯寤哄墠寮烘潃鍚?*蹇呴』杞崲 profile**锛堣 搂1.12锛屽凡瀹炵幇鍦?`kill-running-app.mjs`锛?
+- 实现形态：**Tauri 2 桌面软件**（文档选型），Web 版仅作为开发预览
+- 面板形态：**三栏 + 中间栏展开**（不是左栏内嵌树）
+- 排序：**手动排序优先 + 可一键切回时间序**（不持久化“永久手排”以外的东西都在 `meta.json`）
+- 面板开合：**默认图3（仅侧栏）、不记忆**（设置里另有“记住面板”开关）
+- 收起方式：**再点同类收起 + 边缘手柄**
+- 旧“收边窄条”：**弃用**，改为面板级联 + 窗口自适应
+- 侧边吸附：**仅图3 生效、左右都支持、完全隐藏 + 光标热区唤出（方案2）、缩进后置顶**
+- 设置面板形态：**独立窗口**
+- 存储位置：**首版就要能更改并迁移**
+- 每次改动：**Git commit + 测试全绿**（AGENTS.md）
+- 主题：**三档（浅色 / 深色 / 跟随系统），默认浅色**；「跟随系统」实时跟随系统主题变化（只在 system 档订阅）
+- 格式工具栏：**不做富文本所见即所得**（会破坏“纯文本 .md”的根基）、**不做字体颜色**（Markdown 无标准语法，改用 `==高亮==` 背景标记）；只做“点按钮替你打符号”
+- 布局宽度：**编辑区吸收多余空间**（窗口放大后编辑区变宽、不留白）；**编辑⇄预览可分屏比例可拖动并持久化**（`editor.splitRatio`，20%–80%，双击恢复各半）；窗口只在“比目标窄”时放大，已更宽就不动（避免最大化状态下点开面板被打回原宽度）
+- 换行：**不做「回车即换行」**（实现过、已按用户要求完整回退，见 §1.11）——保持标准 Markdown：单个回车折叠进同一段落
+- 未签名 exe 的「无法验证发布者」弹框：**视为正常现象**，不去改机器策略；提供 `launch-noteapp.bat` 绕过（shell 层弹框只由资源管理器双击触发）
+- 侧边吸附：**仅图3 生效、左右都支持、完全隐藏 + 光标热区唤出**。**已知可用性缺陷**：窗口藏到屏幕外后**没有常规手段唤回**（点任务栏图标无效，只有屏幕边缘 14px 热区），且 `tauri.conf.json` 的 `"center": false` 让窗口默认就贴左上角、天然满足"贴边即吸附"，于是**一启动就会在 2 秒后把自己藏起来**。**用户当前设置里 `dock.enabled` 已被我改成 `false` 以便排障（备份在 `.tmp-settings-backup.json`）**。若要改，最小方案是"启动后前几秒不吸附"或"必须真的被拖到边缘才吸附" + 首次吸附给一次提示。
+- WebView2：**永远不要在 WebView2 使用 profile 时强杀应用**；构建前强杀后**必须轮换 profile**（见 §1.12，已实现在 `kill-running-app.mjs`）
 
 ---
 
-## 7. 澶嶇幇楠岃瘉鐨勬渶鐭懡浠?
+## 7. 复现验证的最短命令
 
 ```powershell
-# 鍗曟祴锛?87锛?
+# 单测（193）
 node --test --test-isolation=none "tests/**/*.test.mjs"
 
-# 绫诲瀷妫€鏌?
+# 类型检查
 npm --prefix web run typecheck
 
-# 鏋勫缓锛堥渶 danger-full-access 鍗囩骇锛歟sbuild 瑕?spawn锛?
+# 构建（需 danger-full-access 升级：esbuild 要 spawn）
 npm --prefix web run build
 
-# Web 鍐掔儫锛堜袱涓獥鍙ｏ紱Chrome 鍚屾牱闇€ danger-full-access 鍗囩骇锛屼笖寤鸿鎹㈢鍙ｉ伩鍏嶆棫瀹炰緥骞叉壈锛?
-node web/scripts/serve-dist.mjs 5190                 # 缁堢 A锛?190
-chrome --headless=new --user-data-dir=%TEMP%\na-smoke --remote-debugging-port=9371 about:blank   # 缁堢 B
-$env:CDP_PORT='9371'; $env:SMOKE_URL='http://127.0.0.1:5190/'; node web/scripts/ui-smoke.mjs        # 107 椤?
-$env:CDP_PORT='9371'; $env:SMOKE_URL='http://127.0.0.1:5190/'; node web/scripts/settings-smoke.mjs  # 25 椤?
+# Web 冒烟（两个窗口；Chrome 同样需 danger-full-access 升级，且建议换端口避免旧实例干扰）
+node web/scripts/serve-dist.mjs 5190                 # 终端 A：5190
+chrome --headless=new --user-data-dir=%TEMP%\na-smoke --remote-debugging-port=9371 about:blank   # 终端 B
+$env:CDP_PORT='9371'; $env:SMOKE_URL='http://127.0.0.1:5190/'; node web/scripts/ui-smoke.mjs        # 107 项
+$env:CDP_PORT='9371'; $env:SMOKE_URL='http://127.0.0.1:5190/'; node web/scripts/settings-smoke.mjs  # 25 项
 
-# 妗岄潰鏋勫缓涓庤嚜娴嬶紙鐢ㄦ埛鏈満锛?
-npm run desktop:setup     # 浜у嚭 src-tauri\target\release\NoteApp.exe
+# 桌面构建与自测（用户本机）
+npm run desktop:setup     # 产出 src-tauri\target\release\NoteApp.exe
 ```
 
 ---
 
-## 8. 鍙戝竷鍒?GitHub锛圧elease锛?
+## 8. 发布到 GitHub（Release）
 
-- 杩滅锛歚https://github.com/Silicon-basedLife/note-book.git`锛堝垎鏀?`master`锛?
-- 褰撳墠鐗堟湰锛歚0.1.0`锛坄package.json` / `web/package.json` / `src-tauri/tauri.conf.json` / `Cargo.toml` 涓€鑷达級锛泃ag 鐢?`v0.1.0`
-- **鏈矙绠辨棤娉曟帹閫?*锛欸itHub 涓嶅彲杈撅紝涓旀矙绠辩姝?git 鐨勮緟鍔╄繘绋嬬閬擄紙`couldn't create signal pipe`锛? 鏃犲嚟鎹€?*蹇呴』鐢辩敤鎴峰湪鏈夌綉缁堢鎵ц**銆?
-- 宸插氨缁殑鍙戝竷鑴氭墜鏋讹細
-  - 鍙戝竷璇存槑锛歚docs/RELEASE_NOTES_v0.1.0.md`锛堥灞忓嵆澹版槑鈥滄湰鐗堟湰涓嶅惈蹇€熶究绛?鎮诞绐椻€濓級
-  - Actions 宸ヤ綔娴侊細`.github/workflows/release.yml` 鈥斺€?鎺?`v*` tag 鎴栨墜鍔?dispatch锛屽湪 windows runner 涓婅窇鍗曟祴/typecheck 鈫?`tauri-action` 鏋勫缓 MSI+NSIS+exe 鈫?鑷姩鍒涘缓 Release 骞朵笂浼犱骇鐗╋紙**鎺ㄨ崘**锛宺unner 鍙甯镐笅杞?NSIS/WiX锛?
-  - 鏈湴鑴氭湰锛歚scripts/release.ps1`锛堟牴鑴氭湰 `npm run release` / `release:draft`锛夆€斺€?娴嬭瘯 鈫?鏋勫缓 exe锛坄NOTEAPP_BUNDLE=1` 鏃惰繛瀹夎鍖咃級鈫?`git push master` + tag 鈫?鏈?`gh` 鍒欒嚜鍔ㄥ缓 Release锛屽惁鍒欐墦鍗版墜鍔ㄦ楠?
-- 鍛戒护锛堢敤鎴风粓绔級锛?
+- 远端：`https://github.com/Silicon-basedLife/note-book.git`（分支 `master`）
+- 当前版本：`0.1.0`（`package.json` / `web/package.json` / `src-tauri/tauri.conf.json` / `Cargo.toml` 一致）；tag 用 `v0.1.0`
+- **本沙箱无法推送**：GitHub 不可达，且沙箱禁止 git 的辅助进程管道（`couldn't create signal pipe`）+ 无凭据。**必须由用户在有网终端执行**。
+- 已就绪的发布脚手架：
+  - 发布说明：`docs/RELEASE_NOTES_v0.1.0.md`（首屏即声明“本版本不含快速便签/悬浮窗”）
+  - Actions 工作流：`.github/workflows/release.yml` —— 推 `v*` tag 或手动 dispatch，在 windows runner 上跑单测/typecheck → `tauri-action` 构建 MSI+NSIS+exe → 自动创建 Release 并上传产物（**推荐**，runner 可正常下载 NSIS/WiX）
+  - 本地脚本：`scripts/release.ps1`（根脚本 `npm run release` / `release:draft`）—— 测试 → 构建 exe（`NOTEAPP_BUNDLE=1` 时连安装包）→ `git push master` + tag → 有 `gh` 则自动建 Release，否则打印手动步骤
+- 命令（用户终端）：
   ```powershell
   git push origin master
   git tag -a v0.1.0 -m "NoteApp 0.1.0"
-  git push origin v0.1.0          # 涔嬪悗鐢?Actions 鑷姩鍑?Release锛堝惈瀹夎鍖咃級
-  # 鎴栨湰鍦颁竴閿細npm run release锛堥渶瑕?gh CLI 鎵嶄細鑷姩鍒涘缓 Release锛?
+  git push origin v0.1.0          # 之后由 Actions 自动出 Release（含安装包）
+  # 或本地一键：npm run release（需要 gh CLI 才会自动创建 Release）
   ```
-- 涓嬩竴涓璇濇敞鎰忥細**涓嶈灏濊瘯鍦ㄦ矙绠卞唴 push**锛涘鐢ㄦ埛鎶ュ憡 Actions 澶辫触锛屽厛鐪?workflow 鏃ュ織锛堝父瑙佺偣锛歚npm ci` 閿佹枃浠朵笉鍚屾銆乼auri-action 鐗堟湰銆乥undle 鐩爣锛夈€?
+- 下一个对话注意：**不要尝试在沙箱内 push**；如用户报告 Actions 失败，先看 workflow 日志（常见点：`npm ci` 锁文件不同步、tauri-action 版本、bundle 目标）。
