@@ -18,6 +18,7 @@
     "smoke:settings": "npm --prefix web run smoke:settings",
     "tauri": "tauri",
     "kill-app": "node scripts/kill-running-app.mjs",
+    "diagnose:startup": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/diagnose-startup.ps1",
     "predesktop:dev": "node scripts/kill-running-app.mjs",
     "predesktop:build": "node scripts/kill-running-app.mjs",
     "predesktop:exe": "node scripts/kill-running-app.mjs",
