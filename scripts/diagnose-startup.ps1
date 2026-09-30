@@ -213,6 +213,28 @@ if (Test-Path $eb) {
 }
 Say ('noteapp processes    : ' + (CountOf 'noteapp'))
 
+Say ''
+Say '--- WebView2 crash events in the last 30 minutes (Event ID 1000) ---'
+# This is the decisive check: if msedgewebview2.exe / msedge.dll is crashing, the
+# WebView2 engine itself is failing, and the app can only wait forever for a webview
+# that never arrives (no window, no error, no exit).
+try {
+  $crashes = @(Get-WinEvent -FilterHashtable @{LogName='Application'; Id=1000; StartTime=(Get-Date).AddMinutes(-30)} -MaxEvents 200 -ErrorAction Stop |
+    Where-Object { $_.Message -match 'msedgewebview2' })
+  Say ('msedgewebview2.exe crashes : ' + $crashes.Count)
+  if ($crashes.Count -gt 0) {
+    $sample = $crashes[0].Message
+    foreach ($line in ($sample -split "`r?`n")) {
+      if ($line -match 'Faulting module name|Exception code|Fault offset|Faulting application path') {
+        Say ('  ' + $line.Trim())
+      }
+    }
+    Say '  >> The WebView2 runtime itself is crashing. Fix the runtime/profile, not NoteApp:'
+    Say '     1) reboot, 2) rename/delete the EBWebView profile folder, 3) retry,'
+    Say '     4) if it still crashes, repair/reinstall the WebView2 Evergreen Runtime.'
+  }
+} catch { Say 'msedgewebview2.exe crashes : (could not read the event log)' }
+
 $lines | Out-File -FilePath $report -Encoding utf8
 Write-Host ''
 Write-Host ('report written to: ' + $report) -ForegroundColor Green
