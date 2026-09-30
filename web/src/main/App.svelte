@@ -131,7 +131,7 @@
   const isDeletedCurrent = $derived(!!current?.deleted);
   const previewRender = $derived(
     mode !== 'edit' && current
-      ? renderMarkdown(current.body, { hardBreaks: settings.editor.hardBreaks })
+      ? renderMarkdown(current.body)
       : null
   );
   const previewTasks = $derived(previewRender?.tasks ?? []);

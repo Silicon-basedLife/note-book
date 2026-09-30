@@ -46,20 +46,6 @@ test('coerceSettings：分屏比例用小数钳制（不取整、越界夹紧、
   assert.equal(coerceSettings({ editor: { splitRatio: null } }).editor.splitRatio, 0.5);
 });
 
-test('coerceSettings：回车即换行（hardBreaks）默认为 true，非布尔值回退默认', () => {
-  // 默认必须是 true：这是面向“不想学 Markdown”的用户的默认体验
-  assert.equal(DEFAULT_SETTINGS.editor.hardBreaks, true);
-  assert.equal(coerceSettings({}).editor.hardBreaks, true);
-  assert.equal(coerceSettings({ editor: {} }).editor.hardBreaks, true);
-  // 显式关闭要能生效（用户主动选择严格 CommonMark 时不能被“纠正”回来）
-  assert.equal(coerceSettings({ editor: { hardBreaks: false } }).editor.hardBreaks, false);
-  assert.equal(coerceSettings({ editor: { hardBreaks: true } }).editor.hardBreaks, true);
-  // 非法值回退默认（而不是当成 false）
-  assert.equal(coerceSettings({ editor: { hardBreaks: 'yes' } }).editor.hardBreaks, true);
-  assert.equal(coerceSettings({ editor: { hardBreaks: 0 } }).editor.hardBreaks, true);
-  assert.equal(coerceSettings({ editor: { hardBreaks: null } }).editor.hardBreaks, true);
-});
-
 test('coerceSettings：快捷键清洗（保留 null 禁用、丢弃非法）', () => {
   const s = coerceSettings({
     shortcuts: {

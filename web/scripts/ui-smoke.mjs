@@ -296,14 +296,6 @@ if (await evaluate('window.__ready()')) {
   check('双击分隔条恢复各半', Math.abs(resetEd - resetPv) <= 12 && resetEd > 60, `${resetEd} / ${resetPv}`);
   check('内容填满窗口（右侧不留白）', await evaluate(`Math.round(document.querySelector('.app-shell').getBoundingClientRect().width) === window.innerWidth`));
 
-  // 5.9) 换行：默认「回车即换行」（单个换行渲染成 <br>），改完再还原正文
-  const bodyKeep = await evaluate(`document.querySelector('#editor').value`);
-  await evaluate(`window.__setValue(document.querySelector('#editor'), '甲\\n乙')`);
-  check('默认：源码单个回车在预览里换行（<br>）', await waitEval(
-    `(() => { const p = document.querySelector('#preview'); return !!p && /甲\\s*<br>\\s*乙/.test(p.innerHTML); })()`, 6000));
-  await evaluate(`window.__setValue(document.querySelector('#editor'), ${JSON.stringify(bodyKeep)})`);
-  await new Promise((r) => setTimeout(r, 250));
-
   await evaluate(`[...document.querySelectorAll('.ed-right .btn-danger')][0].click()`);
   check('删除需二次确认（进回收站文案）', await waitEval(`!!document.querySelector('.modal-card') && document.body.textContent.includes('回收站')`));
   check('弹窗宽度未被边框撑宽（≤440）', await evaluate(`(() => { const r = document.querySelector('.modal-card').getBoundingClientRect(); return r.width > 420 && r.width <= 440; })()`));

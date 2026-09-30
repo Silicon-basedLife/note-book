@@ -311,20 +311,6 @@
             <div class="row-main"><label>拼写检查</label><p class="hint">编辑器内启用系统拼写检查（默认关闭）</p></div>
             <input type="checkbox" checked={s.editor.spellcheck} onchange={(e) => { s.editor.spellcheck = (e.target as HTMLInputElement).checked; scheduleSave(); }} />
           </div>
-          <div class="row">
-            <div class="row-main">
-              <label>回车即换行</label>
-              <p class="hint">
-                开启（默认）：源码里按一次回车，预览里就换行——一行一个词/一条记录时不用额外打空格或空行。
-                关闭：按 Markdown 严格规则，单个回车只算“软换行”，同一段内的换行会被折叠掉。
-              </p>
-            </div>
-            <input
-              type="checkbox" id="hard-breaks"
-              checked={s.editor.hardBreaks}
-              onchange={(e) => { s.editor.hardBreaks = (e.target as HTMLInputElement).checked; scheduleSave(); }}
-            />
-          </div>
         </section>
       {/if}
 

@@ -150,14 +150,6 @@ check('编辑器页出现数值输入', await waitEval(`!!document.querySelector
 await evaluate(`window.__setValue(document.querySelector('.settings-body input[type=number]'), '900')`);
 check('自动保存去抖写入设置', await waitEval(settingsEq('editor.autoSaveMs', 900), 15000));
 
-// 编辑器：回车即换行（默认开启，可关闭）
-check('编辑器页出现「回车即换行」开关', await waitEval(`!!document.querySelector('#hard-breaks')`));
-check('「回车即换行」默认为开启', await evaluate(`document.querySelector('#hard-breaks').checked === true`));
-await evaluate(`document.querySelector('#hard-breaks').click()`);
-check('关闭后写入设置（hardBreaks:false）', await waitEval(`(() => { const raw = localStorage.getItem('noteapp.settings.v1'); if (!raw) return false; return JSON.parse(raw).editor.hardBreaks === false; })()`, 4000));
-await evaluate(`document.querySelector('#hard-breaks').click()`);
-check('再次打开恢复 hardBreaks:true', await waitEval(`(() => { const raw = localStorage.getItem('noteapp.settings.v1'); if (!raw) return false; return JSON.parse(raw).editor.hardBreaks === true; })()`, 4000));
-
 // 快捷键：改键 + 冲突提示
 await evaluate(`[...document.querySelectorAll('.nav-btn')].find((b) => b.textContent.includes('快捷键')).click()`);
 check('快捷键列表渲染', await waitEval(`document.querySelectorAll('.keycap').length >= 4`));
