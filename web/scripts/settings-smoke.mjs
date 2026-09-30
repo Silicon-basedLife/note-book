@@ -89,6 +89,22 @@ function check(name, ok, detail = '') {
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? '  — ' + detail : ''}`);
 }
 
+/**
+ * 等待“设置已写盘”的确定性条件：解析 JSON 后按键路径取值再比较。
+ * 不要用 `raw.includes('"dark"')` 这种原始字符串匹配——它会被字段顺序/转义/写入时机影响，
+ * 实测偶发失败（写盘是 300ms 去抖，字符串匹配又只看某一瞬间）。
+ */
+function settingsEq(path, value) {
+  const keys = JSON.stringify(path.split('.'));
+  return `(() => { try {
+    const raw = localStorage.getItem('noteapp.settings.v1');
+    if (!raw) return false;
+    let cur = JSON.parse(raw);
+    for (const k of ${keys}) cur = cur == null ? undefined : cur[k];
+    return cur === ${JSON.stringify(value)};
+  } catch { return false; } })()`;
+}
+
 await send('Page.navigate', { url: SETTINGS_URL });
 // 确定性前置：清空既有设置，保证从默认值开始断言
 await waitEval(`!!document.body`, 8000);
@@ -103,17 +119,17 @@ check('六个分类都存在', await evaluate(`document.querySelectorAll('.setti
 await evaluate(`[...document.querySelectorAll('.nav-btn')].find((b) => b.textContent.includes('通用')).click()`);
 check('通用页出现启动布局下拉', await waitEval(`!!document.querySelector('#start-layout')`));
 await evaluate(`window.__setValue(document.querySelector('#start-layout'), 'fig5')`);
-check('启动布局写入 localStorage', await waitEval(`(localStorage.getItem('noteapp.settings.v1') || '').includes('fig5')`));
+check('启动布局写入 localStorage', await waitEval(settingsEq('general.startLayout', 'fig5'), 15000));
 
 // 通用：主题（浅 / 深 / 跟随系统）→ 立即应用 + 持久化
 await evaluate(`window.__bg = () => getComputedStyle(document.body).backgroundColor`);
 await evaluate(`(() => { const b = document.querySelector('[data-theme-choice="dark"]'); if (!b) return false; b.click(); return true; })()`);
 check('选择深色后 html[data-theme=dark]', await waitEval(`document.documentElement.dataset.theme === 'dark'`));
 check('深色立即生效（页面底色变暗）', await waitEval(`(() => { const m = window.__bg().match(/\\d+/g); return !!m && Number(m[0]) < 120; })()`));
-check('深色选择写入 localStorage', await waitEval(`(localStorage.getItem('noteapp.settings.v1') || '').includes('"dark"')`));
+check('深色选择写入 localStorage', await waitEval(settingsEq('general.theme', 'dark'), 15000));
 await evaluate(`(() => { const b = document.querySelector('[data-theme-choice="system"]'); if (!b) return false; b.click(); return true; })()`);
 check('跟随系统：data-theme 与系统偏好一致', await waitEval(`document.documentElement.dataset.theme === (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')`));
-check('跟随系统写入 localStorage', await waitEval(`(localStorage.getItem('noteapp.settings.v1') || '').includes('"system"')`));
+check('跟随系统写入 localStorage', await waitEval(settingsEq('general.theme', 'system'), 15000));
 await evaluate(`(() => { const b = document.querySelector('[data-theme-choice="light"]'); if (!b) return false; b.click(); return true; })()`);
 check('切回浅色立即生效', await waitEval(`document.documentElement.dataset.theme === 'light'`));
 check('非「跟随系统」档位不挂系统主题监听', await evaluate(`window.__listenerCount() === 0`));
@@ -132,7 +148,15 @@ check('切到固定浅色后释放系统主题监听', await waitEval(`window.__
 await evaluate(`[...document.querySelectorAll('.nav-btn')].find((b) => b.textContent.includes('编辑器')).click()`);
 check('编辑器页出现数值输入', await waitEval(`!!document.querySelector('.settings-body input[type=number]')`));
 await evaluate(`window.__setValue(document.querySelector('.settings-body input[type=number]'), '900')`);
-check('自动保存去抖写入设置', await waitEval(`(localStorage.getItem('noteapp.settings.v1') || '').includes('900')`));
+check('自动保存去抖写入设置', await waitEval(settingsEq('editor.autoSaveMs', 900), 15000));
+
+// 编辑器：回车即换行（默认开启，可关闭）
+check('编辑器页出现「回车即换行」开关', await waitEval(`!!document.querySelector('#hard-breaks')`));
+check('「回车即换行」默认为开启', await evaluate(`document.querySelector('#hard-breaks').checked === true`));
+await evaluate(`document.querySelector('#hard-breaks').click()`);
+check('关闭后写入设置（hardBreaks:false）', await waitEval(`(() => { const raw = localStorage.getItem('noteapp.settings.v1'); if (!raw) return false; return JSON.parse(raw).editor.hardBreaks === false; })()`, 4000));
+await evaluate(`document.querySelector('#hard-breaks').click()`);
+check('再次打开恢复 hardBreaks:true', await waitEval(`(() => { const raw = localStorage.getItem('noteapp.settings.v1'); if (!raw) return false; return JSON.parse(raw).editor.hardBreaks === true; })()`, 4000));
 
 // 快捷键：改键 + 冲突提示
 await evaluate(`[...document.querySelectorAll('.nav-btn')].find((b) => b.textContent.includes('快捷键')).click()`);

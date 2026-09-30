@@ -240,26 +240,54 @@ flex-grow 用比例分配时，**当所有 flex-grow 之和小于 1**，浏览�
 它依赖的是“shell 缩到内容宽”这个旧行为；现在 shell 填满窗口、**窗口缩放由桌面端 `setSize` 负责**，
 所以改成断言“列表/编辑区宽度为 0 且侧栏≈224”（Web 预览下浏览器窗口本来就不能被页面缩放）。
 
-### 1.11 桌面壳与构建
+### 1.11 回车即换行（hardBreaks，默认开启）（本轮新增）
+
+> 起因：用户反馈「为什么我按回车右边没有换行」——一行一个词（单词表）写下去，预览里却被拼成一句。
+> 这是 Markdown 的规定（单个换行 = 段内软换行，HTML 里退化成空格），但对“不想学 Markdown”的用户
+> 是纯粹的坑：要换行得懂三种潜规则（行尾两个空格 / 空行 / 写成列表）。
+
+| 事项 | 实现位置 |
+|---|---|
+| 渲染开关：`renderMarkdown(text, { hardBreaks })`，用**两个缓存的渲染器实例**（true/false）而不是每次重建；默认 true | `markdown.ts` 的 `createRenderer(hardBreaks)` + `mdInstances` Map + `RenderOptions` |
+| 设置项 `editor.hardBreaks`（默认 **true**）；非法值回退默认而不是当成 false | `settings/types.ts`、`settings/coerce.ts`（`pickBool`） |
+| 设置页 UI：编辑器 → **「回车即换行」** 复选框（`#hard-breaks`），提示里写清开/关的区别 | `Settings.svelte` |
+| 主窗口接线：`renderMarkdown(current.body, { hardBreaks: settings.editor.hardBreaks })`，直接读 state 保证响应式 | `App.svelte` 的 `previewRender` |
+| 测试 | `tests/core.markdown.test.mjs` 新增 7 项（默认出 `<br>` / 显式 true 等价 / false 折叠成空格 / 空行分段两种模式都生效 / 标题·列表·引用·代码块不受影响 / 两个实例互不污染 / 待办 data-offset 不受影响）、`tests/core.settings.test.mjs` 新增 1 项 |
+| 冒烟断言 | 主窗口 1 项：改正文为两行 → 预览出现 `甲<br>乙`（再还原正文）；设置窗口 4 项：开关存在 / 默认开启 / 关掉写入 `hardBreaks:false` / 再打开恢复（共 108 + 29） |
+
+行为对照（实测）：
+
+| 源码 | hardBreaks 开（默认） | hardBreaks 关 |
+|---|---|---|
+| `甲\n乙\n丙` | `<p>甲<br>乙<br>丙</p>` | `<p>甲\n乙\n丙</p>`（渲染成一句，空格分隔） |
+| `甲\n\n乙` | 两个 `<p>` | 两个 `<p>`（空行分段不受影响） |
+
+**顺手修掉一类不稳定断言（设置窗口冒烟）**：原来用 `localStorage.getItem(...).includes('"dark"')` 这种
+**原始字符串匹配**判断“设置已写盘”，实测偶发失败（写盘是 300ms 去抖，字符串匹配只看某一瞬间，
+字段顺序/转义也会影响）。现在统一走 `settingsEq('general.theme', 'dark')`——解析 JSON 后按键路径取值再
+严格比较，并把超时放宽到 15s。改完连跑两次都是 29/29。
+
+### 1.12 桌面壳与构建
 
 - Rust 薄壳：`list/read/write/remove_note_file`、`read/write/remove_meta`、`read/write_settings`、`get_storage_info`、`open_path`、`pick_folder`、`migrate_notes`
 - 权限、双窗口配置、应用图标（`src-tauri/icons/`）
 - `scripts/setup.ps1`：ASCII 化（避免 PowerShell 5.1 编码问题）、自动结束运行中的 `noteapp.exe`（避免 exe 被占用）、`--no-bundle` 默认产出可运行 exe
 - README 全量说明；`demo/` 保留为原型（另有一次提交 `a1cba63` 把它升级成文件夹+笔记双实体 + IndexedDB，并带自己的测试）
 
-### 1.12 验证现状（本沙箱；主题落地前的历史基线）
+### 1.13 验证现状（本沙箱；主题落地前的历史基线）
 
 - 单元/集成测试：102 项全绿（`npm test`）
 - 真实 Chrome 冒烟：主窗口 51/51、设置窗口 14/14
 - `tsc --noEmit` 通过；`vite build` 通过（双页产物）
 - 覆盖点：frontmatter 往返、回收站全流程、手排/文件夹排序、搜索转义、Markdown/XSS、动作注册表、设置归一化/冲突/未知字段、存储字段契约、QQ 吸附纯计算、UI 面板宽度断言
 
-### 1.13 验证现状（本沙箱，当前）
+### 1.14 验证现状（本沙箱，当前）
 
-- **单元/集成测试：187 项全绿**（`npm test`；102 → 116（主题）→ 120（实时跟随）→ 129（标签/置顶）→ 142（待办聚合）→ 186（格式工具栏）→ 187（分屏比例））
-- **真实 Chrome 冒烟：主窗口 107/107、设置窗口 25/25**（本轮新增布局 10 项）
+- **单元/集成测试：195 项全绿**（`npm test`；102 → 116（主题）→ 120（实时跟随）→ 129（标签/置顶）→ 142（待办聚合）→ 186（格式工具栏）→ 187（分屏比例）→ 195（回车即换行））
+- **真实 Chrome 冒烟：主窗口 108/108、设置窗口 29/29**（本轮新增：换行 1 + 3，另加设置开关 1）
 - `tsc --noEmit` 通过；`vite build` 通过（双页产物，含 head 内联主题引导脚本）
 - 环境提示：本沙箱里 `vite build` 与 headless Chrome 都必须以 `danger-full-access` 升级执行（esbuild spawn / Chrome mojo 命名管道）；冒烟脚本要放到后台作业里跑，避免前台超时被中断导致误判；**CDP 实例跑几轮后要换端口重启**（标签页累积会导致 WS 异常，表现为脚本挂住或 `Inspected target navigated or closed`），且 `$env:TEMP` 每次调用都不同、不要用它做跨调用临时文件路径
+- **别在断言里匹配 localStorage 原始字符串**（见 §1.11 末段）：用 `settingsEq('a.b', value)` 解析后比较
 
 ---
 
@@ -306,7 +334,12 @@ flex-grow 用比例分配时，**当所有 flex-grow 之和小于 1**，浏览�
    - **分屏时拖动中间那条分隔条**：编辑/预览比例应随手改变；**双击**它恢复各半；拖动后重启应用比例应保持；
    - **窗口已经拉大时点开/收起面板**：不应把窗口突然缩回 1220px（只有编辑区关闭时才会贴合内容收缩）；
    - 如果觉得“图3 时窗口仍会收缩成窄条”不合适，或者希望侧栏/列表也能拖动改宽，直接说。
-12. **发布确认**：按 §8 推送并创建 Release（`v0.1.0`，说明中已注明“不含快速便签/悬浮窗”），确认 Release 里能看到 `NoteApp.exe`（用 Actions 构建则还有 MSI/NSIS）。
+12. **本轮回车即换行**（前端，本沙箱已用真实渲染 + 冒烟验证，但**你本机要确认的就是你最初那个场景**）：
+   - 打开你那篇「英语词汇」笔记：**一行一个词在预览里应该各占一行**（不再是拼成一句）；
+   - 设置 → 编辑器 → 「回车即换行」：**关掉后**预览应恢复成"几行拼成一句"的严格 Markdown 行为，**打开**则又分行；
+   - 空行分段、标题、列表、引用、代码块的开/关表现应完全一致；
+   - 如果你希望默认就是关（严格模式），或者想要“只对列表生效”之类的细分，直接说。
+13. **发布确认**：按 §8 推送并创建 Release（`v0.1.0`，说明中已注明“不含快速便签/悬浮窗”），确认 Release 里能看到 `NoteApp.exe`（用 Actions 构建则还有 MSI/NSIS）。
 
 ---
 
@@ -321,6 +354,7 @@ flex-grow 用比例分配时，**当所有 flex-grow 之和小于 1**，浏览�
 | ~~待办聚合视图（汇总所有未完成）~~ | **已完成**，见 §1.8 |
 | ~~格式工具栏（Markdown 语法可视化）~~ | **已完成**，见 §1.9（不在原 ROADMAP 里，来自用户“不会用 Markdown”的反馈） |
 | ~~布局：宽度分配 / 不留白 / 可拖拽分隔条~~ | **已完成**，见 §1.10（用户截图反馈） |
+| ~~回车即换行（hardBreaks）~~ | **已完成**，见 §1.11（用户反馈“按回车右边没换行”） |
 | 多级目录 | 目前一级（子文件夹） |
 | 附件：粘贴/拖拽图片入库 | 需定附件目录规则（存储页已留“附件目录”讨论位） |
 | 命令面板（Ctrl+K 已用于搜索聚焦）+ 全局热键设置页 | 动作注册表已就绪，只需接 Tauri global-shortcut 插件 |
@@ -348,6 +382,7 @@ flex-grow 用比例分配时，**当所有 flex-grow 之和小于 1**，浏览�
 - **`execCommand('insertText')` 的坑（见 §1.9）**：它是“在光标处插入”，**不会**替你删除选区。要用它替换一段区间，必须先 `setSelectionRange(replaceStart, replaceEnd)`，并在调用后用 `textarea.value === 期望文本` 校验结果。同理，写断言时不要只用 `startsWith`/`includes`——用**逐字比对**才能拦住“局部看起来对”的缺陷。
 - **flex-grow 之和 < 1 的坑（见 §1.10）**：flex 分配剩余空间时，若所有 flex-grow 之和**小于 1**，浏览器按「各自的 grow × 剩余空间」分配，余量**留在原处**（不归一化）。`flex: 0.5 1 0` 单独一个子元素只能拿到一半宽度。所以“单个子元素占满”要么让 grow 和为 1，要么显式 `:only-child { flex-grow: 1 }`。
 - **断言里的“按位置取元素”很脆**：`document.querySelector('.settings-body select')` 这类“第一个下拉/第一个按钮”的定位，在页面上插入新行后就会指到别的元素（§1.10 与主题那轮都踩过）。新写断言请按 **id 或语义标签** 定位。
+- **断言里的“匹配原始字符串”也很脆**：判断设置是否写盘不要用 `raw.includes('"dark"')`，写盘是去抖的、字符串还受字段顺序/转义影响，实测偶发失败。统一用 `settingsEq(路径, 期望值)` 解析 JSON 后严格比较（见 §1.11）。
 - `App.svelte` 里保留了一个 Web 预览专用的诊断钩子 `window.__diag()`（仅 `!isTauri()` 时挂载），用于排障与冒烟定位；如果觉得碍事可以删。
 
 ---
@@ -357,10 +392,10 @@ flex-grow 用比例分配时，**当所有 flex-grow 之和小于 1**，浏览�
 ### Step 0：恢复上下文
 1. `git status` 确认干净；`git log --oneline -5` 确认 HEAD（本次交接提交后以 `git log -1` 为准；此前为 `518875e`）。
 2. 读 `docs/PROGRESS.md`（本文件）→ `AGENTS.md` → `README.md`。
-3. 跑一遍基线：`node --test --test-isolation=none "tests/**/*.test.mjs"`（应 187 通过）。
+3. 跑一遍基线：`node --test --test-isolation=none "tests/**/*.test.mjs"`（应 195 通过）。
 
 ### Step 1：先收口“待确认项”
-- 让用户执行 `npm run desktop:setup`，按 §2 的 1–12 条逐项确认（含主题观感、标签与置顶、待办聚合、格式工具栏、布局与拖拽分隔条）。
+- 让用户执行 `npm run desktop:setup`，按 §2 的 1–13 条逐项确认（含主题观感、标签与置顶、待办聚合、格式工具栏、布局与拖拽分隔条、回车即换行）。
 - 有报错就修；Rust 报错优先看 `src-tauri/src/fs_store.rs` 与实际 cargo 输出。
 
 ### Step 2：按优先级做新功能（每次一项，走完整闭环）
@@ -406,6 +441,7 @@ flex-grow 用比例分配时，**当所有 flex-grow 之和小于 1**，浏览�
 | 待办聚合 | `web/src/lib/core/todos.ts`（行扫描+汇总+过滤，纯逻辑+单测）、`App.svelte` 的 `.todo-row`/`todoItems`/`openTodoSource`/`toggleShowDoneTodos`、`tests/core.todos.test.mjs` |
 | 格式工具栏 | `web/src/lib/core/md-format.ts`（纯逻辑 + `FORMAT_BUTTONS` 目录，单测 `tests/core.md-format.test.mjs`）、`App.svelte` 的 `#format-bar`/`applyFormatAction`/`replaceEditorRange`/`editorUndo`、`app.css` 的 `.format-bar` 段、高亮渲染在 `markdown.ts`（`md.use(mark)`） |
 | 面板宽度 / 分屏比例 | `App.svelte` 的 `splitRatio`/`onSplitPointer*`/`applyWindowWidth`/`computeWidth`、`app.css` 的 `.app-shell`/`.editor-pane.open`/`.workspace > *`/`.split-handle`、设置项 `editor.splitRatio`（`settings/types.ts` + `coerce.ts` 的 `clampFloat`） |
+| 换行（回车即换行） | `markdown.ts` 的 `createRenderer(hardBreaks)`/`renderer()` 缓存/`RenderOptions`、设置项 `editor.hardBreaks`、`Settings.svelte` 的 `#hard-breaks` 复选框、`App.svelte` 的 `previewRender` 传参 |
 | Rust 命令 | `src-tauri/src/fs_store.rs`（所有命令）、`src-tauri/src/lib.rs`（注册） |
 | 权限/窗口配置 | `src-tauri/capabilities/default.json`、`src-tauri/tauri.conf.json` |
 | 构建脚本 | `scripts/setup.ps1`、根 `package.json` 脚本 |
@@ -428,13 +464,14 @@ flex-grow 用比例分配时，**当所有 flex-grow 之和小于 1**，浏览�
 - 主题：**三档（浅色 / 深色 / 跟随系统），默认浅色**；「跟随系统」实时跟随系统主题变化（只在 system 档订阅）
 - 格式工具栏：**不做富文本所见即所得**（会破坏“纯文本 .md”的根基）、**不做字体颜色**（Markdown 无标准语法，改用 `==高亮==` 背景标记）；只做“点按钮替你打符号”
 - 布局宽度：**编辑区吸收多余空间**（窗口放大后编辑区变宽、不留白）；**编辑⇄预览可分屏比例可拖动并持久化**（`editor.splitRatio`，20%–80%，双击恢复各半）；窗口只在“比目标窄”时放大，已更宽就不动（避免最大化状态下点开面板被打回原宽度）
+- 换行：**默认「回车即换行」**（`editor.hardBreaks: true`，即 GFM `breaks`）——面向不想学 Markdown 的用户，一行一条记录时回车就该分行；可在设置里关掉改用严格 CommonMark
 
 ---
 
 ## 7. 复现验证的最短命令
 
 ```powershell
-# 单测（187）
+# 单测（195）
 node --test --test-isolation=none "tests/**/*.test.mjs"
 
 # 类型检查
@@ -446,8 +483,8 @@ npm --prefix web run build
 # Web 冒烟（两个窗口；Chrome 同样需 danger-full-access 升级，且建议换端口避免旧实例干扰）
 node web/scripts/serve-dist.mjs 5190                 # 终端 A：5190
 chrome --headless=new --user-data-dir=%TEMP%\na-smoke --remote-debugging-port=9371 about:blank   # 终端 B
-$env:CDP_PORT='9371'; $env:SMOKE_URL='http://127.0.0.1:5190/'; node web/scripts/ui-smoke.mjs        # 107 项
-$env:CDP_PORT='9371'; $env:SMOKE_URL='http://127.0.0.1:5190/'; node web/scripts/settings-smoke.mjs  # 25 项
+$env:CDP_PORT='9371'; $env:SMOKE_URL='http://127.0.0.1:5190/'; node web/scripts/ui-smoke.mjs        # 108 项
+$env:CDP_PORT='9371'; $env:SMOKE_URL='http://127.0.0.1:5190/'; node web/scripts/settings-smoke.mjs  # 29 项
 
 # 桌面构建与自测（用户本机）
 npm run desktop:setup     # 产出 src-tauri\target\release\NoteApp.exe

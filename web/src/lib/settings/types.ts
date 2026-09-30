@@ -26,6 +26,8 @@ export interface EditorSettings {
   /** 自动保存去抖（毫秒） */
   autoSaveMs: number;
   spellcheck: boolean;
+  /** 单个换行在预览里是否直接换行（`<br>`）；关掉则按严格 CommonMark 折叠进同一段落 */
+  hardBreaks: boolean;
   /** 分屏时编辑区占编辑面板的比例（0.2–0.8）；拖动中间分隔条时写入 */
   splitRatio: number;
 }
@@ -58,7 +60,7 @@ export const SETTINGS_VERSION = 1;
 export const DEFAULT_SETTINGS: AppSettings = {
   version: SETTINGS_VERSION,
   general: { startLayout: 'fig3', rememberPanels: false, theme: 'light' },
-  editor: { defaultMode: 'split', autoSaveMs: 600, spellcheck: false, splitRatio: 0.5 },
+  editor: { defaultMode: 'split', autoSaveMs: 600, spellcheck: false, hardBreaks: true, splitRatio: 0.5 },
   dock: { enabled: true, side: 'both', hideDelayMs: 3000, topmost: true, hotZonePx: 14, onlySidebar: true },
   shortcuts: {},
 };

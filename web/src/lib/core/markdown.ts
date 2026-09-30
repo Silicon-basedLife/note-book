@@ -211,12 +211,19 @@ export function sanitizeHtml(html: string): string {
 }
 
 // ---------- 渲染器装配 ----------
-function createRenderer(): MarkdownIt {
+/**
+ * `hardBreaks`（默认 true）对应 markdown-it 的 `breaks` 选项：
+ * - true  → 源码里的单个换行渲染成 `<br>`（GFM 在评论/Issue 里的行为，多数笔记软件也是）；
+ * - false → 严格 CommonMark：单个换行只是“软换行”，同一段落内会被折叠掉。
+ * 默认取 true 是因为本应用面向“不想学 Markdown 的人”：一行一个词/一条记录时，
+ * 回车就该在预览里换行，否则用户会以为预览坏了。
+ */
+function createRenderer(hardBreaks: boolean): MarkdownIt {
   const md = new MarkdownIt({
     html: false,
     linkify: true,
     typographer: false,
-    breaks: false,
+    breaks: hardBreaks,
     highlight(code, lang) {
       const safeLang = (lang || '').trim();
       const langClass = safeLang ? ` lang-${escapeAttr(safeLang)}` : '';
@@ -229,10 +236,15 @@ function createRenderer(): MarkdownIt {
   return md;
 }
 
-let mdInstance: MarkdownIt | undefined;
-function renderer(): MarkdownIt {
-  mdInstance ??= createRenderer();
-  return mdInstance;
+/** 两种换行模式各缓存一个实例，避免每次渲染都重建 */
+const mdInstances = new Map<boolean, MarkdownIt>();
+function renderer(hardBreaks: boolean): MarkdownIt {
+  let md = mdInstances.get(hardBreaks);
+  if (!md) {
+    md = createRenderer(hardBreaks);
+    mdInstances.set(hardBreaks, md);
+  }
+  return md;
 }
 
 export interface RenderResult {
@@ -242,9 +254,14 @@ export interface RenderResult {
   tasks: TaskMarker[];
 }
 
+export interface RenderOptions {
+  /** 单个换行是否渲染为 `<br>`（默认 true，见 createRenderer 注释） */
+  hardBreaks?: boolean;
+}
+
 /** 渲染 Markdown → { html, tasks }。注入脚本/事件属性一律被转义或白名单剔除。 */
-export function renderMarkdown(mdText: string): RenderResult {
+export function renderMarkdown(mdText: string, opts: RenderOptions = {}): RenderResult {
   const env: TaskEnv = { tasks: [] };
-  const raw = renderer().render(mdText || '', env);
+  const raw = renderer(opts.hardBreaks !== false).render(mdText || '', env);
   return { html: sanitizeHtml(raw), tasks: env.tasks };
 }

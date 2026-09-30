@@ -88,6 +88,7 @@ export function coerceSettings(raw: unknown): AppSettings {
       defaultMode: pickEnum<EditorMode>(e.defaultMode, ['edit', 'split', 'preview'], DEFAULT_SETTINGS.editor.defaultMode),
       autoSaveMs: clampNum(e.autoSaveMs, DEFAULT_SETTINGS.editor.autoSaveMs, AUTO_SAVE_RANGE),
       spellcheck: pickBool(e.spellcheck, DEFAULT_SETTINGS.editor.spellcheck),
+      hardBreaks: pickBool(e.hardBreaks, DEFAULT_SETTINGS.editor.hardBreaks),
       splitRatio: clampFloat(e.splitRatio, DEFAULT_SETTINGS.editor.splitRatio, SPLIT_RATIO_RANGE),
     },
     dock: {
