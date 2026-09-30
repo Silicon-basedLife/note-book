@@ -56,3 +56,18 @@ Write-Host "[OK] Shortcut created: $lnk" -ForegroundColor Green
 Write-Host "     target : $($sc.TargetPath) $($sc.Arguments)"
 if (Test-Path $icon) { Write-Host "     icon   : $icon" }
 Write-Host "     Double-click it to start NoteApp without the publisher prompt." -ForegroundColor Green
+
+# Verify by re-reading the file: a silent failure here would leave the user hunting for
+# an icon that was never written (the Desktop is often relocated, e.g. by 360's
+# system-drive migration, so "look on the Desktop" is not a reliable check).
+if (-not (Test-Path $lnk)) {
+  Write-Host "[ERROR] The shortcut file does not exist after saving: $lnk" -ForegroundColor Red
+  exit 1
+}
+$check = $shell.CreateShortcut($lnk)
+if ($check.TargetPath -ne $sc.TargetPath -or $check.Arguments -ne $sc.Arguments) {
+  Write-Host "[ERROR] Verification failed: the shortcut does not read back as written." -ForegroundColor Red
+  exit 1
+}
+Write-Host ("[OK] Verified: {0} bytes at {1}" -f (Get-Item $lnk).Length, (Get-Item $lnk).FullName) -ForegroundColor Green
+Write-Host "     (this is the Desktop Windows reports; if it was relocated, look there)" -ForegroundColor DarkGray
