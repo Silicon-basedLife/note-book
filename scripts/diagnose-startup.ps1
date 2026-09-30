@@ -75,8 +75,58 @@ if (Test-Path $eb) {
 
 # Kill leftovers: a running instance keeps the exe locked and can hide the new one.
 Get-Process noteapp -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-Start-Sleep -Seconds 2
+
+# WebView2's browser processes are NOT children that die with their host: killing
+# noteapp.exe with -Force leaves msedgewebview2.exe orphans holding the profile.
+# Match them by the profile path in their command line so other apps are untouched.
+$orphans = @()
+$cimOk = $true
+try {
+  $orphans = @(Get-CimInstance Win32_Process -Filter "Name='msedgewebview2.exe'" -ErrorAction Stop |
+    Where-Object { $_.CommandLine -and $_.CommandLine -like '*com.noteapp.desktop*' })
+} catch { $cimOk = $false }
+Say ('webview orphans owned by NoteApp : ' + $orphans.Count)
+if (-not $cimOk) {
+  $allWv = CountOf 'msedgewebview2'
+  Say 'WARNING: could not read process command lines (access denied), so orphan webview'
+  Say ('         processes cannot be attributed. msedgewebview2.exe running now: ' + $allWv)
+  if ($allWv -gt 0) {
+    Say '         If the next launch still hangs, kill them and retry:'
+    Say '           taskkill /f /im msedgewebview2.exe'
+  }
+}
+foreach ($o in $orphans) {
+  try { Stop-Process -Id $o.ProcessId -Force -ErrorAction SilentlyContinue } catch { }
+}
+if ($orphans.Count -gt 0) { Start-Sleep -Seconds 2 }
+
+Start-Sleep -Seconds 1
 Say ('noteapp after cleanup: ' + (CountOf 'noteapp'))
+
+# A profile whose LOCK is still held (a stale lock, or a process we cannot see) makes
+# WebView2 block forever, and the app then never creates its main window. Move the
+# profile aside so the next start gets a virgin one. Reversible: it is only renamed.
+$lockPath = Join-Path $eb 'Default\LOCK'
+$lockHeld = $false
+if (Test-Path $lockPath) {
+  try {
+    $fs = [System.IO.File]::Open($lockPath, 'Open', 'ReadWrite', 'None')
+    $fs.Close()
+  } catch { $lockHeld = $true }
+}
+if ($lockHeld) {
+  $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+  $moved = Join-Path (Split-Path $eb -Parent) ('EBWebView.stale-' + $stamp)
+  try {
+    Move-Item -LiteralPath $eb -Destination $moved -Force -ErrorAction Stop
+    Say ('profile LOCK was held -> moved profile to: ' + $moved)
+    Say '  (this only resets the WebView2 cache; your notes are untouched)'
+  } catch {
+    Say ('profile LOCK is held and moving it FAILED: ' + $_.Exception.Message)
+  }
+} else {
+  Say 'profile LOCK is free (no reset needed)'
+}
 
 Remove-Item $outFile, $errFile -Force -ErrorAction SilentlyContinue
 
