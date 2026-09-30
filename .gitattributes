@@ -1,0 +1,6 @@
+# 行尾约定：Windows 批处理必须是 CRLF，否则 cmd.exe 会把 REM 注释当命令执行
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# PowerShell 脚本也统一 CRLF（Windows PowerShell 5.1 对纯 LF 的 .ps1 在个别情况下解析异常）
+*.ps1 text eol=crlf

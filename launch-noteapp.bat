@@ -1,16 +1,17 @@
 @echo off
 REM ---------------------------------------------------------------------------
 REM Launch NoteApp directly, bypassing the Windows "Open File - Security Warning"
-REM ("无法验证发布者 / 无法验证发布者。你确定要运行此软件吗？") dialog.
+REM dialog (the one that says the publisher cannot be verified).
 REM
 REM Why this exists:
-REM   That dialog is raised by Explorer (the shell) when you double-click an
-REM   UNSIGNED executable that Windows treats as untrusted. Starting the process
-REM   directly (CreateProcess, which is what this script does) does not raise it.
-REM   It is only a confirmation prompt - clicking "Run/运行" is safe for a build
-REM   you produced yourself; clicking "Cancel/取消" simply never starts the app.
+REM   Explorer (the shell) raises that dialog when you double-click an UNSIGNED
+REM   executable. Starting the process directly does not raise it. The dialog is
+REM   only a confirmation prompt: clicking Run is safe for a build you produced
+REM   yourself, while clicking Cancel simply never starts the app.
 REM
-REM Keep this file pure ASCII so cmd.exe renders it correctly on any codepage.
+REM IMPORTANT: keep this file CRLF-terminated and pure ASCII.
+REM   cmd.exe misparses LF-only batch files - REM lines get executed as commands.
+REM   That was a real bug in the first version of this file.
 REM ---------------------------------------------------------------------------
 setlocal
 set "EXE=%~dp0src-tauri\target\release\noteapp.exe"
@@ -23,7 +24,6 @@ if not exist "%EXE%" (
   exit /b 1
 )
 
-REM Clean up a stuck previous instance, otherwise the new one may never show a window.
 tasklist /fi "imagename eq noteapp.exe" 2>nul | find /i "noteapp.exe" >nul
 if not errorlevel 1 (
   echo Stopping previous NoteApp instance...
