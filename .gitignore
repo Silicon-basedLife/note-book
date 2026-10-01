@@ -1,28 +1,28 @@
-# Node
+# ---- Node / 依赖 ----
 node_modules/
 .npm-cache/
 web/.smoke-profile/
 
-# 构建产物
+# ---- 构建产物 ----
 dist/
 web/dist/
 *.tsbuildinfo
 
-# 系统与编辑器
+# ---- 系统与编辑器 ----
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
 
-# 日志
+# ---- 日志 ----
 *.log
 
-# 临时/诊断产物（冒烟输出、CDP 诊断脚本、设置备份等，不入库）
+# ---- 临时/诊断产物（冒烟输出、CDP 诊断脚本、设置备份等，不入库）----
 .tmp-*
 .git-msg-*.txt
 
-# ������ϣ�WebView2 profile �ض���Ŀ�꣨����⣩
+# ---- 本机诊断：WebView2 profile 重定向目标（不入库）----
 .local-webview/
 
-# ������ǩ������ǩ��֤�飨��Կ���֣�����⣩
+# ---- 本机自签名代码签名证书（公钥部分，不入库）----
 .signing/

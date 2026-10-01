@@ -1,6 +1,9 @@
-# 行尾约定：Windows 批处理必须是 CRLF，否则 cmd.exe 会把 REM 注释当命令执行
+# 行尾约定（统一策略）：
+#   默认：仓库内一律 LF，工作树也按 LF 检出（跨平台一致，避免"同一文件两种行尾"）
+#   例外：Windows 批处理与 PowerShell 脚本必须 CRLF —— cmd.exe 会把纯 LF 的 .bat
+#         注释当命令执行；Windows PowerShell 5.1 对纯 LF 的 .ps1 在个别情况下解析异常。
+* text=auto eol=lf
+
 *.bat text eol=crlf
 *.cmd text eol=crlf
-
-# PowerShell 脚本也统一 CRLF（Windows PowerShell 5.1 对纯 LF 的 .ps1 在个别情况下解析异常）
 *.ps1 text eol=crlf

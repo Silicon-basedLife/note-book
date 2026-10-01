@@ -159,34 +159,66 @@ test('文件格式不变量：.ps1 必须纯 ASCII（PowerShell 5.1 无 BOM 时�
   }
 });
 
+// 必须保持 UTF-8 的仓库文本。
+// 点文件与点目录要**显式列出**：早期实现是"跳过所有以 . 开头的项"，结果
+// `.gitignore` / `.gitattributes` / `.github` 全都没被扫到；我用 PowerShell 的
+// Add-Content（5.1 默认 ANSI）往 .gitignore 追加中文注释时写进了 GBK 字节，
+// 守卫却一声不响 —— 2026-10-01 修掉（同时把没有理由的 `demo` 豁免也去掉）。
+const TEXT_EXT = new Set(['.md', '.ts', '.svelte', '.css', '.mjs', '.js', '.json', '.html', '.ps1', '.bat', '.cmd', '.toml', '.yml', '.yaml']);
+const TEXT_FILES = [
+  '.gitignore', '.gitattributes', 'README.md', '使用教程.md', 'AGENTS.md',
+  'package.json', 'web/package.json', 'web/index.html', 'web/settings.html',
+];
+const TEXT_DIRS = ['docs', 'web/src', 'web/scripts', 'scripts', 'tests', 'demo', '.github'];
+// 只跳过明确不该扫描的目录；不要为了让守卫"少报错"而豁免真实代码目录。
+const SKIP_DIR = new Set(['node_modules', 'target', 'dist', '.git', '.local-webview', '.signing', '.npm-cache', '.smoke-profile']);
+
+function collectTextFiles() {
+  const out = [];
+  for (const name of TEXT_FILES) {
+    const full = join(root, name);
+    if (existsSync(full)) out.push(full);
+  }
+  const walk = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (!SKIP_DIR.has(entry.name)) walk(full);
+      } else if (TEXT_EXT.has(extname(entry.name)) && !entry.name.startsWith('.tmp-')) {
+        out.push(full);
+      }
+    }
+  };
+  for (const dir of TEXT_DIRS) {
+    const full = join(root, dir);
+    if (existsSync(full)) walk(full);
+  }
+  return out;
+}
+
+test('编码不变量：仓库文本必须是合法 UTF-8（含点文件与点目录）', () => {
+  const files = collectTextFiles();
+  assert.ok(files.length > 30, `扫描到的文件太少（${files.length}），守卫可能失效`);
+  const decoder = new TextDecoder('utf-8', { fatal: true });
+  const bad = [];
+  for (const file of files) {
+    try {
+      decoder.decode(readFileSync(file));
+    } catch {
+      bad.push(relative(root, file));
+    }
+  }
+  assert.deepEqual(bad, [], `以下文件不是合法 UTF-8（写入时用了 ANSI/GBK 编码？）：\n${bad.join('\n')}`);
+});
+
 // 2026-09-30 我本人把 docs/PROGRESS.md 写坏过一次：用 PowerShell 5.1 的
 // Get-Content -Raw（默认按 ANSI 读）做替换，再用 Set-Content -Encoding utf8 写回，
 // 中文全部变成 "杩涘害涓庝氦鎺" 这类乱码，且**不可逆**（实测 1057 处字节丢失，
 // 逆变换只能恢复 99%）。这条守卫让同类破坏在提交前就被拦住。
 test('编码不变量：仓库文本里不得出现 UTF-8 被当 ANSI 读所产生的乱码特征', () => {
   const MOJIBAKE = ['\uFFFD', '锛', '鐨', '涓', '浜', '璁', '杩', '鍜', '鍦', '鐢', '鏂', '鐐', '銆', '鈥', '鏄', '鎴'];
-  const EXT = new Set(['.md', '.ts', '.svelte', '.css', '.mjs', '.js', '.json', '.html', '.ps1', '.bat', '.toml', '.yml', '.yaml']);
-  const SKIP_DIR = new Set(['node_modules', 'target', 'dist', '.git', 'demo']);
-  const SCAN = ['docs', 'web/src', 'web/scripts', 'scripts', 'tests'];
-
-  const walk = (dir, out = []) => {
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      if (entry.name.startsWith('.')) continue;
-      const full = join(dir, entry.name);
-      if (entry.isDirectory()) {
-        if (!SKIP_DIR.has(entry.name)) walk(full, out);
-      } else if (EXT.has(extname(entry.name))) {
-        out.push(full);
-      }
-    }
-    return out;
-  };
-
-  const files = [
-    ...['README.md', '使用教程.md', 'AGENTS.md'].map((f) => join(root, f)).filter(existsSync),
-    ...SCAN.filter((d) => existsSync(join(root, d))).flatMap((d) => walk(join(root, d))),
-  ];
-  assert.ok(files.length > 20, `扫描到的文件太少（${files.length}），守卫可能失效`);
+  const files = collectTextFiles();
+  assert.ok(files.length > 30, `扫描到的文件太少（${files.length}），守卫可能失效`);
 
   const hits = [];
   const self = join('tests', 'scripts.build-guard.test.mjs'); // 本文件含乱码字面量，跳过自身
