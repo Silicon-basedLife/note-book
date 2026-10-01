@@ -340,7 +340,11 @@ test('规范基础设施：verify 入口与 CI 必须真正卡住测试/类型/�
   }
   assert.ok(pkg.scripts['fmt:rust:check'], '应提供 rustfmt 检查入口');
   assert.ok(pkg.scripts['lint:rust'], '应提供 clippy 入口');
-  assert.match(pkg.scripts['format:check'] ?? '', /--check/, 'format:check 必须用 --check 而不是写入');
+  assert.match(
+    pkg.scripts['format:check'] ?? '',
+    /--check/,
+    'format:check 必须用 --check 而不是写入',
+  );
 
   // Prettier 只负责逻辑代码：样式与模板是刻意手写的紧凑写法，必须留在忽略清单里，
   // 否则有人会"顺手"把 app.css 展开 1600 行并给界面带来视觉风险。
