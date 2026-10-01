@@ -1,6 +1,6 @@
 [package]
 name = "noteapp"
-version = "0.1.0"
+version = "0.2.0"
 description = "NoteApp —— 本地 Markdown 笔记（Tauri 薄壳：仅负责 notes 目录文件读写与 KV 元数据）"
 authors = ["NoteApp"]
 edition = "2021"

@@ -2,7 +2,7 @@
   "name": "noteapp-web",
   "private": true,
   "type": "module",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "NoteApp Web（Svelte + TS，P0 MVP；数据层可插拔，预留 Tauri 壳）",
   "scripts": {
     "dev": "vite",

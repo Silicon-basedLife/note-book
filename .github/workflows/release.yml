@@ -79,11 +79,41 @@ jobs:
             **This release does NOT include the quick-capture floating window**
             (global hotkey / floating quick note), which is planned for a later version.
 
-            Highlights: three-pane cascade UI, autosave, full-text search, folders,
-            trash with restore, multi-select, drag & drop ordering, todo checkbox
-            write-back, code highlighting, QQ-style edge dock, standalone settings
-            window with customizable shortcuts and storage migration.
+            ## New in v0.2.0 (verified against the v0.1.0 tag, not against its notes)
 
-            Full release notes: see `docs/RELEASE_NOTES_v0.1.0.md` in the repository.
+            The v0.1.0 release notes were written ahead of the code and were later edited by
+            feature commits, so they list features that the v0.1.0 build never contained
+            (`theme.ts` / `tags.ts` / `todos.ts` / `md-format.ts` do not exist at that tag).
+            The four headline features below **first ship in v0.2.0**:
+
+            - **Theme: light / dark / follow-system**, applied to both windows, persisted,
+              live-following the OS theme, all colors via CSS variables, no first-paint flash.
+            - **Tags and pinning**: add tags from the editor, filter by tag, pin notes to the
+              top; both stored in the note's own frontmatter (self-describing `.md` files).
+            - **Todo aggregation view**: every open `- [ ]` across the vault in one screen,
+              checkbox writes back to the source file, click a task to jump to its line.
+            - **Markdown format toolbar**: bold / italic / strike / highlight, headings, lists,
+              quote, code block, link, table, undo / redo — plus `==highlight==` rendering.
+            - Also: the step-by-step Chinese tutorial with an importable sample note, and
+              layout fixes (single-pane filling the window, no leftover gap, draggable
+              split ratio that persists).
+
+            ## Reliability work in this release
+
+            - Launcher + desktop shortcut that avoid the "publisher cannot be verified" prompt
+              (the shortcut starts the app through `cmd /c start`).
+            - Self-signed code-signing certificate (`npm run sign:exe`) wired into the build,
+              so the dialog shows `NoteApp Local Build` instead of "unknown publisher".
+            - Pre-build cleanup: stop the running app and **clear the WebView2 profile contents**
+              (fixes the "one rebuild and the app never starts again" failure).
+            - Startup log + panic capture to `noteapp-log.txt` (release builds are GUI-subsystem,
+              so panics used to be invisible).
+            - Diagnostics: `npm run diagnose:startup`, `npm run probe:ui` (inspect a blank window),
+              `npm run link:webview`, `npm run clean:360`.
+            - Quality gate `npm run verify`: unit tests + type check + Prettier + rustfmt + clippy.
+              Unit tests: **183 passing**.
+
+            Full release notes: see `docs/RELEASE_NOTES_v0.2.0.md` in the repository.
+            (v0.1.0 notes are kept for history with a correction note at the top.)
           releaseDraft: false
           prerelease: false

@@ -17,9 +17,10 @@ npm run desktop:setup     # = scripts/setup.ps1：装 Rust(如缺) → 装依赖
 
 产物位置（默认构建免安装 exe；MSI/NSIS 安装包需 github.com 可达时执行 `npm run desktop:build`）：
 
-- 免安装直接运行：`src-tauri\target\release\NoteApp.exe`
-- 安装包（可选）：`src-tauri\target\release\bundle\msi\NoteApp_0.1.0_x64_en-US.msi`
-  `src-tauri\target\release\bundle\nsis\NoteApp_0.1.0_x64-setup.exe`
+- 免安装直接运行：`src-tauri\target\release\noteapp.exe`（或安装到
+  `%LOCALAPPDATA%\Programs\NoteApp\noteapp.exe`；`npm run shortcut:desktop` 可建桌面图标）
+- 安装包（可选）：`src-tauri\target\release\bundle\msi\NoteApp_0.2.0_x64_en-US.msi`
+  `src-tauri\target\release\bundle\nsis\NoteApp_0.2.0_x64-setup.exe`
 
 数据存放：`%APPDATA%\com.noteapp.desktop\notes\<id>.md`（笔记）+ 同目录 `meta.json`（文件夹等元数据），纯文本可随时备份。
 
@@ -137,7 +138,10 @@ SMOKE_URL=http://127.0.0.1:5174/ node web/scripts/settings-smoke.mjs
 
 远端：`https://github.com/Silicon-basedLife/note-book.git`
 
-当前版本 `v0.1.0` 的发布说明见 [docs/RELEASE_NOTES_v0.1.0.md](docs/RELEASE_NOTES_v0.1.0.md)。
+当前版本 `v0.2.0` 的发布说明见 [docs/RELEASE_NOTES_v0.2.0.md](docs/RELEASE_NOTES_v0.2.0.md)
+（含**与 v0.1.0 的差异核实**：主题 / 标签与置顶 / 待办聚合 / 格式工具栏这四项
+**不在 v0.1.0 构建里**，v0.2.0 才是第一个真正包含它们的版本 ——
+原因见该文件，`v0.1.0` 的说明书写在了代码之前且后来被继续编辑）。
 **注意：本版本不含“快速便签 / 悬浮窗”**（全局热键、托盘常驻属 P1 规划）。
 
 三种发布方式：
@@ -145,8 +149,8 @@ SMOKE_URL=http://127.0.0.1:5174/ node web/scripts/settings-smoke.mjs
 1. **GitHub Actions 自动构建并发布（推荐）**——推送 tag 即自动跑测试 + 构建 MSI/NSIS/免安装 exe 并创建 Release：
    ```bash
    git push origin master
-   git tag -a v0.1.0 -m "NoteApp 0.1.0"
-   git push origin v0.1.0
+   git tag -a v0.2.0 -m "NoteApp 0.2.0"
+   git push origin v0.2.0
    ```
    工作流：[.github/workflows/release.yml](.github/workflows/release.yml)；也可在 Actions 页面手动 Run workflow 并填入 tag。
 2. **本地一键脚本**（在能访问 github.com 的普通终端执行）：
