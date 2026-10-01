@@ -24,7 +24,7 @@
 
 - Svelte 运行时小、编译产物轻，贴合产品轻量气质；组件模型适合"主窗口 / 悬浮窗"两套独立 UI + 共享组件库的结构。
 - TypeScript：共享契约（core ↔ UI 的命令与事件）需要类型约束；现有 `demo/js/*` 的纯函数逻辑可平滑 TS 化复用。
-- Markdown 渲染改用成熟库（`markdown-it` + GFM 插件 + Shiki/highlight.js 高亮 + 输出清洗），不再手写解析器；现有 `markdown.test.mjs` 作为渲染行为验收基线迁移到新配置上。
+- Markdown 渲染改用成熟库（`markdown-it` + GFM 插件 + Shiki/highlight.js 高亮 + 输出清洗），不再手写解析器；现有 `tests/demo.markdown.test.mjs`（原型层）作为渲染行为验收基线迁移到新配置上，迁移后的生产实现测试为 `tests/core.markdown.test.mjs`。
 
 ---
 

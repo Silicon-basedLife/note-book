@@ -449,7 +449,7 @@ flex-grow 用比例分配时，**当所有 flex-grow 之和小于 1**，浏览�
 
 - Svelte 编译告警：若干 `a11y_*`（div 带 click/contextmenu 缺 role/键盘处理）与 `core` 未用 `$state` 的 non_reactive 提示；构建通过，属提示。
 - Rust 侧没有本地编译验证通道（无 cargo），依赖用户机器构建；建议每次改 Rust 后让用户回贴 cargo 输出。
-- `demo/` 与被 `a1cba63` 升级后的 `demo/js/db.mjs`、`tests/store.test.mjs` 相关测试仍在跑，属于原型层，不影响生产实现。
+- `demo/` 与被 `a1cba63` 升级后的 `demo/js/db.mjs`、`tests/demo.store.test.mjs` 相关测试仍在跑，属于原型层，不影响生产实现。（**2026-10-01 规范检查**：该层测试已统一加 `demo.` 前缀，分层约定见 `tests/README.md`，并由 `tests/scripts.build-guard.test.mjs` 强制。）
 - **Svelte 5 响应式坑（已踩过两次，务必记住）**：`$derived` 不会追踪「被它调用的函数内部」读取的 state。凡是要随数据变化的派生值，必须在 `$derived` 表达式里**直接读** state（如 `listItems`），或改由 `refresh()` 显式写入 state（如 `allTags`）。写成 `someFn(core.xxx())` 只会算一次并永久停留在首次结果。
 - **`execCommand('insertText')` 的坑（见 §1.9）**：它是“在光标处插入”，**不会**替你删除选区。要用它替换一段区间，必须先 `setSelectionRange(replaceStart, replaceEnd)`，并在调用后用 `textarea.value === 期望文本` 校验结果。同理，写断言时不要只用 `startsWith`/`includes`——用**逐字比对**才能拦住“局部看起来对”的缺陷。
 - **flex-grow 之和 < 1 的坑（见 §1.10）**：flex 分配剩余空间时，若所有 flex-grow 之和**小于 1**，浏览器按「各自的 grow × 剩余空间」分配，余量**留在原处**（不归一化）。`flex: 0.5 1 0` 单独一个子元素只能拿到一半宽度。所以“单个子元素占满”要么让 grow 和为 1，要么显式 `:only-child { flex-grow: 1 }`。

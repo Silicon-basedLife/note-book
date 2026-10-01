@@ -364,3 +364,42 @@ test('规范基础设施：verify 入口与 CI 必须真正卡住测试/类型/�
   assert.match(ci, /node --test .*tests/, 'CI 必须跑单测');
   assert.match(ci, /typecheck/, 'CI 必须跑类型检查');
 });
+
+test('测试命名规范：文件名必须体现覆盖层（core.* = web/src，demo.* = demo/ 原型）', () => {
+  // 背景：改名之前 `markdown.test.mjs` / `store.test.mjs` 看名字像生产测试，
+  // 实际测的是 demo/ 里的原型；这让人无法判断"改这里会不会影响生产代码"。
+  // 详见 tests/README.md。
+  const ARTIFACT_TESTS = new Map([
+    ['theme.css.test.mjs', '产物级：读 web/src/main/app.css 与两个 HTML 入口做样式契约'],
+    ['scripts.build-guard.test.mjs', '产物级：仓库与工具链不变量'],
+  ]);
+
+  const files = readdirSync(join(root, 'tests')).filter((name) => name.endsWith('.test.mjs'));
+  assert.ok(files.length >= 20, `测试文件太少（${files.length}），守卫可能失效`);
+
+  // 只认"真的去 import / 读取该路径"。
+  // 第一版写成"文件里出现 demo/ 就算覆盖"，结果把注释里提到 demo/ 的两个文件也误报了
+  // （core.markdown.test.mjs 的说明、以及守卫自身的目录清单）。
+  const refsPath = (src, prefix) => {
+    const quoted = `['"][^'"]*${prefix}`;
+    return (
+      new RegExp(`from\\s+${quoted}`).test(src) ||
+      new RegExp(`(readFile|readFileSync|resolve|join)\\([^)]*${quoted}`).test(src)
+    );
+  };
+
+  const offenders = [];
+  for (const name of files) {
+    const src = read(`tests/${name}`);
+    if (refsPath(src, 'demo/') && !name.startsWith('demo.')) {
+      offenders.push(`${name}: 覆盖 demo/ 原型，必须以 demo. 开头`);
+      continue;
+    }
+    if (refsPath(src, 'web/src/') && !name.startsWith('core.') && !ARTIFACT_TESTS.has(name)) {
+      offenders.push(`${name}: 涉及 web/src，必须以 core. 开头或登记为产物级测试`);
+    }
+  }
+  assert.deepEqual(offenders, [], `测试命名未体现覆盖层：\n${offenders.join('\n')}`);
+
+  assert.ok(existsSync(join(root, 'tests', 'README.md')), 'tests/README.md 必须说明分层约定');
+});
