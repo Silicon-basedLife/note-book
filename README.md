@@ -24,7 +24,7 @@ npm run desktop:setup     # = scripts/setup.ps1：装 Rust(如缺) → 装依赖
 数据存放：`%APPDATA%\com.noteapp.desktop\notes\<id>.md`（笔记）+ 同目录 `meta.json`（文件夹等元数据），纯文本可随时备份。
 
 > 说明：本仓库的开发沙箱网络只放行 npm 源，`cargo` 需要的 crates.io / static.rust-lang.org 不可达，
-> 因此 **cargo/tauri 的最终编译需在你的本机终端执行**（`npm run desktop:setup`）。代码侧验证（206 项单测、
+> 因此 **cargo/tauri 的最终编译需在你的本机终端执行**（`npm run desktop:setup`）。代码侧验证（183 项单测、
 > tsc、vite build、真实 Chrome 冒烟、`npm run verify` 规范门禁）均已在此环境通过；Rust 薄壳只做 8 个文件读写命令（薄壳核心边界，
 > 见 [TECH_DESIGN §1.1/§2](docs/TECH_DESIGN.md)），前端存储适配器见 `web/src/lib/core/storage/tauri.ts`。
 >
@@ -94,8 +94,11 @@ Tauri 薄壳（Rust）      src-tauri/*           —— notes 目录真实文�
 - **P1 扩展预留**：
   - frontmatter 已含 `tags`/`pinned` 占位并原样保留未知扩展字段（改标签/置顶不动存储结构）；
   - `StoragePort` 即未来 Tauri 壳的接缝：以真实 fs 适配器（`%APPDATA%\<app>\notes\<id>.md`）替换 IndexedDB 实现即可，`core-client` 之上无需改动；
-  - 动作注册表（[actions.ts](web/src/lib/core/actions.ts)）已支持快捷键→动作映射与冲突提示，P1 全局热键只需追加映射；
-  - `demo/` 保留为浏览器原型与验收参考。
+  - 动作注册表（[actions.ts](web/src/lib/core/actions.ts)）已支持快捷键→动作映射与冲突提示，P1 全局热键只需追加映射。
+
+> 历史：P0 时期还有一个浏览器原型 `demo/`（手写 store/markdown 实现，作为交互与验收参照）。
+> 它的使命已完成，**已于 2026-10-01 删除**（含 4 个专属测试）；当时的取舍记录仍留在
+> [TECH_DESIGN](docs/TECH_DESIGN.md)。
 
 ## 运行 / 构建 / 测试
 
@@ -105,7 +108,7 @@ Tauri 薄壳（Rust）      src-tauri/*           —— notes 目录真实文�
 npm install            # 先安装根脚本依赖说明（根无第三方依赖，仅脚本）
 cd web && npm install  # 安装 web 依赖
 npm run dev            # Vite dev server → http://localhost:5173/
-npm test               # 全量单测（node:test；含迁移后的 markdown/store 行为基线 + demo 回归）
+npm test               # 全量单测（node:test；含 core.* 与产物级契约测试，分层见 tests/README.md）
 npm run build          # 生产构建到 web/dist
 ```
 
@@ -169,13 +172,12 @@ web/
   src/settings/           # 独立设置窗口（Settings.svelte + main.ts）
   scripts/                # serve-dist.mjs、ui-smoke.mjs、settings-smoke.mjs（CDP 冒烟）
 scripts/                  # setup.ps1（桌面一键构建）
-tests/                    # node:test 套件：core.* 迁移基线 + demo 回归
-demo/                     # 纯前端原型（参照保留）
+tests/                    # node:test 套件：core.*（web/src 生产逻辑）+ 产物级契约；分层见 tests/README.md
 ```
 
 ## 验证状态
 
-- 单元/集成测试：全绿（`npm test`，**206 项**，见各 `tests/*.test.mjs`；测试文件按覆盖层命名，约定见 [tests/README.md](tests/README.md)；含 `tests/theme.css.test.mjs` 对“颜色必须走主题变量”的样式契约校验、`tests/core.md-format.test.mjs` 对格式工具栏的逐字断言）；
+- 单元/集成测试：全绿（`npm test`，**183 项**，见各 `tests/*.test.mjs`；测试文件按覆盖层命名，约定见 [tests/README.md](tests/README.md)；含 `tests/theme.css.test.mjs` 对“颜色必须走主题变量”的样式契约校验、`tests/core.md-format.test.mjs` 对格式工具栏的逐字断言）；
 - **规范门禁：`npm run verify` 退出码 0** —— 单测 + `tsc --noEmit` + Prettier `--check`（仅 `.ts`/`.mjs`）+ `cargo fmt --check` + `cargo clippy -D warnings`；CI 执行同样五项。格式与行尾约定见 [.editorconfig](.editorconfig) 与 [.gitattributes](.gitattributes)；
 - `tsc --noEmit` 通过；`vite build` 通过（双页产物：主窗口 + 设置窗口；**构建会报 Svelte 警告，请留意**——2026-10-01 就是从构建输出里发现了 26 条长期无人查看的警告，见 [PROGRESS §1.16](docs/PROGRESS.md)）；
 - 真实 Chrome 端到端冒烟：**主窗口 107/107、设置窗口 25/25** 通过（默认仅侧栏 / 面板级联与手柄 / 右键菜单 / 拖拽排序移动 / 手排 / 回收站还原批量 / 多选 / 含回收站搜索 / 设置改键与冲突 / 主题切换、持久化与实时跟随系统 / 标签添加·筛选·移除与置顶分区 / 待办聚合、勾选回写与跳转定位 / 格式工具栏逐字比对、撤销重做、高亮渲染与折叠区 / **宽度分配、可拖拽分隔条与不留白** / 无控制台错误）。

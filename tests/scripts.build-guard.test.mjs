@@ -222,7 +222,7 @@ const TEXT_FILES = [
   'web/index.html',
   'web/settings.html',
 ];
-const TEXT_DIRS = ['docs', 'web/src', 'web/scripts', 'scripts', 'tests', 'demo', '.github'];
+const TEXT_DIRS = ['docs', 'web/src', 'web/scripts', 'scripts', 'tests', '.github'];
 // 只跳过明确不该扫描的目录；不要为了让守卫"少报错"而豁免真实代码目录。
 const SKIP_DIR = new Set([
   'node_modules',
@@ -389,17 +389,18 @@ test('规范基础设施：verify 入口与 CI 必须真正卡住测试/类型/�
   assert.match(ci, /typecheck/, 'CI 必须跑类型检查');
 });
 
-test('测试命名规范：文件名必须体现覆盖层（core.* = web/src，demo.* = demo/ 原型）', () => {
+test('测试命名规范：文件名必须体现覆盖层（core.* = web/src，demo.* = 原型层）', () => {
   // 背景：改名之前 `markdown.test.mjs` / `store.test.mjs` 看名字像生产测试，
   // 实际测的是 demo/ 里的原型；这让人无法判断"改这里会不会影响生产代码"。
-  // 详见 tests/README.md。
+  // 详见 tests/README.md。旧原型层 demo/ 及其 4 个测试已于 2026-10-01 删除，
+  // 但 demo. 分支保留：将来再引入参照实现层时必须带此前缀。
   const ARTIFACT_TESTS = new Map([
     ['theme.css.test.mjs', '产物级：读 web/src/main/app.css 与两个 HTML 入口做样式契约'],
     ['scripts.build-guard.test.mjs', '产物级：仓库与工具链不变量'],
   ]);
 
   const files = readdirSync(join(root, 'tests')).filter((name) => name.endsWith('.test.mjs'));
-  assert.ok(files.length >= 20, `测试文件太少（${files.length}），守卫可能失效`);
+  assert.ok(files.length >= 15, `测试文件太少（${files.length}），守卫可能失效`);
 
   // 只认"真的去 import / 读取该路径"。
   // 第一版写成"文件里出现 demo/ 就算覆盖"，结果把注释里提到 demo/ 的两个文件也误报了

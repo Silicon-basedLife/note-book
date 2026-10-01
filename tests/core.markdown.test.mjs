@@ -1,5 +1,5 @@
 // core.markdown —— 渲染管线（markdown-it+GFM+高亮+清洗+待办注入/回写）
-// 本套件是 demo/js/markdown.mjs 行为验收基线在新技术选型上的迁移版本。
+// 本套件是早期浏览器原型（`demo/`，2026-10-01 已删除）markdown 行为基线的迁移版本。
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {

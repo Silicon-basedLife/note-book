@@ -33,11 +33,13 @@ web/                   前端（Svelte 5 + TS + Vite，双页产物）
   src/settings/         独立设置窗口（Settings.svelte、main.ts）
   scripts/              serve-dist.mjs（静态托管）、ui-smoke.mjs（主窗口冒烟）、settings-smoke.mjs（设置窗口冒烟）
 scripts/setup.ps1       桌面一键构建（装 Rust → 装依赖 → tauri build --no-bundle）
-tests/                  206 项 node:test（分层见 tests/README.md：core.* = web/src、demo.* = demo/ 原型、<产物>.* = 产物级契约）
-demo/                   浏览器原型（已被另一次改动升级为“文件夹+笔记双实体 + IndexedDB”，见 commit a1cba63；去留见 docs/TECH_DESIGN.md）
+tests/                  183 项 node:test（分层见 tests/README.md：core.* = web/src、<产物>.* = 产物级契约）
 docs/import/            导入/解析的人手样本（说明见该目录 README）
 scripts/                构建/诊断/修复脚本（见 §1.16；含 kill-running-app、sign-exe、probe-ui、link-webview-dir、remove-360-leftovers 等）
 ```
+
+> **历史**：P0 时期还有一个浏览器原型 `demo/`（手写 store/markdown，作为交互与验收参照），
+> 已于 2026-10-01 连同 4 个专属测试一并删除（去留决策记录见 `docs/TECH_DESIGN.md` 与 §1.16）。
 
 ### 0.2 本沙箱环境的硬限制（务必先看，否则会踩坑）
 
@@ -342,7 +344,7 @@ flex-grow 用比例分配时，**当所有 flex-grow 之和小于 1**，浏览�
 - Rust 薄壳：`list/read/write/remove_note_file`、`read/write/remove_meta`、`read/write_settings`、`get_storage_info`、`open_path`、`pick_folder`、`migrate_notes`
 - 权限、双窗口配置、应用图标（`src-tauri/icons/`）
 - `scripts/setup.ps1`：ASCII 化（避免 PowerShell 5.1 编码问题）、自动结束运行中的 `noteapp.exe`（避免 exe 被占用）、`--no-bundle` 默认产出可运行 exe
-- README 全量说明；`demo/` 保留为原型（另有一次提交 `a1cba63` 把它升级成文件夹+笔记双实体 + IndexedDB，并带自己的测试）
+- README 全量说明；**历史**：P0 时期的浏览器原型 `demo/`（`a1cba63` 曾把它升级成文件夹+笔记双实体 + IndexedDB，并带自己的测试）**已于 2026-10-01 删除**，取舍记录留在 `docs/TECH_DESIGN.md`
 
 ### 1.14 验证现状（本沙箱；主题落地前的历史基线）
 
@@ -353,7 +355,7 @@ flex-grow 用比例分配时，**当所有 flex-grow 之和小于 1**，浏览�
 
 ### 1.15 验证现状（本沙箱，当前）
 
-- **单元/集成测试：206 项全绿**（`npm test`；102 → 116（主题）→ 120（实时跟随）→ 129（标签/置顶）→ 142（待办聚合）→ 186（格式工具栏）→ 187（分屏比例）→ 193（构建脚本守卫）→ **202（编码守卫）→ 204（规范基础设施）→ 205（测试命名守卫）→ 206（行尾守卫）**。回车即换行那 8 项已随回退移除，见 §1.11）
+- **单元/集成测试：183 项全绿**（`npm test`；102 → 116（主题）→ 120（实时跟随）→ 129（标签/置顶）→ 142（待办聚合）→ 186（格式工具栏）→ 187（分屏比例）→ 193（构建脚本守卫）→ 202（编码守卫）→ 204（规范基础设施）→ 205（测试命名守卫）→ 206（行尾守卫）→ **183（2026-10-01 删除 `demo/` 原型层及其 23 项测试）**。回车即换行那 8 项已随回退移除，见 §1.11）
 - **规范门禁：`npm run verify` 退出码 0**（= 单测 + `tsc --noEmit` + Prettier `--check`（`.ts`/`.mjs`）+ `cargo fmt --check` + `cargo clippy -D warnings`），CI 同步执行这五项
 - **真实 Chrome 冒烟：主窗口 107/107、设置窗口 25/25**（布局 10 项；设置窗口连跑 4 次全过）
 - `tsc --noEmit` 通过；`vite build` 通过（双页产物，含 head 内联主题引导脚本）
@@ -433,7 +435,7 @@ flex-grow 用比例分配时，**当所有 flex-grow 之和小于 1**，浏览�
 | 行尾不一致（混合 + 7 个 `.ps1` 为 LF） | `.gitattributes` 统一 `* text=auto eol=lf` + Windows 脚本 CRLF；新增**行尾守卫** |
 | 完全没有 lint/format 工具链 | `.editorconfig`；Prettier **只作用于 `.ts`/`.mjs`**（43 文件）；`npm run verify` 与 CI 跑 prettier/rustfmt/clippy |
 | `cargo fmt --check` 失败 | `cargo fmt`（纯排版，无语义改动） |
-| 测试命名不体现覆盖层（`markdown.test.mjs`/`store.test.mjs` 实际测 `demo/`） | 改名 `demo.*`；新增 `tests/README.md` 与**命名守卫**（只认真的 import/读取，注释里提到不算） |
+| 测试命名不体现覆盖层（`markdown.test.mjs`/`store.test.mjs` 实际测 `demo/`） | 改名 `demo.*`；新增 `tests/README.md` 分层约定与**命名守卫**（同日 `demo/` 原型层连同这 4 个测试一并删除，规则里的 `demo.` 分支保留给将来可能的参照实现层） |
 | Svelte 编译警告 26 条（此前没人看构建输出） | 20 处 `<label>` 语义误用 → `span.row-title`（**视觉零变化**）；**1 处真实响应式 bug**：`let core: NoteCore`（非 `$state`）却被模板引用 → 新增 `storageLabel = $state('')`。警告 26 → 5 |
 | 文档数字过期、`docs/import` 无人引用 | README/PROGRESS 计数更新；`docs/import` **补 README 说明用途**（不删用户内容） |
 
@@ -536,7 +538,7 @@ flex-grow 用比例分配时，**当所有 flex-grow 之和小于 1**，浏览�
 
 - Svelte 编译告警（**2026-10-01 规范检查已处理主干**）：原 26 条 → 现在 **5 条**。已修：20 处 `<label>` 语义误用（改 `span.row-title`，视觉零变化）、1 处真实响应式 bug（`let core: NoteCore` 非 `$state` 却被模板引用 → 改为 `storageLabel = $state('')`）。**剩下 5 条**是 `App.svelte` 里 `<div>`/`<span>` 绑 click/contextmenu 缺 ARIA role 与键盘处理，属独立任务（见 §1.16 遗留 2）。**教训：构建输出必须看**——这 26 条警告存在很久，此前没人读 `npm run build` 的输出。
 - Rust 侧没有本地编译验证通道（无 cargo），依赖用户机器构建；建议每次改 Rust 后让用户回贴 cargo 输出。
-- `demo/` 与被 `a1cba63` 升级后的 `demo/js/db.mjs`、`tests/demo.store.test.mjs` 相关测试仍在跑，属于原型层，不影响生产实现。（**2026-10-01 规范检查**：该层测试已统一加 `demo.` 前缀，分层约定见 `tests/README.md`，并由 `tests/scripts.build-guard.test.mjs` 强制。）
+- **原型层 `demo/` 已于 2026-10-01 删除**（连同 `tests/demo.*.test.mjs` 四个文件、23 项用例）：P0 时期的交互与验收参照使命完成，仓库只保留一条生产实现线。它当年的取舍记录仍在 `docs/TECH_DESIGN.md`。**注意测试计数随之下调（206 → 183）**，不要再按旧数字核对。
 - **Svelte 5 响应式坑（已踩过两次，务必记住）**：`$derived` 不会追踪「被它调用的函数内部」读取的 state。凡是要随数据变化的派生值，必须在 `$derived` 表达式里**直接读** state（如 `listItems`），或改由 `refresh()` 显式写入 state（如 `allTags`）。写成 `someFn(core.xxx())` 只会算一次并永久停留在首次结果。
 - **`execCommand('insertText')` 的坑（见 §1.9）**：它是“在光标处插入”，**不会**替你删除选区。要用它替换一段区间，必须先 `setSelectionRange(replaceStart, replaceEnd)`，并在调用后用 `textarea.value === 期望文本` 校验结果。同理，写断言时不要只用 `startsWith`/`includes`——用**逐字比对**才能拦住“局部看起来对”的缺陷。
 - **flex-grow 之和 < 1 的坑（见 §1.10）**：flex 分配剩余空间时，若所有 flex-grow 之和**小于 1**，浏览器按「各自的 grow × 剩余空间」分配，余量**留在原处**（不归一化）。`flex: 0.5 1 0` 单独一个子元素只能拿到一半宽度。所以“单个子元素占满”要么让 grow 和为 1，要么显式 `:only-child { flex-grow: 1 }`。
