@@ -7,9 +7,15 @@ import { escapeHtml } from '../web/src/lib/core/html.ts';
 
 function doc(over) {
   return {
-    id: 'n-x', folder: '收件箱', title: '', tags: [], pinned: false,
-    createdAt: '2025-01-01T00:00:00.000Z', updatedAt: '2025-01-01T00:00:00.000Z',
-    body: '', extra: [],
+    id: 'n-x',
+    folder: '收件箱',
+    title: '',
+    tags: [],
+    pinned: false,
+    createdAt: '2025-01-01T00:00:00.000Z',
+    updatedAt: '2025-01-01T00:00:00.000Z',
+    body: '',
+    extra: [],
     ...over,
   };
 }
@@ -23,8 +29,22 @@ test('空查询返回 null；无命中返回 []', () => {
 
 test('标题命中优先于正文命中，且高亮为 <mark>', () => {
   const entries = [
-    entryFromDoc(doc({ id: 'n-old-title', title: 'Rust 学习', body: '无关', updatedAt: '2025-01-01T00:00:00.000Z' })),
-    entryFromDoc(doc({ id: 'n-new-body', title: '周报', body: '正文提到 Rust 关键字', updatedAt: '2025-02-01T00:00:00.000Z' })),
+    entryFromDoc(
+      doc({
+        id: 'n-old-title',
+        title: 'Rust 学习',
+        body: '无关',
+        updatedAt: '2025-01-01T00:00:00.000Z',
+      }),
+    ),
+    entryFromDoc(
+      doc({
+        id: 'n-new-body',
+        title: '周报',
+        body: '正文提到 Rust 关键字',
+        updatedAt: '2025-02-01T00:00:00.000Z',
+      }),
+    ),
   ];
   const hits = searchIndex(entries, 'Rust');
   assert.equal(hits.length, 2);
@@ -70,12 +90,21 @@ test('folder 过滤：仅返回该文件夹内命中', () => {
 
 test('同级别命中按更新时间倒序', () => {
   const entries = [
-    entryFromDoc(doc({ id: 'n-a', title: '甲', body: '关键词', updatedAt: '2025-01-01T00:00:00.000Z' })),
-    entryFromDoc(doc({ id: 'n-b', title: '乙', body: '关键词', updatedAt: '2025-03-01T00:00:00.000Z' })),
-    entryFromDoc(doc({ id: 'n-c', title: '丙', body: '关键词', updatedAt: '2025-02-01T00:00:00.000Z' })),
+    entryFromDoc(
+      doc({ id: 'n-a', title: '甲', body: '关键词', updatedAt: '2025-01-01T00:00:00.000Z' }),
+    ),
+    entryFromDoc(
+      doc({ id: 'n-b', title: '乙', body: '关键词', updatedAt: '2025-03-01T00:00:00.000Z' }),
+    ),
+    entryFromDoc(
+      doc({ id: 'n-c', title: '丙', body: '关键词', updatedAt: '2025-02-01T00:00:00.000Z' }),
+    ),
   ];
   const hits = searchIndex(entries, '关键词');
-  assert.deepEqual(hits.map((h) => h.noteId), ['n-b', 'n-c', 'n-a']);
+  assert.deepEqual(
+    hits.map((h) => h.noteId),
+    ['n-b', 'n-c', 'n-a'],
+  );
 });
 
 test('长正文片段被截断并加省略号', () => {
@@ -90,7 +119,8 @@ test('长正文片段被截断并加省略号', () => {
 });
 
 test('plainTextOf 剥离 markdown 符号、去掉代码围栏', () => {
-  const md = '# 标题\n\n- [x] 任务 **加粗** `code`\n\n```js\nconst x = 1;\n```\n\n[链接](https://a.b) *斜体*';
+  const md =
+    '# 标题\n\n- [x] 任务 **加粗** `code`\n\n```js\nconst x = 1;\n```\n\n[链接](https://a.b) *斜体*';
   const t = plainTextOf(md);
   assert.ok(!t.includes('#'));
   assert.ok(!t.includes('**'));
@@ -103,9 +133,7 @@ test('plainTextOf 剥离 markdown 符号、去掉代码围栏', () => {
 });
 
 test('countByFolder 统计', () => {
-  const notes = [
-    { folder: '收件箱' }, { folder: '收件箱' }, { folder: '工作' },
-  ];
+  const notes = [{ folder: '收件箱' }, { folder: '收件箱' }, { folder: '工作' }];
   assert.deepEqual(countByFolder(notes), { 收件箱: 2, 工作: 1 });
 });
 

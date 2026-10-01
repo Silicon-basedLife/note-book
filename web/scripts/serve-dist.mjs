@@ -26,15 +26,21 @@ const server = http.createServer(async (req, res) => {
     try {
       pathname = decodeURIComponent(new URL(req.url, 'http://x').pathname);
     } catch {
-      res.writeHead(400); res.end('Bad Request'); return;
+      res.writeHead(400);
+      res.end('Bad Request');
+      return;
     }
     if (req.method !== 'GET' && req.method !== 'HEAD') {
-      res.writeHead(405); res.end('Method Not Allowed'); return;
+      res.writeHead(405);
+      res.end('Method Not Allowed');
+      return;
     }
     if (pathname.endsWith('/')) pathname += 'index.html';
     const file = normalize(join(ROOT, pathname));
     if (!file.startsWith(ROOT + '\\') && !file.startsWith(ROOT + '/')) {
-      res.writeHead(403); res.end('Forbidden'); return;
+      res.writeHead(403);
+      res.end('Forbidden');
+      return;
     }
     const body = await readFile(file);
     res.writeHead(200, {

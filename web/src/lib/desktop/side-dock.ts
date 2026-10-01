@@ -5,7 +5,13 @@
 //   - 停靠后通过“全局鼠标位置”判断鼠标离开窗口满 3 秒 → 平滑滑出屏幕（隐藏）；
 //   - 光标进入停靠侧屏幕边缘热区 → 平滑滑回显示；
 //   - 窗口被拖离边缘超过容差 → 取消停靠（并关闭置顶）。
-import { currentMonitor, cursorPosition, getCurrentWindow, LogicalPosition, LogicalSize } from '@tauri-apps/api/window';
+import {
+  currentMonitor,
+  cursorPosition,
+  getCurrentWindow,
+  LogicalPosition,
+  LogicalSize,
+} from '@tauri-apps/api/window';
 import {
   type DockSide,
   type Rect,
@@ -16,9 +22,9 @@ import {
   unhooked,
 } from './dock-core.ts';
 
-const POLL_MS = 100;         // 位置/光标轮询周期
-const UNHOOK_TOL = 80;       // 停靠后拖离多少判定为取消停靠
-const MOVE_TOL = 1;          // 判定窗口是否仍在移动（拖拽中不缩进）
+const POLL_MS = 100; // 位置/光标轮询周期
+const UNHOOK_TOL = 80; // 停靠后拖离多少判定为取消停靠
+const MOVE_TOL = 1; // 判定窗口是否仍在移动（拖拽中不缩进）
 /** 停靠时强制回拉的侧栏宽度（= 图3 内容宽度：侧栏 224 + 手柄 8） */
 const SIDEBAR_W = 232;
 
@@ -30,7 +36,13 @@ export interface DockConfig {
   hotZonePx: number;
 }
 
-const DEFAULT_CONFIG: DockConfig = { enabled: true, side: 'both', hideDelayMs: 3000, topmost: true, hotZonePx: 14 };
+const DEFAULT_CONFIG: DockConfig = {
+  enabled: true,
+  side: 'both',
+  hideDelayMs: 3000,
+  topmost: true,
+  hotZonePx: 14,
+};
 
 export class SideDock {
   private win = getCurrentWindow();
@@ -52,7 +64,9 @@ export class SideDock {
     if (this.active) return;
     this.active = true;
     if (!this.interval) {
-      this.interval = setInterval(() => { void this.tick(); }, POLL_MS);
+      this.interval = setInterval(() => {
+        void this.tick();
+      }, POLL_MS);
     }
   }
 
@@ -60,7 +74,10 @@ export class SideDock {
   deactivate(): void {
     if (!this.active && !this.docked && !this.hidden) return;
     this.active = false;
-    if (this.interval) { clearInterval(this.interval); this.interval = null; }
+    if (this.interval) {
+      clearInterval(this.interval);
+      this.interval = null;
+    }
     void this.undock();
   }
 
@@ -80,7 +97,10 @@ export class SideDock {
     if (!this.active || this.busy) return;
     this.busy = true;
     try {
-      if (this.hidden) { await this.watchHidden(); return; }
+      if (this.hidden) {
+        await this.watchHidden();
+        return;
+      }
       const g = await this.geometry();
       if (!g) return;
       this.area = g.area;
@@ -124,7 +144,8 @@ export class SideDock {
       }
 
       // 3) 已停靠且稳定：依据鼠标位置管理缩进
-      const moving = Math.abs(g.win.x - this.lastX) >= MOVE_TOL || Math.abs(g.win.y - this.lastY) >= MOVE_TOL;
+      const moving =
+        Math.abs(g.win.x - this.lastX) >= MOVE_TOL || Math.abs(g.win.y - this.lastY) >= MOVE_TOL;
       this.lastX = g.win.x;
       this.lastY = g.win.y;
       const inside = await this.cursorInside(g.win);
@@ -146,7 +167,9 @@ export class SideDock {
       const cp = await cursorPosition();
       const cx = cp.x / this.scale;
       const cy = cp.y / this.scale;
-      return cx >= win.x - 2 && cx <= win.x + win.w + 2 && cy >= win.y - 2 && cy <= win.y + win.h + 2;
+      return (
+        cx >= win.x - 2 && cx <= win.x + win.w + 2 && cy >= win.y - 2 && cy <= win.y + win.h + 2
+      );
     } catch {
       return true; // 读不到光标时不误隐藏
     }
@@ -188,7 +211,11 @@ export class SideDock {
     for (let i = 1; i <= steps; i++) {
       const t = i / steps;
       const x = Math.round(from + (targetX - from) * t);
-      try { await this.win.setPosition(new LogicalPosition(x, y)); } catch { /* ignore */ }
+      try {
+        await this.win.setPosition(new LogicalPosition(x, y));
+      } catch {
+        /* ignore */
+      }
       await new Promise((r) => setTimeout(r, 28));
     }
   }
@@ -211,7 +238,9 @@ export class SideDock {
       if (inHotZone(cur, this.docked, this.area, this.cfg.hotZonePx)) {
         await this.slideBack();
       }
-    } catch { /* 光标读取失败则静默重试 */ }
+    } catch {
+      /* 光标读取失败则静默重试 */
+    }
   }
 
   private async slideBack(): Promise<void> {
@@ -220,7 +249,10 @@ export class SideDock {
     const area = this.area ?? g?.area;
     if (!area || !g) return;
     this.hidden = false;
-    if (this.hideTimer) { clearTimeout(this.hideTimer); this.hideTimer = null; }
+    if (this.hideTimer) {
+      clearTimeout(this.hideTimer);
+      this.hideTimer = null;
+    }
     const x = snapX(this.docked, g.win, area);
     const y = this.dockedY(area, g.win.h);
     await this.slideX(x, y);
@@ -232,12 +264,19 @@ export class SideDock {
   }
 
   private clearHideTimer(): void {
-    if (this.hideTimer) { clearTimeout(this.hideTimer); this.hideTimer = null; }
+    if (this.hideTimer) {
+      clearTimeout(this.hideTimer);
+      this.hideTimer = null;
+    }
   }
 
   private async setTop(on: boolean): Promise<void> {
     const next = on && this.cfg.topmost;
-    try { await this.win.setAlwaysOnTop(next); } catch { /* ignore */ }
+    try {
+      await this.win.setAlwaysOnTop(next);
+    } catch {
+      /* ignore */
+    }
   }
 
   private async undock(): Promise<void> {
@@ -250,7 +289,9 @@ export class SideDock {
         try {
           const x = snapX(side, g.win, this.area);
           await this.slideX(x, g.win.y);
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
       }
     }
     this.docked = null;

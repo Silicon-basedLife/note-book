@@ -109,7 +109,7 @@ function currentPrefersDark(win?: Window | null): boolean {
 export function watchSystemTheme(
   mode: ThemeMode,
   win?: Window | null,
-  doc?: Document | null
+  doc?: Document | null,
 ): () => void {
   const w = win ?? (typeof window !== 'undefined' ? window : null);
   if (mode !== 'system' || !w || typeof w.matchMedia !== 'function') return () => {};
@@ -120,7 +120,8 @@ export function watchSystemTheme(
     return () => {};
   }
   if (typeof mql.addEventListener !== 'function') return () => {};
-  const onChange = () => applyTheme(resolveTheme('system', { prefersDark: currentPrefersDark(w) }), doc);
+  const onChange = () =>
+    applyTheme(resolveTheme('system', { prefersDark: currentPrefersDark(w) }), doc);
   mql.addEventListener('change', onChange);
   return () => mql.removeEventListener('change', onChange);
 }
@@ -157,4 +158,3 @@ export class ThemeFollower {
     this.#mode = null;
   }
 }
-

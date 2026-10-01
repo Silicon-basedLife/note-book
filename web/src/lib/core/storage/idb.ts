@@ -68,7 +68,10 @@ export class IndexedDbStorage implements StoragePort {
     });
   }
 
-  private async put(store: string, row: { key?: string; name?: string; value: string }): Promise<void> {
+  private async put(
+    store: string,
+    row: { key?: string; name?: string; value: string },
+  ): Promise<void> {
     const db = await this.db();
     const tx = db.transaction(store, 'readwrite');
     tx.objectStore(store).put(row);

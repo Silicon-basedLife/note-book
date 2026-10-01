@@ -90,7 +90,11 @@ test('WebView2 目录重定向：脚本存在且拒绝删除真实 profile', () 
 test('exe 签名：构建后自动签名，脚本必须自建证书、信任它并回读校验', () => {
   const pkg = JSON.parse(read('package.json'));
   for (const name of ['desktop:exe', 'desktop:build', 'desktop:dev']) {
-    assert.match(pkg.scripts[`post${name}`] ?? '', /sign-exe\.ps1/, `post${name} 应调用 sign-exe.ps1`);
+    assert.match(
+      pkg.scripts[`post${name}`] ?? '',
+      /sign-exe\.ps1/,
+      `post${name} 应调用 sign-exe.ps1`,
+    );
   }
   assert.match(pkg.scripts['sign:exe'] ?? '', /sign-exe\.ps1/, '应提供手动签名入口');
   const src = read('scripts/sign-exe.ps1');
@@ -155,7 +159,10 @@ test('文件格式不变量：.ps1 必须纯 ASCII（PowerShell 5.1 无 BOM 时�
     const p = `scripts/${name}`;
     const raw = bytes(p);
     const max = raw.reduce((m, b) => Math.max(m, b), 0);
-    assert.ok(max < 128, `${p} 含非 ASCII 字节（最大 ${max}）：请保持纯 ASCII，或用带 BOM 的 UTF-8`);
+    assert.ok(
+      max < 128,
+      `${p} 含非 ASCII 字节（最大 ${max}）：请保持纯 ASCII，或用带 BOM 的 UTF-8`,
+    );
   }
 });
 
@@ -164,14 +171,45 @@ test('文件格式不变量：.ps1 必须纯 ASCII（PowerShell 5.1 无 BOM 时�
 // `.gitignore` / `.gitattributes` / `.github` 全都没被扫到；我用 PowerShell 的
 // Add-Content（5.1 默认 ANSI）往 .gitignore 追加中文注释时写进了 GBK 字节，
 // 守卫却一声不响 —— 2026-10-01 修掉（同时把没有理由的 `demo` 豁免也去掉）。
-const TEXT_EXT = new Set(['.md', '.ts', '.svelte', '.css', '.mjs', '.js', '.json', '.html', '.ps1', '.bat', '.cmd', '.toml', '.yml', '.yaml']);
+const TEXT_EXT = new Set([
+  '.md',
+  '.ts',
+  '.svelte',
+  '.css',
+  '.mjs',
+  '.js',
+  '.json',
+  '.html',
+  '.ps1',
+  '.bat',
+  '.cmd',
+  '.toml',
+  '.yml',
+  '.yaml',
+]);
 const TEXT_FILES = [
-  '.gitignore', '.gitattributes', 'README.md', '使用教程.md', 'AGENTS.md',
-  'package.json', 'web/package.json', 'web/index.html', 'web/settings.html',
+  '.gitignore',
+  '.gitattributes',
+  'README.md',
+  '使用教程.md',
+  'AGENTS.md',
+  'package.json',
+  'web/package.json',
+  'web/index.html',
+  'web/settings.html',
 ];
 const TEXT_DIRS = ['docs', 'web/src', 'web/scripts', 'scripts', 'tests', 'demo', '.github'];
 // 只跳过明确不该扫描的目录；不要为了让守卫"少报错"而豁免真实代码目录。
-const SKIP_DIR = new Set(['node_modules', 'target', 'dist', '.git', '.local-webview', '.signing', '.npm-cache', '.smoke-profile']);
+const SKIP_DIR = new Set([
+  'node_modules',
+  'target',
+  'dist',
+  '.git',
+  '.local-webview',
+  '.signing',
+  '.npm-cache',
+  '.smoke-profile',
+]);
 
 function collectTextFiles() {
   const out = [];
@@ -208,7 +246,11 @@ test('编码不变量：仓库文本必须是合法 UTF-8（含点文件与点�
       bad.push(relative(root, file));
     }
   }
-  assert.deepEqual(bad, [], `以下文件不是合法 UTF-8（写入时用了 ANSI/GBK 编码？）：\n${bad.join('\n')}`);
+  assert.deepEqual(
+    bad,
+    [],
+    `以下文件不是合法 UTF-8（写入时用了 ANSI/GBK 编码？）：\n${bad.join('\n')}`,
+  );
 });
 
 // 2026-09-30 我本人把 docs/PROGRESS.md 写坏过一次：用 PowerShell 5.1 的
@@ -216,7 +258,24 @@ test('编码不变量：仓库文本必须是合法 UTF-8（含点文件与点�
 // 中文全部变成 "杩涘害涓庝氦鎺" 这类乱码，且**不可逆**（实测 1057 处字节丢失，
 // 逆变换只能恢复 99%）。这条守卫让同类破坏在提交前就被拦住。
 test('编码不变量：仓库文本里不得出现 UTF-8 被当 ANSI 读所产生的乱码特征', () => {
-  const MOJIBAKE = ['\uFFFD', '锛', '鐨', '涓', '浜', '璁', '杩', '鍜', '鍦', '鐢', '鏂', '鐐', '銆', '鈥', '鏄', '鎴'];
+  const MOJIBAKE = [
+    '\uFFFD',
+    '锛',
+    '鐨',
+    '涓',
+    '浜',
+    '璁',
+    '杩',
+    '鍜',
+    '鍦',
+    '鐢',
+    '鏂',
+    '鐐',
+    '銆',
+    '鈥',
+    '鏄',
+    '鎴',
+  ];
   const files = collectTextFiles();
   assert.ok(files.length > 30, `扫描到的文件太少（${files.length}），守卫可能失效`);
 
@@ -233,7 +292,11 @@ test('编码不变量：仓库文本里不得出现 UTF-8 被当 ANSI 读所产�
       }
     }
   }
-  assert.deepEqual(hits, [], `发现 ${hits.length} 个文件疑似被 ANSI 误读损坏：\n${hits.join('\n')}`);
+  assert.deepEqual(
+    hits,
+    [],
+    `发现 ${hits.length} 个文件疑似被 ANSI 误读损坏：\n${hits.join('\n')}`,
+  );
 });
 
 test('编码不变量：核心文档仍含预期中文（防止"整体被替换成乱码/空文件"）', () => {
@@ -246,7 +309,10 @@ test('编码不变量：核心文档仍含预期中文（防止"整体被替换�
 });
 
 test('规范基础设施：.editorconfig 与 .gitattributes 的编码/行尾约定必须一致', () => {
-  assert.ok(existsSync(join(root, '.editorconfig')), '应提供 .editorconfig（编辑器无关的基础约定）');
+  assert.ok(
+    existsSync(join(root, '.editorconfig')),
+    '应提供 .editorconfig（编辑器无关的基础约定）',
+  );
   const ec = read('.editorconfig');
   assert.match(ec, /charset\s*=\s*utf-8/, '.editorconfig 必须声明 UTF-8');
   assert.match(ec, /end_of_line\s*=\s*lf/, '.editorconfig 默认应为 LF');
@@ -257,7 +323,11 @@ test('规范基础设施：.editorconfig 与 .gitattributes 的编码/行尾约�
   const ga = read('.gitattributes');
   assert.match(ga, /\*\s+text=auto\s+eol=lf/, '.gitattributes 应默认 LF');
   for (const ext of ['ps1', 'bat', 'cmd']) {
-    assert.match(ga, new RegExp(`\\*\\.${ext}\\s+text\\s+eol=crlf`), `.gitattributes 应把 .${ext} 设为 CRLF`);
+    assert.match(
+      ga,
+      new RegExp(`\\*\\.${ext}\\s+text\\s+eol=crlf`),
+      `.gitattributes 应把 .${ext} 设为 CRLF`,
+    );
   }
 });
 
@@ -265,15 +335,28 @@ test('规范基础设施：verify 入口与 CI 必须真正卡住测试/类型/�
   const pkg = JSON.parse(read('package.json'));
   const verify = pkg.scripts.verify ?? '';
   assert.ok(verify, '应提供 npm run verify 一键校验');
-  for (const part of ['test', 'typecheck', 'fmt:rust:check', 'lint:rust']) {
+  for (const part of ['test', 'typecheck', 'format:check', 'fmt:rust:check', 'lint:rust']) {
     assert.ok(verify.includes(part), `verify 应包含 ${part}`);
   }
   assert.ok(pkg.scripts['fmt:rust:check'], '应提供 rustfmt 检查入口');
   assert.ok(pkg.scripts['lint:rust'], '应提供 clippy 入口');
+  assert.match(pkg.scripts['format:check'] ?? '', /--check/, 'format:check 必须用 --check 而不是写入');
+
+  // Prettier 只负责逻辑代码：样式与模板是刻意手写的紧凑写法，必须留在忽略清单里，
+  // 否则有人会"顺手"把 app.css 展开 1600 行并给界面带来视觉风险。
+  const ignore = read('.prettierignore');
+  for (const pattern of ['*.css', '*.svelte', '*.md']) {
+    assert.ok(ignore.includes(pattern), `.prettierignore 应排除 ${pattern}`);
+  }
 
   const ci = read('.github/workflows/release.yml');
-  assert.match(ci, /cargo fmt --manifest-path src-tauri\/Cargo\.toml --check/, 'CI 必须校验 Rust 格式');
+  assert.match(
+    ci,
+    /cargo fmt --manifest-path src-tauri\/Cargo\.toml --check/,
+    'CI 必须校验 Rust 格式',
+  );
   assert.match(ci, /cargo clippy .*-D warnings/, 'CI 必须把 clippy warning 当错误');
+  assert.match(ci, /npm run format:check/, 'CI 必须校验前端格式');
   assert.match(ci, /node --test .*tests/, 'CI 必须跑单测');
   assert.match(ci, /typecheck/, 'CI 必须跑类型检查');
 });

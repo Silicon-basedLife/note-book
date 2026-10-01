@@ -10,8 +10,15 @@ const clock = () => (t += 1000);
 
 function mkNote(id, folder, updatedAt) {
   return serializeDoc({
-    id, folder, title: id, tags: [], pinned: false,
-    createdAt: '2025-01-01T00:00:00.000Z', updatedAt, body: id, extra: [],
+    id,
+    folder,
+    title: id,
+    tags: [],
+    pinned: false,
+    createdAt: '2025-01-01T00:00:00.000Z',
+    updatedAt,
+    body: id,
+    extra: [],
   });
 }
 
@@ -41,19 +48,34 @@ test('笔记手排：优先手排、新增追加末尾、清空回退时间序�
   const core = new NoteCore(mem, { now: clock });
   await core.init();
   // 默认时间序：c 最新在前
-  assert.deepEqual(core.listNotesOrdered('工作').map((n) => n.id), ['n-c', 'n-b', 'n-a']);
+  assert.deepEqual(
+    core.listNotesOrdered('工作').map((n) => n.id),
+    ['n-c', 'n-b', 'n-a'],
+  );
   await core.setNoteOrder('工作', ['n-a', 'n-b', 'n-c']);
-  assert.deepEqual(core.listNotesOrdered('工作').map((n) => n.id), ['n-a', 'n-b', 'n-c']);
+  assert.deepEqual(
+    core.listNotesOrdered('工作').map((n) => n.id),
+    ['n-a', 'n-b', 'n-c'],
+  );
   // 新增笔记追加到手排末尾
   const nd = await core.createNote({ folder: '工作', title: 'd', body: '' });
-  assert.deepEqual(core.listNotesOrdered('工作').map((n) => n.id), ['n-a', 'n-b', 'n-c', nd.id]);
+  assert.deepEqual(
+    core.listNotesOrdered('工作').map((n) => n.id),
+    ['n-a', 'n-b', 'n-c', nd.id],
+  );
   // 重启后仍按手排
   const core2 = new NoteCore(mem, { now: clock });
   await core2.init();
-  assert.deepEqual(core2.listNotesOrdered('工作').map((n) => n.id), ['n-a', 'n-b', 'n-c', nd.id]);
+  assert.deepEqual(
+    core2.listNotesOrdered('工作').map((n) => n.id),
+    ['n-a', 'n-b', 'n-c', nd.id],
+  );
   // 清空 → 回到时间序（种子 c=3月、b=2月 早于时钟；新建 d 在 a(1月) 之前）
   await core2.setNoteOrder('工作', null);
-  assert.deepEqual(core2.listNotesOrdered('工作').map((n) => n.id), ['n-c', 'n-b', nd.id, 'n-a']);
+  assert.deepEqual(
+    core2.listNotesOrdered('工作').map((n) => n.id),
+    ['n-c', 'n-b', nd.id, 'n-a'],
+  );
 });
 
 test('"全部" 作用域手排与跨文件夹移动的排序联动', async () => {
@@ -65,15 +87,27 @@ test('"全部" 作用域手排与跨文件夹移动的排序联动', async () =>
   const core = new NoteCore(mem, { now: clock });
   await core.init();
   await core.setNoteOrder('all', ['n-c', 'n-a', 'n-b']);
-  assert.deepEqual(core.listNotesOrdered('all').map((n) => n.id), ['n-c', 'n-a', 'n-b']);
+  assert.deepEqual(
+    core.listNotesOrdered('all').map((n) => n.id),
+    ['n-c', 'n-a', 'n-b'],
+  );
   // 手排后把 b 移到学习：all 作用域成员不变（顺序保留）；学习作用域将 b 追加末尾
   await core.setNoteOrder('学习', ['n-c']);
   await core.updateNote('n-b', { folder: '学习' });
-  assert.deepEqual(core.listNotesOrdered('all').map((n) => n.id), ['n-c', 'n-a', 'n-b']);
-  assert.deepEqual(core.listNotesOrdered('学习').map((n) => n.id), ['n-c', 'n-b']);
+  assert.deepEqual(
+    core.listNotesOrdered('all').map((n) => n.id),
+    ['n-c', 'n-a', 'n-b'],
+  );
+  assert.deepEqual(
+    core.listNotesOrdered('学习').map((n) => n.id),
+    ['n-c', 'n-b'],
+  );
   // 手排列表忽略已进回收站/不属于本文件夹的残留 id
   await core.deleteNote('n-a');
-  assert.deepEqual(core.listNotesOrdered('all').map((n) => n.id), ['n-c', 'n-b']);
+  assert.deepEqual(
+    core.listNotesOrdered('all').map((n) => n.id),
+    ['n-c', 'n-b'],
+  );
 });
 
 test('文件夹重命名迁移手排作用域', async () => {
@@ -85,8 +119,14 @@ test('文件夹重命名迁移手排作用域', async () => {
   await core.init();
   await core.setNoteOrder('工作', ['n-a', 'n-b']); // 与时间序相反，用于验证迁移
   await core.renameFolder('工作', '研发');
-  assert.deepEqual(core.listNotesOrdered('研发').map((n) => n.id), ['n-a', 'n-b']);
+  assert.deepEqual(
+    core.listNotesOrdered('研发').map((n) => n.id),
+    ['n-a', 'n-b'],
+  );
   const core2 = new NoteCore(mem, { now: clock });
   await core2.init();
-  assert.deepEqual(core2.listNotesOrdered('研发').map((n) => n.id), ['n-a', 'n-b']);
+  assert.deepEqual(
+    core2.listNotesOrdered('研发').map((n) => n.id),
+    ['n-a', 'n-b'],
+  );
 });

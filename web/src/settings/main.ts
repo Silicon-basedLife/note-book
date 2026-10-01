@@ -17,7 +17,11 @@ if (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) {
   const win = getCurrentWindow();
   void win.onCloseRequested(async (event) => {
     event.preventDefault();
-    try { await win.hide(); } catch { /* ignore */ }
+    try {
+      await win.hide();
+    } catch {
+      /* ignore */
+    }
   });
 }
 

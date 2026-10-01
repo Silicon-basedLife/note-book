@@ -11,9 +11,16 @@ const clock = () => (t += 1000);
 
 function doc(id, folder, title, body, over = {}) {
   return serializeDoc({
-    id, folder, title, tags: [], pinned: false,
-    createdAt: '2025-01-01T00:00:00.000Z', updatedAt: '2025-01-02T00:00:00.000Z',
-    body, extra: [], ...over,
+    id,
+    folder,
+    title,
+    tags: [],
+    pinned: false,
+    createdAt: '2025-01-01T00:00:00.000Z',
+    updatedAt: '2025-01-02T00:00:00.000Z',
+    body,
+    extra: [],
+    ...over,
   });
 }
 
@@ -31,7 +38,13 @@ test('批量删除进回收站；搜索默认不含、includeTrash 命中带标�
   await core.init();
   assert.equal(await core.deleteNotes(['n-1', 'n-2']), 2);
   assert.equal(core.countsTrash().notes, 2);
-  assert.deepEqual(core.listTrashNotes().map((n) => n.id).sort(), ['n-1', 'n-2']);
+  assert.deepEqual(
+    core
+      .listTrashNotes()
+      .map((n) => n.id)
+      .sort(),
+    ['n-1', 'n-2'],
+  );
   assert.equal(core.listNotes('工作').length, 0);
   // 文件仍在且带 deleted 标记（结构保留）
   assert.ok((await mem.readNoteFile('n-1.md')).includes('deleted: true'));
@@ -85,7 +98,10 @@ test('彻底删除文件夹：物理删除其笔记并清注册；清空回收�
 
 test('启动扫描：回收站笔记可被识别且不复活其文件夹', async () => {
   const mem = mk({
-    'n-x.md': doc('n-x', '已删文件夹', '旧文', 'zzz', { deleted: true, deletedAt: '2025-01-02T00:00:00.000Z' }),
+    'n-x.md': doc('n-x', '已删文件夹', '旧文', 'zzz', {
+      deleted: true,
+      deletedAt: '2025-01-02T00:00:00.000Z',
+    }),
     'n-y.md': doc('n-y', '收件箱', '正常', 'yyy'),
   });
   const core = new NoteCore(mem, { now: clock });
@@ -102,7 +118,9 @@ test('事件：deleted/restored/purged 广播', async () => {
   const core = new NoteCore(mem, { now: clock });
   await core.init();
   const ops = [];
-  core.on((e) => { if (e.type === 'note') ops.push(e.op); });
+  core.on((e) => {
+    if (e.type === 'note') ops.push(e.op);
+  });
   await core.deleteNote('n-1');
   await core.restoreNote('n-1');
   await core.deleteNote('n-1');

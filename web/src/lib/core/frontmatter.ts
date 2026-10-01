@@ -8,7 +8,15 @@ import { DEFAULT_FOLDER, type FrontmatterEntry, type NoteDoc } from './types.ts'
 const DELIM = '---';
 
 const KNOWN_KEYS = [
-  'id', 'folder', 'title', 'tags', 'pinned', 'createdAt', 'updatedAt', 'deleted', 'deletedAt',
+  'id',
+  'folder',
+  'title',
+  'tags',
+  'pinned',
+  'createdAt',
+  'updatedAt',
+  'deleted',
+  'deletedAt',
 ] as const;
 
 /** 解析 tags 值（"[]" / JSON 字符串数组），失败回退空数组 */
@@ -66,7 +74,7 @@ export function splitFrontmatter(content: string): {
 /** 将 frontmatter 条目解析为 NoteDoc（字段缺省时给默认值；未知字段进入 extra）。 */
 export function docFromContent(
   content: string,
-  opts: { fallbackId: string; nowIso: string }
+  opts: { fallbackId: string; nowIso: string },
 ): NoteDoc {
   const { entries, body } = splitFrontmatter(content);
   const map = new Map<string, string>();
@@ -94,9 +102,7 @@ export function docFromContent(
     updatedAt: isoOr(map.get('updatedAt'), nowIso),
     body,
     extra,
-    ...(deleted
-      ? { deleted: true as const, deletedAt: isoOr(map.get('deletedAt'), nowIso) }
-      : {}),
+    ...(deleted ? { deleted: true as const, deletedAt: isoOr(map.get('deletedAt'), nowIso) } : {}),
   };
 }
 

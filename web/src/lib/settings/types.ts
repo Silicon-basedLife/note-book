@@ -59,7 +59,14 @@ export const DEFAULT_SETTINGS: AppSettings = {
   version: SETTINGS_VERSION,
   general: { startLayout: 'fig3', rememberPanels: false, theme: 'light' },
   editor: { defaultMode: 'split', autoSaveMs: 600, spellcheck: false, splitRatio: 0.5 },
-  dock: { enabled: true, side: 'both', hideDelayMs: 3000, topmost: true, hotZonePx: 14, onlySidebar: true },
+  dock: {
+    enabled: true,
+    side: 'both',
+    hideDelayMs: 3000,
+    topmost: true,
+    hotZonePx: 14,
+    onlySidebar: true,
+  },
   shortcuts: {},
 };
 

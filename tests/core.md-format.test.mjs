@@ -2,8 +2,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  codeBlock, FORMAT_BUTTONS, FORMAT_GROUPS, FORMAT_SHORTCUTS, formatButton,
-  horizontalRule, lineStarts, link, table, toggleLinePrefix, toggleOrderedList, toggleWrap,
+  codeBlock,
+  FORMAT_BUTTONS,
+  FORMAT_GROUPS,
+  FORMAT_SHORTCUTS,
+  formatButton,
+  horizontalRule,
+  lineStarts,
+  link,
+  table,
+  toggleLinePrefix,
+  toggleOrderedList,
+  toggleWrap,
 } from '../web/src/lib/core/md-format.ts';
 
 /** 便捷：对整段文本应用一次操作并返回结果 */
@@ -124,7 +134,12 @@ test('toggleLinePrefix：多行统一加/去前缀，并选中受影响区域', 
   const on = toggleLinePrefix(multi, '- ', ['- ', '* ', '+ ', '- [ ] ']);
   assert.equal(on.text, '- 甲\n- 乙\n- 丙');
   assert.equal(on.text.slice(on.start, on.end), '- 甲\n- 乙\n- 丙');
-  const off = toggleLinePrefix({ text: on.text, start: on.start, end: on.end }, '- ', ['- ', '* ', '+ ', '- [ ] ']);
+  const off = toggleLinePrefix({ text: on.text, start: on.start, end: on.end }, '- ', [
+    '- ',
+    '* ',
+    '+ ',
+    '- [ ] ',
+  ]);
   assert.equal(off.text, '甲\n乙\n丙');
 });
 
@@ -137,7 +152,12 @@ test('toggleLinePrefix：待办前缀不会被无序列表前缀吃掉', () => {
   const on = toggleLinePrefix(at('任务', 0, 2), '- [ ] ', ['- [ ] ', '- ', '* ', '+ ']);
   assert.equal(on.text, '- [ ] 任务');
   // 从待办切到无序列表：应剥掉整段 `- [ ] ` 再加 `- `
-  const li = toggleLinePrefix({ text: on.text, start: on.start, end: on.end }, '- ', ['- [ ] ', '- ', '* ', '+ ']);
+  const li = toggleLinePrefix({ text: on.text, start: on.start, end: on.end }, '- ', [
+    '- [ ] ',
+    '- ',
+    '* ',
+    '+ ',
+  ]);
   assert.equal(li.text, '- 任务');
 });
 
@@ -246,12 +266,29 @@ test('FORMAT_BUTTONS：id 唯一、分组合法、必做项存在', () => {
     assert.ok(b.label && b.title, `${b.id} 缺少 label/title`);
   }
   // 已商定的必做清单
-  for (const id of ['bold', 'italic', 'strike', 'highlight', 'h1', 'h2', 'h3',
-    'bullet', 'ordered', 'todo', 'quote', 'code-block', 'link', 'table']) {
+  for (const id of [
+    'bold',
+    'italic',
+    'strike',
+    'highlight',
+    'h1',
+    'h2',
+    'h3',
+    'bullet',
+    'ordered',
+    'todo',
+    'quote',
+    'code-block',
+    'link',
+    'table',
+  ]) {
     assert.ok(ids.includes(id), `缺少必做按钮 ${id}`);
   }
   // 折叠区
-  assert.deepEqual(FORMAT_BUTTONS.filter((b) => b.more).map((b) => b.id), ['inline-code', 'hr']);
+  assert.deepEqual(
+    FORMAT_BUTTONS.filter((b) => b.more).map((b) => b.id),
+    ['inline-code', 'hr'],
+  );
 });
 
 test('FORMAT_BUTTONS：每个按钮的 apply 都能真正改动文本（空文档 + 无选区）', () => {
@@ -290,7 +327,8 @@ test('apply 与“替换区间”自洽：text 等于原文按 replace 区间替
   ];
   for (const [state, fn] of cases) {
     const r = fn(state);
-    const manual = state.text.slice(0, r.replaceStart) + r.replacement + state.text.slice(r.replaceEnd);
+    const manual =
+      state.text.slice(0, r.replaceStart) + r.replacement + state.text.slice(r.replaceEnd);
     assert.equal(r.text, manual, 'text 与 replace 区间不一致');
     assert.ok(r.start >= 0 && r.end <= r.text.length, '选区越界');
   }

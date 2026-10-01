@@ -49,7 +49,15 @@ test('serialize → split 往返无损（含 tags/pinned/extra 扩展字段）',
   assert.equal(body, doc.body, '正文逐字节保留');
   const keys = entries.map((e) => e.key);
   // 规范字段在前、顺序稳定；扩展字段原样保留且不重复
-  assert.deepEqual(keys.slice(0, 7), ['id', 'folder', 'title', 'tags', 'pinned', 'createdAt', 'updatedAt']);
+  assert.deepEqual(keys.slice(0, 7), [
+    'id',
+    'folder',
+    'title',
+    'tags',
+    'pinned',
+    'createdAt',
+    'updatedAt',
+  ]);
   assert.deepEqual(keys.slice(7), ['custom-field', 'order']);
   const back = docFromContent(content, { fallbackId: 'x', nowIso: NOW });
   assert.deepEqual(back, doc);

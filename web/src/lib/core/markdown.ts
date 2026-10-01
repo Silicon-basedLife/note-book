@@ -136,11 +136,44 @@ function taskListPlugin(md: MarkdownIt): void {
 
 // ---------- 输出清洗（白名单，第二道防线） ----------
 const ALLOWED_TAGS = new Set([
-  'p', 'br', 'hr', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-  'ul', 'ol', 'li', 'blockquote', 'pre', 'code',
-  'span', 'strong', 'em', 'del', 'mark', 'sup', 'sub',
-  'a', 'img', 'input', 'b', 'i', 'u', 's',
-  'table', 'thead', 'tbody', 'tr', 'th', 'td', 'dl', 'dt', 'dd',
+  'p',
+  'br',
+  'hr',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'ul',
+  'ol',
+  'li',
+  'blockquote',
+  'pre',
+  'code',
+  'span',
+  'strong',
+  'em',
+  'del',
+  'mark',
+  'sup',
+  'sub',
+  'a',
+  'img',
+  'input',
+  'b',
+  'i',
+  'u',
+  's',
+  'table',
+  'thead',
+  'tbody',
+  'tr',
+  'th',
+  'td',
+  'dl',
+  'dt',
+  'dd',
 ]);
 const VOID_TAGS = new Set(['br', 'hr', 'img', 'input']);
 /** 允许的属性：tag → 属性白名单；'' 表示任意 tag 通用 */
@@ -161,8 +194,12 @@ function attrValueSafe(name: string, value: string): boolean {
   if (name === 'href' || name === 'src') {
     const v = value.trim().toLowerCase();
     return (
-      v.startsWith('http://') || v.startsWith('https://') || v.startsWith('mailto:') ||
-      v.startsWith('#') || v.startsWith('/') || v === ''
+      v.startsWith('http://') ||
+      v.startsWith('https://') ||
+      v.startsWith('mailto:') ||
+      v.startsWith('#') ||
+      v.startsWith('/') ||
+      v === ''
     );
   }
   return !/[<>"'`]/.test(value);
@@ -200,7 +237,11 @@ export function sanitizeHtml(html: string): string {
       parts.push(` ${name}="${escapeAttr(value)}"`);
     }
     // 布尔属性 checked（无值形式）
-    if (tag === 'input' && /\bchecked(?:\s|>)/.test(raw) && !parts.some((p) => p.startsWith(' checked'))) {
+    if (
+      tag === 'input' &&
+      /\bchecked(?:\s|>)/.test(raw) &&
+      !parts.some((p) => p.startsWith(' checked'))
+    ) {
       parts.push(' checked');
     }
     parts.push('>');

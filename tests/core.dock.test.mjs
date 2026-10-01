@@ -1,9 +1,7 @@
 // dock-core 单元测试：吸附/隐藏坐标/热区/脱离判定
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {
-  hiddenX, inHotZone, nearSnap, snapX, unhooked,
-} from '../web/src/lib/desktop/dock-core.ts';
+import { hiddenX, inHotZone, nearSnap, snapX, unhooked } from '../web/src/lib/desktop/dock-core.ts';
 
 const area = { x: 0, y: 0, w: 1920, h: 1040 };
 

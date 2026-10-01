@@ -53,12 +53,12 @@ test('两个主题档都声明了 color-scheme（原生控件跟随）', () => {
 
 test('样式表里除变量定义与代码高亮外，不再有硬编码颜色', () => {
   const stripped = css
-    .replace(blockOf(css, ':root,'), '')            // 浅色变量定义
-    .replace(lightBlock, '')                        // 浅色变量定义（data-theme 版）
-    .replace(darkBlock, '')                         // 深色变量定义
+    .replace(blockOf(css, ':root,'), '') // 浅色变量定义
+    .replace(lightBlock, '') // 浅色变量定义（data-theme 版）
+    .replace(darkBlock, '') // 深色变量定义
     .replace(blockOf(css, ':root:not([data-theme])'), '') // 系统兜底变量
-    .replace(/\/\*[\s\S]*?\*\//g, '')               // 注释（含被注释掉的说明）
-    .replace(/^\s*\.hljs[^\n]*$/gm, '');            // 代码块高亮配色（固定深底，不随主题）
+    .replace(/\/\*[\s\S]*?\*\//g, '') // 注释（含被注释掉的说明）
+    .replace(/^\s*\.hljs[^\n]*$/gm, ''); // 代码块高亮配色（固定深底，不随主题）
   const offenders = stripped
     .split('\n')
     .map((line, i) => ({ line: line.trim(), no: i + 1 }))
@@ -66,7 +66,7 @@ test('样式表里除变量定义与代码高亮外，不再有硬编码颜色',
   assert.deepEqual(
     offenders.map((o) => o.line),
     [],
-    '这些规则里出现了硬编码颜色，请改为 var(--token) 或加入白名单'
+    '这些规则里出现了硬编码颜色，请改为 var(--token) 或加入白名单',
   );
 });
 
@@ -83,12 +83,15 @@ test('设置窗口的样式同样只依赖主题变量', () => {
 });
 
 test('两个窗口的 HTML 都带首屏主题引导脚本（防深色用户白屏闪烁）', () => {
-  for (const [name, html] of [['index.html', indexHtml], ['settings.html', settingsHtml]]) {
+  for (const [name, html] of [
+    ['index.html', indexHtml],
+    ['settings.html', settingsHtml],
+  ]) {
     assert.match(html, /documentElement\.dataset\.theme/, `${name} 缺少主题引导`);
     assert.match(html, /noteapp\.settings\.v1/, `${name} 引导未读取设置快照`);
     assert.ok(
       html.indexOf('dataset.theme') < html.indexOf('<script type="module"'),
-      `${name} 引导脚本必须在模块脚本之前同步执行`
+      `${name} 引导脚本必须在模块脚本之前同步执行`,
     );
   }
 });

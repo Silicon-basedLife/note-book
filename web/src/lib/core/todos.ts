@@ -46,7 +46,9 @@ export interface TodoSourceNote {
  * 只认“以 `-`/`*`/`+` 加空格开头、紧跟 `[ ]`/`[x]`”的行——与预览端语义一致；
  * 有序列表里的 `1. [ ]` 与正文中间出现的 `[ ]` 都不算任务。
  */
-export function extractTaskLines(body: string): Array<{ text: string; checked: boolean; offset: number; line: number }> {
+export function extractTaskLines(
+  body: string,
+): Array<{ text: string; checked: boolean; offset: number; line: number }> {
   const out: Array<{ text: string; checked: boolean; offset: number; line: number }> = [];
   if (typeof body !== 'string' || body === '') return out;
   const lines = body.split('\n');
@@ -74,7 +76,7 @@ export function extractTaskLines(body: string): Array<{ text: string; checked: b
  */
 export function collectTodos(
   notes: ReadonlyArray<TodoSourceNote>,
-  opts: { includeDone?: boolean } = {}
+  opts: { includeDone?: boolean } = {},
 ): TodoItem[] {
   const includeDone = opts.includeDone === true;
   const out: TodoItem[] = [];
@@ -125,6 +127,6 @@ export function filterTodos(items: ReadonlyArray<TodoItem>, query: string): Todo
     (t) =>
       t.text.toLowerCase().includes(q) ||
       t.title.toLowerCase().includes(q) ||
-      t.folder.toLowerCase().includes(q)
+      t.folder.toLowerCase().includes(q),
   );
 }

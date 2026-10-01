@@ -16,8 +16,7 @@ function markSnippet(text: string, q: string, radius: number): string {
     return escapeHtml(head);
   }
   // 校验大小写/Unicode 展开不会导致切片错位，错位则放弃高亮
-  const safeHit =
-    text.slice(hit, hit + q.length).toLowerCase() === ql ? hit : -1;
+  const safeHit = text.slice(hit, hit + q.length).toLowerCase() === ql ? hit : -1;
 
   let start = 0;
   let end = text.length;
@@ -41,7 +40,9 @@ function markSnippet(text: string, q: string, radius: number): string {
 
 function hit(entry: IndexEntry, where: 'title' | 'body', q: string): SearchHit {
   const snippet =
-    where === 'title' ? markSnippet(entry.title, q, 24) : markSnippet(entry.bodyRaw || entry.bodyText, q, 48);
+    where === 'title'
+      ? markSnippet(entry.title, q, 24)
+      : markSnippet(entry.bodyRaw || entry.bodyText, q, 48);
   return {
     noteId: entry.id,
     folder: entry.folder,
@@ -60,7 +61,7 @@ function hit(entry: IndexEntry, where: 'title' | 'body', q: string): SearchHit {
 export function searchIndex(
   entries: ReadonlyArray<IndexEntry>,
   query: string,
-  folder?: string | null
+  folder?: string | null,
 ): SearchHit[] | null {
   const q = (query || '').trim();
   if (!q) return null;

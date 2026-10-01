@@ -2,7 +2,12 @@
 // 本套件是 demo/js/markdown.mjs 行为验收基线在新技术选型上的迁移版本。
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { escapeHtml, highlightCode, renderMarkdown, sanitizeHtml } from '../web/src/lib/core/markdown.ts';
+import {
+  escapeHtml,
+  highlightCode,
+  renderMarkdown,
+  sanitizeHtml,
+} from '../web/src/lib/core/markdown.ts';
 import { toggleTask } from '../web/src/lib/core/tasks.ts';
 
 test('HTML 注入被转义（脚本/标签原样展示）', () => {
@@ -15,7 +20,9 @@ test('HTML 注入被转义（脚本/标签原样展示）', () => {
 });
 
 test('标题 / 粗体 / 斜体 / 行内代码 / 链接', () => {
-  const { html } = renderMarkdown('# 一级\n\n正文有 **加粗** 与 *斜体*，还有 `code()` 与 [链接](https://a.b)。');
+  const { html } = renderMarkdown(
+    '# 一级\n\n正文有 **加粗** 与 *斜体*，还有 `code()` 与 [链接](https://a.b)。',
+  );
   assert.ok(html.includes('<h1>一级</h1>'));
   assert.ok(html.includes('<strong>加粗</strong>'));
   assert.ok(html.includes('<em>斜体</em>'));

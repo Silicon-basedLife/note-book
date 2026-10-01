@@ -29,7 +29,17 @@ test('app.mjs 引用的所有 DOM id 都存在于 index.html', () => {
 });
 
 test('页面包含核心结构：树/回收站/内容区/靠边隐藏', () => {
-  for (const id of ['tree', 'bin-wrap', 'nav-scroll', 'search-input', 'editor', 'preview', 'dock-bar', 'dock-toggle', 'note-banner']) {
+  for (const id of [
+    'tree',
+    'bin-wrap',
+    'nav-scroll',
+    'search-input',
+    'editor',
+    'preview',
+    'dock-bar',
+    'dock-toggle',
+    'note-banner',
+  ]) {
     assert.ok(html.includes(`id="${id}"`), `缺少 id="${id}"`);
   }
   assert.ok(html.includes('回收站'));

@@ -92,6 +92,6 @@ export function countTags(notes: ReadonlyArray<{ tags: ReadonlyArray<string> }>)
     }
   }
   return [...counts.values()].sort((a, b) =>
-    b.count !== a.count ? b.count - a.count : a.tag.localeCompare(b.tag)
+    b.count !== a.count ? b.count - a.count : a.tag.localeCompare(b.tag),
   );
 }

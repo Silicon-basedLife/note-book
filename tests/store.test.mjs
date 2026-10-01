@@ -2,13 +2,36 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  DEFAULT_FOLDER_IDS, defaultSeed, createFolder, renameFolder, applyFolderOrder,
-  deleteFolder, restoreFolder, purgeFolder,
-  createNote, updateNote, deleteNote, deleteNotes, restoreNote, purgeNote, purgeNotes,
-  moveNoteToFolder, applyNoteOrder,
-  getFolder, folderNameOf, activeFolders, trashedFolders, trashedNotes,
-  notesOfFolder, allActiveNotes, countActiveByFolder, binCount,
-  searchNotes, plainTextOf, relativeTime, toggleTask,
+  DEFAULT_FOLDER_IDS,
+  defaultSeed,
+  createFolder,
+  renameFolder,
+  applyFolderOrder,
+  deleteFolder,
+  restoreFolder,
+  purgeFolder,
+  createNote,
+  updateNote,
+  deleteNote,
+  deleteNotes,
+  restoreNote,
+  purgeNote,
+  purgeNotes,
+  moveNoteToFolder,
+  applyNoteOrder,
+  getFolder,
+  folderNameOf,
+  activeFolders,
+  trashedFolders,
+  trashedNotes,
+  notesOfFolder,
+  allActiveNotes,
+  countActiveByFolder,
+  binCount,
+  searchNotes,
+  plainTextOf,
+  relativeTime,
+  toggleTask,
 } from '../demo/js/store.mjs';
 
 const NOW = new Date('2025-06-10T09:00:00.000Z').getTime();
@@ -30,7 +53,10 @@ test('种子数据：4 文件夹 + 8 笔记，引用合法且 order 连续', () 
   }
   for (const f of folders) assert.ok(Number.isInteger(f.order));
   for (const folderId of ids) {
-    const orders = notes.filter((n) => n.folderId === folderId).map((n) => n.order).sort((a, b) => a - b);
+    const orders = notes
+      .filter((n) => n.folderId === folderId)
+      .map((n) => n.order)
+      .sort((a, b) => a - b);
     orders.forEach((o, i) => assert.equal(o, i, `${folderId} 内 order 应连续`));
   }
   // 内容特性仍在（任务列表 + 代码块）
@@ -117,7 +143,9 @@ test('moveNoteToFolder：跨文件夹移动并置尾、回收站笔记移动即�
   const cur = getNoteById(m1, moveTarget.id);
   assert.equal(cur.folderId, study);
   assert.equal(cur.trashed, false);
-  const maxOrder = Math.max(...m1.filter((n) => n.folderId === study && !n.trashed).map((n) => n.order));
+  const maxOrder = Math.max(
+    ...m1.filter((n) => n.folderId === study && !n.trashed).map((n) => n.order),
+  );
   assert.equal(cur.order, maxOrder);
 
   // 回收站中的笔记拖到文件夹 = 还原
@@ -138,7 +166,9 @@ test('applyNoteOrder：仅重排指定文件夹，其他文件夹不受影响', 
       assert.equal(n.order, reversed.indexOf(n.id));
     }
   }
-  const workBefore = notes.filter((n) => n.folderId === work).map((n) => ({ id: n.id, order: n.order }));
+  const workBefore = notes
+    .filter((n) => n.folderId === work)
+    .map((n) => ({ id: n.id, order: n.order }));
   for (const w of workBefore) {
     const cur = out.find((n) => n.id === w.id);
     assert.equal(cur.order, w.order);
@@ -151,12 +181,18 @@ test('查询辅助：activeFolders / notesOfFolder / allActiveNotes / counts', (
   const inbox = folders.find((f) => f.name === '收件箱').id;
   const list = notesOfFolder(notes, inbox);
   assert.ok(list.every((n) => n.folderId === inbox && !n.trashed));
-  assert.deepEqual(list.map((n) => n.order), [...list.map((n) => n.order)].sort((a, b) => a - b));
+  assert.deepEqual(
+    list.map((n) => n.order),
+    [...list.map((n) => n.order)].sort((a, b) => a - b),
+  );
 
   const all = allActiveNotes(notes, folders);
   assert.equal(all.length, notes.length);
   const counts = countActiveByFolder(notes);
-  assert.equal(Object.values(counts).reduce((a, b) => a + b, 0), notes.length);
+  assert.equal(
+    Object.values(counts).reduce((a, b) => a + b, 0),
+    notes.length,
+  );
   assert.equal(binCount(notes, folders), 0);
 });
 

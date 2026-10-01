@@ -37,12 +37,9 @@ function normalizeKey(key: string): string {
 }
 
 function shortcutId(s: Shortcut): string {
-  const mods = [
-    s.ctrl ? 'C' : '',
-    s.alt ? 'A' : '',
-    s.shift ? 'S' : '',
-    s.meta ? 'M' : '',
-  ].join('');
+  const mods = [s.ctrl ? 'C' : '', s.alt ? 'A' : '', s.shift ? 'S' : '', s.meta ? 'M' : ''].join(
+    '',
+  );
   return `${mods}+${normalizeKey(s.key)}`;
 }
 
@@ -88,7 +85,11 @@ export class ActionRegistry {
     const candidates = [...this.byShortcut.keys()].filter((sid) => {
       const [mods, key] = splitSid(sid);
       const pressed = mods;
-      const want = (event.ctrlKey ? 'C' : '') + (event.altKey ? 'A' : '') + (event.shiftKey ? 'S' : '') + (event.metaKey ? 'M' : '');
+      const want =
+        (event.ctrlKey ? 'C' : '') +
+        (event.altKey ? 'A' : '') +
+        (event.shiftKey ? 'S' : '') +
+        (event.metaKey ? 'M' : '');
       return pressed === want && key === normalizeKey(event.key);
     });
     if (candidates.length === 0) return undefined;

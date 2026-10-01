@@ -15,8 +15,8 @@ export interface Point {
 /** 判定吸附侧：仅当窗口边框“接触(=0)或越过屏幕左/右边界”时吸附（无屏内磁吸）。
  *  两侧同时越过时取越界更远的一侧。 */
 export function nearSnap(win: Rect, area: Rect): DockSide | null {
-  const mL = win.x - area.x;                                        // ≤0：已接触/越过左侧
-  const mR = win.x + win.w - (area.x + area.w);                     // ≥0：已接触/越过右侧
+  const mL = win.x - area.x; // ≤0：已接触/越过左侧
+  const mR = win.x + win.w - (area.x + area.w); // ≥0：已接触/越过右侧
   const okL = mL <= 0;
   const okR = mR >= 0;
   if (okL && okR) return Math.abs(mL) >= Math.abs(mR) ? 'left' : 'right';

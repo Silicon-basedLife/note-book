@@ -13,10 +13,12 @@
     "dev": "npm --prefix web run dev",
     "preview": "npm --prefix web run preview",
     "typecheck": "npm --prefix web run typecheck",
+    "format": "prettier --write \"web/src/**/*.ts\" \"web/scripts/**/*.mjs\" \"tests/**/*.mjs\" \"scripts/**/*.mjs\" \"web/*.ts\"",
+    "format:check": "prettier --check \"web/src/**/*.ts\" \"web/scripts/**/*.mjs\" \"tests/**/*.mjs\" \"scripts/**/*.mjs\" \"web/*.ts\"",
     "fmt:rust": "cargo fmt --manifest-path src-tauri/Cargo.toml",
     "fmt:rust:check": "cargo fmt --manifest-path src-tauri/Cargo.toml --check",
     "lint:rust": "cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings",
-    "verify": "npm test && npm run typecheck && npm run fmt:rust:check && npm run lint:rust",
+    "verify": "npm test && npm run typecheck && npm run format:check && npm run fmt:rust:check && npm run lint:rust",
     "serve:dist": "npm --prefix web run serve:dist",
     "smoke": "npm --prefix web run smoke",
     "smoke:settings": "npm --prefix web run smoke:settings",
@@ -44,6 +46,7 @@
     "release:draft": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/release.ps1 -Draft"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2.5.0"
+    "@tauri-apps/cli": "^2.5.0",
+    "prettier": "^3.9.9"
   }
 }

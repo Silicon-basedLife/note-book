@@ -21,12 +21,7 @@ import {
   type TrashFolderInfo,
   type UpdateNotePatch,
 } from './types.ts';
-import {
-  idFromFileName,
-  META_FOLDERS,
-  noteFileName,
-  type StoragePort,
-} from './storage/port.ts';
+import { idFromFileName, META_FOLDERS, noteFileName, type StoragePort } from './storage/port.ts';
 
 const META_DELETED_FOLDERS = 'trash.folders';
 const META_NOTE_ORDER = 'order.notes';
@@ -195,7 +190,11 @@ export class NoteCore {
   }
 
   /** 置顶优先（排序始终以置顶分组为第一关键字），组内再按传入的次级比较器 */
-  private sortPinnedFirst(a: NoteDoc, b: NoteDoc, then: (x: NoteDoc, y: NoteDoc) => number): number {
+  private sortPinnedFirst(
+    a: NoteDoc,
+    b: NoteDoc,
+    then: (x: NoteDoc, y: NoteDoc) => number,
+  ): number {
     const ap = a.pinned ? 0 : 1;
     const bp = b.pinned ? 0 : 1;
     return ap !== bp ? ap - bp : then(a, b);
@@ -254,7 +253,7 @@ export class NoteCore {
   search(
     query: string,
     folder?: string | null,
-    opts?: { includeTrash?: boolean }
+    opts?: { includeTrash?: boolean },
   ): SearchHit[] | null {
     const entries: IndexEntry[] = [];
     for (const entry of this.entries.values()) {
@@ -334,7 +333,7 @@ export class NoteCore {
       body: patch.body !== undefined ? patch.body : doc.body,
       pinned: patch.pinned !== undefined ? patch.pinned : doc.pinned,
       tags: patch.tags !== undefined ? patch.tags : doc.tags,
-      folder: patch.folder !== undefined ? (patch.folder.trim() || DEFAULT_FOLDER) : doc.folder,
+      folder: patch.folder !== undefined ? patch.folder.trim() || DEFAULT_FOLDER : doc.folder,
     };
     // 标题/正文/置顶/标签变化才刷新 updatedAt；仅移动文件夹不改变内容时间
     const touched =
@@ -504,7 +503,8 @@ export class NoteCore {
 
   /** 删除文件夹：连同其活跃笔记一并移入回收站（保留原始结构，可整组还原） */
   async deleteFolder(name: string): Promise<OpResult> {
-    if (name === DEFAULT_FOLDER) return { ok: false, reason: `「${DEFAULT_FOLDER}」为默认文件夹，不能删除` };
+    if (name === DEFAULT_FOLDER)
+      return { ok: false, reason: `「${DEFAULT_FOLDER}」为默认文件夹，不能删除` };
     if (!this.folders.includes(name)) return { ok: false, reason: '文件夹不存在' };
     if (this.folders.length <= 1) return { ok: false, reason: '至少保留一个文件夹' };
     const ts = nowIso(this.now);

@@ -56,7 +56,10 @@ jobs:
       - name: Type check
         run: npm --prefix web run typecheck
 
-      # 规范门禁：Rust 格式与 lint 必须干净（本地等价入口 npm run verify）
+      # 规范门禁：Prettier（逻辑代码）/ rustfmt / clippy 必须干净（本地等价入口 npm run verify）
+      - name: Format check (Prettier, ts+mjs)
+        run: npm run format:check
+
       - name: Rust format check
         run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
 

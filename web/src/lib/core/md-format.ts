@@ -47,7 +47,7 @@ function build(
   replaceEnd: number,
   replacement: string,
   selStart: number,
-  selEnd: number
+  selEnd: number,
 ): FormatResult {
   return {
     text: text.slice(0, replaceStart) + replacement + text.slice(replaceEnd),
@@ -82,7 +82,13 @@ function runAfter(text: string, pos: number, ch: string): number {
  * - 多字符标记（`**` 粗体、`~~` 删除线、`==` 高亮）：连续数 ≥ 标记长度即算已生效
  *   → `***x***` 上点粗体会去掉粗体留斜体。
  */
-function markerApplied(text: string, pos: number, ch: string, len: number, side: 'before' | 'after'): boolean {
+function markerApplied(
+  text: string,
+  pos: number,
+  ch: string,
+  len: number,
+  side: 'before' | 'after',
+): boolean {
   const run = side === 'before' ? runBefore(text, pos, ch) : runAfter(text, pos, ch);
   if (run < len) return false;
   return len === 1 ? run % 2 === 1 : true;
@@ -136,7 +142,14 @@ export function toggleWrap(state: EditState, marker: string): FormatResult {
     const closeAt = text.indexOf(marker, end);
     if (closeAt >= 0 && (!sameChar || markerApplied(text, closeAt, ch, len, 'after'))) {
       const between = text.slice(start, closeAt);
-      return build(text, start - len, closeAt + len, between, start - len, start - len + between.length);
+      return build(
+        text,
+        start - len,
+        closeAt + len,
+        between,
+        start - len,
+        start - len + between.length,
+      );
     }
   }
   // 无选中：插入标记对，光标居中
@@ -188,7 +201,8 @@ function selectedLines(state: EditState): {
     text,
     lines,
     replaceStart: starts[firstLine] ?? 0,
-    replaceEnd: lastLine + 1 < starts.length ? (starts[lastLine + 1] ?? text.length) - 1 : text.length,
+    replaceEnd:
+      lastLine + 1 < starts.length ? (starts[lastLine + 1] ?? text.length) - 1 : text.length,
   };
 }
 
@@ -200,7 +214,7 @@ function selectedLines(state: EditState): {
 export function toggleLinePrefix(
   state: EditState,
   prefix: string,
-  competing: readonly string[] = []
+  competing: readonly string[] = [],
 ): FormatResult {
   const { text, lines, replaceStart, replaceEnd } = selectedLines(state);
   // 互斥前缀按长度倒序剥离，避免 `- [ ] ` 被 `- ` 先吃掉一半
@@ -216,13 +230,23 @@ export function toggleLinePrefix(
   const next = lines.map((line) => {
     let body = line;
     for (const p of stripOrder) {
-      if (body.startsWith(p)) { body = body.slice(p.length); break; }
+      if (body.startsWith(p)) {
+        body = body.slice(p.length);
+        break;
+      }
     }
     return allHave ? body : prefix + body;
   });
 
   const replacement = next.join('\n');
-  return build(text, replaceStart, replaceEnd, replacement, replaceStart, replaceStart + replacement.length);
+  return build(
+    text,
+    replaceStart,
+    replaceEnd,
+    replacement,
+    replaceStart,
+    replaceStart + replacement.length,
+  );
 }
 
 const LIST_PREFIXES = ['- [ ] ', '- [x] ', '- [X] ', '- ', '* ', '+ '];
@@ -234,14 +258,24 @@ export function toggleOrderedList(state: EditState): FormatResult {
   const next = lines.map((line, idx) => {
     let body = line;
     for (const p of LIST_PREFIXES) {
-      if (body.startsWith(p)) { body = body.slice(p.length); break; }
+      if (body.startsWith(p)) {
+        body = body.slice(p.length);
+        break;
+      }
     }
     if (/^\d+\.\s/.test(body)) body = body.replace(/^\d+\.\s/, '');
     return allOrdered ? body : `${idx + 1}. ${body}`;
   });
 
   const replacement = next.join('\n');
-  return build(text, replaceStart, replaceEnd, replacement, replaceStart, replaceStart + replacement.length);
+  return build(
+    text,
+    replaceStart,
+    replaceEnd,
+    replacement,
+    replaceStart,
+    replaceStart + replacement.length,
+  );
 }
 
 /** 在某行中间插入块级内容时先补一个换行 */
@@ -300,10 +334,22 @@ export function horizontalRule(state: EditState): FormatResult {
 // ---------- 工具栏目录（UI 与快捷键共用同一份定义） ----------
 
 export type FormatActionId =
-  | 'bold' | 'italic' | 'strike' | 'highlight' | 'inline-code'
-  | 'h1' | 'h2' | 'h3'
-  | 'bullet' | 'ordered' | 'todo' | 'quote' | 'code-block' | 'hr'
-  | 'link' | 'table';
+  | 'bold'
+  | 'italic'
+  | 'strike'
+  | 'highlight'
+  | 'inline-code'
+  | 'h1'
+  | 'h2'
+  | 'h3'
+  | 'bullet'
+  | 'ordered'
+  | 'todo'
+  | 'quote'
+  | 'code-block'
+  | 'hr'
+  | 'link'
+  | 'table';
 
 export interface FormatButton {
   id: FormatActionId;
@@ -322,29 +368,114 @@ export interface FormatButton {
 const HEADING_PREFIXES = ['# ', '## ', '### ', '#### ', '##### ', '###### '];
 
 export const FORMAT_BUTTONS: readonly FormatButton[] = [
-  { id: 'bold', label: 'B', title: '加粗（**粗体**）', group: 'inline', apply: (s) => toggleWrap(s, '**') },
-  { id: 'italic', label: 'I', title: '斜体（*斜体*）', group: 'inline', apply: (s) => toggleWrap(s, '*') },
-  { id: 'strike', label: 'S', title: '删除线（~~文字~~）', group: 'inline', apply: (s) => toggleWrap(s, '~~') },
-  { id: 'highlight', label: '高亮', title: '高亮标记（==文字==）', group: 'inline', apply: (s) => toggleWrap(s, '==') },
-  { id: 'inline-code', label: '`x`', title: '行内代码（`代码`）', group: 'inline', more: true, apply: (s) => toggleWrap(s, '`') },
+  {
+    id: 'bold',
+    label: 'B',
+    title: '加粗（**粗体**）',
+    group: 'inline',
+    apply: (s) => toggleWrap(s, '**'),
+  },
+  {
+    id: 'italic',
+    label: 'I',
+    title: '斜体（*斜体*）',
+    group: 'inline',
+    apply: (s) => toggleWrap(s, '*'),
+  },
+  {
+    id: 'strike',
+    label: 'S',
+    title: '删除线（~~文字~~）',
+    group: 'inline',
+    apply: (s) => toggleWrap(s, '~~'),
+  },
+  {
+    id: 'highlight',
+    label: '高亮',
+    title: '高亮标记（==文字==）',
+    group: 'inline',
+    apply: (s) => toggleWrap(s, '=='),
+  },
+  {
+    id: 'inline-code',
+    label: '`x`',
+    title: '行内代码（`代码`）',
+    group: 'inline',
+    more: true,
+    apply: (s) => toggleWrap(s, '`'),
+  },
 
-  { id: 'h1', label: 'H1', title: '一级标题（# ）', group: 'heading', apply: (s) => toggleLinePrefix(s, '# ', HEADING_PREFIXES) },
-  { id: 'h2', label: 'H2', title: '二级标题（## ）', group: 'heading', apply: (s) => toggleLinePrefix(s, '## ', HEADING_PREFIXES) },
-  { id: 'h3', label: 'H3', title: '三级标题（### ）', group: 'heading', apply: (s) => toggleLinePrefix(s, '### ', HEADING_PREFIXES) },
+  {
+    id: 'h1',
+    label: 'H1',
+    title: '一级标题（# ）',
+    group: 'heading',
+    apply: (s) => toggleLinePrefix(s, '# ', HEADING_PREFIXES),
+  },
+  {
+    id: 'h2',
+    label: 'H2',
+    title: '二级标题（## ）',
+    group: 'heading',
+    apply: (s) => toggleLinePrefix(s, '## ', HEADING_PREFIXES),
+  },
+  {
+    id: 'h3',
+    label: 'H3',
+    title: '三级标题（### ）',
+    group: 'heading',
+    apply: (s) => toggleLinePrefix(s, '### ', HEADING_PREFIXES),
+  },
 
-  { id: 'bullet', label: '•', title: '无序列表（- ）', group: 'block', apply: (s) => toggleLinePrefix(s, '- ', LIST_PREFIXES) },
-  { id: 'ordered', label: '1.', title: '有序列表（1. 2. 3.）', group: 'block', apply: toggleOrderedList },
-  { id: 'todo', label: '☑', title: '待办任务（- [ ] ）', group: 'block', apply: (s) => toggleLinePrefix(s, '- [ ] ', LIST_PREFIXES) },
-  { id: 'quote', label: '❝', title: '引用（> ）', group: 'block', apply: (s) => toggleLinePrefix(s, '> ') },
+  {
+    id: 'bullet',
+    label: '•',
+    title: '无序列表（- ）',
+    group: 'block',
+    apply: (s) => toggleLinePrefix(s, '- ', LIST_PREFIXES),
+  },
+  {
+    id: 'ordered',
+    label: '1.',
+    title: '有序列表（1. 2. 3.）',
+    group: 'block',
+    apply: toggleOrderedList,
+  },
+  {
+    id: 'todo',
+    label: '☑',
+    title: '待办任务（- [ ] ）',
+    group: 'block',
+    apply: (s) => toggleLinePrefix(s, '- [ ] ', LIST_PREFIXES),
+  },
+  {
+    id: 'quote',
+    label: '❝',
+    title: '引用（> ）',
+    group: 'block',
+    apply: (s) => toggleLinePrefix(s, '> '),
+  },
   { id: 'code-block', label: '</>', title: '代码块（``` 围栏）', group: 'block', apply: codeBlock },
-  { id: 'hr', label: '―', title: '分隔线（---）', group: 'block', more: true, apply: horizontalRule },
+  {
+    id: 'hr',
+    label: '―',
+    title: '分隔线（---）',
+    group: 'block',
+    more: true,
+    apply: horizontalRule,
+  },
 
   { id: 'link', label: '🔗', title: '链接（[文字](网址)）', group: 'insert', apply: link },
   { id: 'table', label: '▦', title: '表格（插入空表格）', group: 'insert', apply: table },
 ];
 
 /** 分组显示顺序（渲染工具栏时用） */
-export const FORMAT_GROUPS: ReadonlyArray<FormatButton['group']> = ['inline', 'heading', 'block', 'insert'];
+export const FORMAT_GROUPS: ReadonlyArray<FormatButton['group']> = [
+  'inline',
+  'heading',
+  'block',
+  'insert',
+];
 
 /** 供 UI 与设置页共用：格式动作的默认快捷键（避开已占用的 Ctrl+K / Ctrl+S / Ctrl+,） */
 export const FORMAT_SHORTCUTS: Partial<Record<FormatActionId, Shortcut>> = {

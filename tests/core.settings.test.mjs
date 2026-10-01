@@ -4,7 +4,11 @@ import assert from 'node:assert/strict';
 import { coerceSettings, preservedMerge } from '../web/src/lib/settings/coerce.ts';
 import { DEFAULT_SETTINGS, SPLIT_RATIO_RANGE } from '../web/src/lib/settings/types.ts';
 import {
-  effectiveShortcuts, findShortcutConflict, formatShortcut, isShortcutAllowed, shortcutSignature,
+  effectiveShortcuts,
+  findShortcutConflict,
+  formatShortcut,
+  isShortcutAllowed,
+  shortcutSignature,
 } from '../web/src/lib/settings/shortcuts.ts';
 
 test('coerceSettings：空/垃圾输入回退默认', () => {
@@ -18,7 +22,14 @@ test('coerceSettings：非法枚举与越界数值被纠正', () => {
     version: 99,
     general: { startLayout: 'fig9', rememberPanels: 'yes', theme: 'fig9' },
     editor: { defaultMode: 'x', autoSaveMs: 99999, spellcheck: true },
-    dock: { enabled: false, side: 'up', hideDelayMs: 10, topmost: false, hotZonePx: 999, onlySidebar: false },
+    dock: {
+      enabled: false,
+      side: 'up',
+      hideDelayMs: 10,
+      topmost: false,
+      hotZonePx: 999,
+      onlySidebar: false,
+    },
   });
   assert.equal(s.version, DEFAULT_SETTINGS.version); // 版本号以当前为准
   assert.equal(s.general.startLayout, 'fig3');
@@ -28,7 +39,7 @@ test('coerceSettings：非法枚举与越界数值被纠正', () => {
   assert.equal(s.editor.autoSaveMs, 2000); // 夹到上限
   assert.equal(s.editor.spellcheck, true);
   assert.equal(s.dock.side, 'both');
-  assert.equal(s.dock.hideDelayMs, 1000);  // 夹到下限
+  assert.equal(s.dock.hideDelayMs, 1000); // 夹到下限
   assert.equal(s.dock.hotZonePx, 40);
   assert.equal(s.dock.enabled, false);
 });
@@ -39,8 +50,14 @@ test('coerceSettings：分屏比例用小数钳制（不取整、越界夹紧、
   assert.equal(coerceSettings({ editor: { splitRatio: 0.7 } }).editor.splitRatio, 0.7);
   // 关键：不能像其它数值项那样被四舍五入成整数（clampNum 会 round）
   assert.equal(coerceSettings({ editor: { splitRatio: 0.33 } }).editor.splitRatio, 0.33);
-  assert.equal(coerceSettings({ editor: { splitRatio: 0.95 } }).editor.splitRatio, SPLIT_RATIO_RANGE.max);
-  assert.equal(coerceSettings({ editor: { splitRatio: -3 } }).editor.splitRatio, SPLIT_RATIO_RANGE.min);
+  assert.equal(
+    coerceSettings({ editor: { splitRatio: 0.95 } }).editor.splitRatio,
+    SPLIT_RATIO_RANGE.max,
+  );
+  assert.equal(
+    coerceSettings({ editor: { splitRatio: -3 } }).editor.splitRatio,
+    SPLIT_RATIO_RANGE.min,
+  );
   assert.equal(coerceSettings({ editor: { splitRatio: 'x' } }).editor.splitRatio, 0.5);
   assert.equal(coerceSettings({ editor: { splitRatio: NaN } }).editor.splitRatio, 0.5);
   assert.equal(coerceSettings({ editor: { splitRatio: null } }).editor.splitRatio, 0.5);
@@ -69,12 +86,15 @@ test('preservedMerge：未知字段（未来版本/手工添加）不被丢弃',
     shortcuts: { 'new-note': { key: 'n', alt: true } },
     brandNewTop: { hello: 'world' },
   };
-  const next = coerceSettings({ general: { startLayout: 'fig5', rememberPanels: true }, editor: { autoSaveMs: 900 } });
+  const next = coerceSettings({
+    general: { startLayout: 'fig5', rememberPanels: true },
+    editor: { autoSaveMs: 900 },
+  });
   const merged = preservedMerge(prev, next);
-  assert.equal(merged.brandNewTop.hello, 'world');       // 顶层未知保留
-  assert.equal(merged.general.futureFlag, 'keep-me');     // 组内未知保留
+  assert.equal(merged.brandNewTop.hello, 'world'); // 顶层未知保留
+  assert.equal(merged.general.futureFlag, 'keep-me'); // 组内未知保留
   assert.equal(merged.dock.futureDock, 7);
-  assert.equal(merged.general.startLayout, 'fig5');       // 已知项被更新
+  assert.equal(merged.general.startLayout, 'fig5'); // 已知项被更新
   assert.equal(merged.editor.autoSaveMs, 900);
 });
 
@@ -82,27 +102,30 @@ test('preservedMerge：删除（点“默认”）必须生效，仅保留未知
   const prev = {
     shortcuts: {
       'save-now': { key: 'S', ctrl: true, shift: true }, // 已知动作，且新值里已删除 → 必须消失
-      'future-action': { key: 'j', ctrl: true },          // 当前版本不认识 → 保留
+      'future-action': { key: 'j', ctrl: true }, // 当前版本不认识 → 保留
     },
   };
   // 用户在设置里点了“默认”：save-now 的覆盖被删除（next 中不存在）
   const next = coerceSettings({ shortcuts: {} });
   assert.equal('save-now' in next.shortcuts, false);
   const merged = preservedMerge(prev, next);
-  assert.equal('save-now' in merged.shortcuts, false);      // 不再回弹
+  assert.equal('save-now' in merged.shortcuts, false); // 不再回弹
   assert.deepEqual(merged.shortcuts['future-action'], { key: 'j', ctrl: true });
 });
 
 test('preservedMerge：lastPanels 可写可清', () => {
   const base = coerceSettings({});
-  const withPanels = preservedMerge({}, { ...base, lastPanels: { listOpen: true, editorOpen: false, folder: '工作' } });
+  const withPanels = preservedMerge(
+    {},
+    { ...base, lastPanels: { listOpen: true, editorOpen: false, folder: '工作' } },
+  );
   assert.deepEqual(withPanels.lastPanels, { listOpen: true, editorOpen: false, folder: '工作' });
   const cleared = preservedMerge(withPanels, base);
   assert.equal('lastPanels' in cleared, false);
 });
 
 test('effectiveShortcuts：覆盖优先、null 表示禁用、缺省用默认', () => {
-  const eff = effectiveShortcuts({ 'new-note': { key: 'm', alt: true }, 'help': null });
+  const eff = effectiveShortcuts({ 'new-note': { key: 'm', alt: true }, help: null });
   assert.deepEqual(eff['new-note'], { key: 'm', alt: true });
   assert.equal(eff['help'], null);
   assert.deepEqual(eff['focus-search'], { key: 'k', ctrl: true });
@@ -111,9 +134,15 @@ test('effectiveShortcuts：覆盖优先、null 表示禁用、缺省用默认', 
 test('findShortcutConflict：重复键位提示；不同修饰键不冲突；禁用项不参与', () => {
   const overrides = {};
   assert.equal(findShortcutConflict('save-now', { key: 'k', ctrl: true }, overrides), '聚焦搜索');
-  assert.equal(findShortcutConflict('save-now', { key: 'k', ctrl: true, shift: true }, overrides), null);
+  assert.equal(
+    findShortcutConflict('save-now', { key: 'k', ctrl: true, shift: true }, overrides),
+    null,
+  );
   assert.equal(findShortcutConflict('save-now', { key: 's', ctrl: true }, overrides), null); // 自定义自身为默认值
-  assert.equal(findShortcutConflict('new-note', { key: 'k', ctrl: true }, { 'focus-search': null }), null);
+  assert.equal(
+    findShortcutConflict('new-note', { key: 'k', ctrl: true }, { 'focus-search': null }),
+    null,
+  );
   assert.equal(findShortcutConflict('save-now', null, overrides), null);
 });
 
@@ -121,7 +150,10 @@ test('键位格式化与合法性', () => {
   assert.equal(formatShortcut({ key: 'k', ctrl: true }), 'Ctrl + K');
   assert.equal(formatShortcut({ key: '?', shift: true }), 'Shift + ?');
   assert.equal(formatShortcut(null), '未设置');
-  assert.equal(shortcutSignature({ key: 'K', ctrl: true }), shortcutSignature({ key: 'k', ctrl: true }));
+  assert.equal(
+    shortcutSignature({ key: 'K', ctrl: true }),
+    shortcutSignature({ key: 'k', ctrl: true }),
+  );
   assert.equal(isShortcutAllowed({ key: 'k', ctrl: true }), true);
   assert.equal(isShortcutAllowed({ key: '?', shift: true }), false); // 仅 Shift 不允许自定义
 });

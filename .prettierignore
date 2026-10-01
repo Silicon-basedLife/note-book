@@ -1,0 +1,28 @@
+# Prettier 只负责逻辑代码（.ts / .mjs）。以下内容**刻意不交给 Prettier**，理由写在这里，
+# 免得以后有人"顺手"把它们也格式化了。
+
+# 1) CSS 与 Svelte 模板、以及两个 HTML 入口
+#    作者使用紧凑单行写法（例如 `.ctx-item:hover:not(.disabled) { background: #eef2f7; }`），
+#    Prettier 会把它展开成多行。实测代价：app.css 一处就改 1656 行、App.svelte 改 993 行，
+#    收益不抵噪音，而且模板重排对界面有潜在视觉风险。
+#    样式与模板保持手写；基础格式（编码/行尾/缩进）由 .editorconfig 保证。
+*.css
+*.svelte
+web/*.html
+
+# 2) 文档：手工排版的长表格与对照清单，格式化只会重排行尾与缩进
+*.md
+
+# 3) demo/ 浏览器原型：作为参考保留，去留未定（见 docs/TECH_DESIGN.md），先不重排
+demo/
+
+# 4) 生成物、锁文件与本机诊断目录
+node_modules/
+.npm-cache/
+web/dist/
+src-tauri/target/
+.local-webview/
+.signing/
+.tmp-*
+package-lock.json
+web/package-lock.json

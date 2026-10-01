@@ -10,7 +10,14 @@ function ev(over) {
 test('注册并命中快捷键动作（大小写不敏感、修饰键完全匹配）', () => {
   const reg = new ActionRegistry();
   let ran = 0;
-  const r1 = reg.register({ id: 'focus-search', label: '聚焦搜索', shortcut: { key: 'k', ctrl: true }, run: () => { ran += 1; } });
+  const r1 = reg.register({
+    id: 'focus-search',
+    label: '聚焦搜索',
+    shortcut: { key: 'k', ctrl: true },
+    run: () => {
+      ran += 1;
+    },
+  });
   assert.equal(r1.ok, true);
   assert.equal(reg.match(ev({ key: 'k', ctrlKey: true }))?.id, 'focus-search');
   assert.equal(reg.match(ev({ key: 'K', ctrlKey: true }))?.id, 'focus-search'); // 大写同样命中
@@ -33,12 +40,20 @@ test('重复 id / 快捷键冲突被拒绝并给出原因', () => {
   const dup = reg.register({ id: 'new-note', label: 'x', run: () => {} });
   assert.equal(dup.ok, false);
   assert.match(dup.reason, /已注册/);
-  const clash = reg.register({ id: 'other', label: 'y', shortcut: { key: 'N', alt: true }, run: () => {} });
+  const clash = reg.register({
+    id: 'other',
+    label: 'y',
+    shortcut: { key: 'N', alt: true },
+    run: () => {},
+  });
   assert.equal(clash.ok, false);
   assert.match(clash.reason, /冲突/);
   // 冲突不占用：释放后可重新注册
   reg.unregister('new-note');
-  assert.equal(reg.register({ id: 'other', label: 'y', shortcut: { key: 'n', alt: true }, run: () => {} }).ok, true);
+  assert.equal(
+    reg.register({ id: 'other', label: 'y', shortcut: { key: 'n', alt: true }, run: () => {} }).ok,
+    true,
+  );
 });
 
 test('命名键（Escape/?）可注册与匹配', () => {

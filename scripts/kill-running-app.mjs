@@ -102,5 +102,7 @@ try {
   process.exit(0);
 }
 
-console.log(`[prebuild] Cleared the WebView2 profile (${removed} entries removed${failed ? `, ${failed} failed` : ''})`);
+console.log(
+  `[prebuild] Cleared the WebView2 profile (${removed} entries removed${failed ? `, ${failed} failed` : ''})`,
+);
 console.log('[prebuild]   (webview cache only - your notes and settings are untouched)');

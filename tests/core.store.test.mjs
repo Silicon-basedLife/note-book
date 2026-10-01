@@ -24,15 +24,24 @@ function seedOne(over = {}) {
     updatedAt: '2025-01-02T00:00:00.000Z',
     ...over,
   };
-  const fm = Object.entries(base).map(([k, v]) => `${k}: ${v}`).join('\n');
+  const fm = Object.entries(base)
+    .map(([k, v]) => `${k}: ${v}`)
+    .join('\n');
   const body = '# 种子标题\n正文内容 Rust';
   return `---\n${fm}\n---\n${body}`;
 }
 
 function contentWith(id, folder, title, body, updatedAt) {
   return serializeDoc({
-    id, folder, title, tags: [], pinned: false,
-    createdAt: '2025-01-01T00:00:00.000Z', updatedAt, body, extra: [],
+    id,
+    folder,
+    title,
+    tags: [],
+    pinned: false,
+    createdAt: '2025-01-01T00:00:00.000Z',
+    updatedAt,
+    body,
+    extra: [],
   });
 }
 
@@ -48,7 +57,13 @@ test('init：空库默认只有收件箱，计数为 0', async () => {
 test('init：扫描已有 .md 文件并解析 frontmatter / 纯文本索引', async () => {
   const files = {
     'n-seed1.md': seedOne(),
-    'n-seed2.md': contentWith('n-seed2', '学习', '另一篇', '标题\n\n正文没有关键词', '2025-02-01T00:00:00.000Z'),
+    'n-seed2.md': contentWith(
+      'n-seed2',
+      '学习',
+      '另一篇',
+      '标题\n\n正文没有关键词',
+      '2025-02-01T00:00:00.000Z',
+    ),
     'readme.txt': '非笔记文件应被忽略',
   };
   const core = new NoteCore(storage(files), { now: clock });
@@ -74,7 +89,9 @@ test('createNote：落盘为 <id>.md + frontmatter，默认收件箱，事件广
   const core = new NoteCore(mem, { now: clock });
   await core.init();
   const events = [];
-  const off = core.on((e) => { if (e.type === 'note') events.push(`${e.op}:${e.note.id}`); });
+  const off = core.on((e) => {
+    if (e.type === 'note') events.push(`${e.op}:${e.note.id}`);
+  });
   const note = await core.createNote({ title: '新笔记', body: 'hello' });
   assert.match(note.id, /^n-/);
   assert.equal(note.folder, '收件箱');
@@ -89,7 +106,9 @@ test('createNote：落盘为 <id>.md + frontmatter，默认收件箱，事件广
 });
 
 test('updateNote：标题/正文更新索引与落盘，正文命中更新后即时生效', async () => {
-  const files = { 'n-s1.md': contentWith('n-s1', '收件箱', '标题A', '正文alpha', '2025-01-01T00:00:00.000Z') };
+  const files = {
+    'n-s1.md': contentWith('n-s1', '收件箱', '标题A', '正文alpha', '2025-01-01T00:00:00.000Z'),
+  };
   const mem = storage(files);
   const core = new NoteCore(mem, { now: clock });
   await core.init();
@@ -106,7 +125,9 @@ test('updateNote：标题/正文更新索引与落盘，正文命中更新后即
 });
 
 test('updateNote：仅移动文件夹不刷新 updatedAt', async () => {
-  const files = { 'n-s1.md': contentWith('n-s1', '收件箱', '标题A', '正文', '2025-01-01T00:00:00.000Z') };
+  const files = {
+    'n-s1.md': contentWith('n-s1', '收件箱', '标题A', '正文', '2025-01-01T00:00:00.000Z'),
+  };
   const core = new NoteCore(storage(files), { now: clock });
   await core.init();
   const before = core.getNote('n-s1');
@@ -117,12 +138,16 @@ test('updateNote：仅移动文件夹不刷新 updatedAt', async () => {
 });
 
 test('deleteNote：移入回收站（软删除），可还原与彻底删除', async () => {
-  const files = { 'n-d1.md': contentWith('n-d1', '收件箱', '待删', 'x', '2025-01-01T00:00:00.000Z') };
+  const files = {
+    'n-d1.md': contentWith('n-d1', '收件箱', '待删', 'x', '2025-01-01T00:00:00.000Z'),
+  };
   const mem = storage(files);
   const core = new NoteCore(mem, { now: clock });
   await core.init();
   const events = [];
-  core.on((e) => { if (e.type === 'note') events.push(`${e.op}:${e.note.id}`); });
+  core.on((e) => {
+    if (e.type === 'note') events.push(`${e.op}:${e.note.id}`);
+  });
   assert.equal(await core.deleteNote('n-d1'), true);
   // 文件保留，frontmatter 写入 deleted: true
   const raw = await mem.readNoteFile('n-d1.md');
@@ -155,7 +180,15 @@ test('deleteNote：移入回收站（软删除），可还原与彻底删除', a
 });
 
 test('toggleTask：勾选回写并落盘，无效偏移不动', async () => {
-  const files = { 'n-t1.md': contentWith('n-t1', '收件箱', 't', '- [ ] 事项一\n- [ ] 事项二', '2025-01-01T00:00:00.000Z') };
+  const files = {
+    'n-t1.md': contentWith(
+      'n-t1',
+      '收件箱',
+      't',
+      '- [ ] 事项一\n- [ ] 事项二',
+      '2025-01-01T00:00:00.000Z',
+    ),
+  };
   const mem = storage(files);
   const core = new NoteCore(mem, { now: clock });
   await core.init();
@@ -221,7 +254,9 @@ test('事件订阅可退订；note 快照不被外部修改影响', async () => 
   const core = new NoteCore(storage(), { now: clock });
   await core.init();
   let count = 0;
-  const off = core.on(() => { count += 1; });
+  const off = core.on(() => {
+    count += 1;
+  });
   const note = await core.createNote({});
   const snap = core.getNote(note.id);
   snap.title = '外部篡改';

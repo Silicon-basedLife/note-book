@@ -8,7 +8,9 @@ export function normalizeKey(key: string): string {
 
 /** 键位的唯一签名（修饰键顺序固定 + 归一化主键） */
 export function shortcutSignature(s: Shortcut): string {
-  const mods = [s.ctrl ? 'C' : '', s.alt ? 'A' : '', s.shift ? 'S' : '', s.meta ? 'M' : ''].join('');
+  const mods = [s.ctrl ? 'C' : '', s.alt ? 'A' : '', s.shift ? 'S' : '', s.meta ? 'M' : ''].join(
+    '',
+  );
   return `${mods}+${normalizeKey(s.key)}`;
 }
 
@@ -24,7 +26,9 @@ export function formatShortcut(s?: Shortcut | null): string {
 }
 
 /** 生效键位 = 自定义覆盖（含 null=禁用）优先，否则默认键位 */
-export function effectiveShortcuts(overrides: Record<string, Shortcut | null>): Record<string, Shortcut | null> {
+export function effectiveShortcuts(
+  overrides: Record<string, Shortcut | null>,
+): Record<string, Shortcut | null> {
   const out: Record<string, Shortcut | null> = {};
   for (const action of ACTIONS) {
     // 注意：直接读取属性值（而非 hasOwnProperty），以便 Svelte 建立响应式依赖，
@@ -39,7 +43,7 @@ export function effectiveShortcuts(overrides: Record<string, Shortcut | null>): 
 export function findShortcutConflict(
   actionId: string,
   shortcut: Shortcut | null,
-  overrides: Record<string, Shortcut | null>
+  overrides: Record<string, Shortcut | null>,
 ): string | null {
   if (!shortcut) return null;
   const target = shortcutSignature(shortcut);

@@ -34,7 +34,7 @@ test('coerceSettings：主题默认浅色、合法值保留、非法值回退', 
 test('preservedMerge：主题可写，且同一分组里的未知字段仍被保留', () => {
   const merged = preservedMerge(
     { general: { theme: 'light', futureGeneral: 'keep' } },
-    coerceSettings({ general: { theme: 'dark' } })
+    coerceSettings({ general: { theme: 'dark' } }),
   );
   assert.equal(merged.general.theme, 'dark');
   assert.equal(merged.general.futureGeneral, 'keep');
@@ -81,8 +81,12 @@ test('readCachedThemeMode：无 localStorage 返回 undefined；快照可读且�
   const store = new Map();
   globalThis.localStorage = {
     getItem: (k) => (store.has(k) ? store.get(k) : null),
-    setItem: (k, v) => { store.set(k, v); },
-    removeItem: (k) => { store.delete(k); },
+    setItem: (k, v) => {
+      store.set(k, v);
+    },
+    removeItem: (k) => {
+      store.delete(k);
+    },
   };
   try {
     assert.equal(readCachedThemeMode(), undefined); // 无快照
@@ -114,8 +118,12 @@ test('applyCachedTheme：有快照→应用；无快照→不写 DOM（留给 CS
     const store = new Map();
     globalThis.localStorage = {
       getItem: (k) => (store.has(k) ? store.get(k) : null),
-      setItem: (k, v) => { store.set(k, v); },
-      removeItem: (k) => { store.delete(k); },
+      setItem: (k, v) => {
+        store.set(k, v);
+      },
+      removeItem: (k) => {
+        store.delete(k);
+      },
     };
     store.set(SETTINGS_LS_KEY, JSON.stringify({ general: { theme: 'dark' } }));
     assert.equal(applyCachedTheme(), 'dark');
@@ -140,15 +148,22 @@ function fakeWindow(initialDark = false) {
   const listeners = new Set();
   const mql = {
     media: '(prefers-color-scheme: dark)',
-    get matches() { return dark; },
-    addEventListener: (type, cb) => { if (type === 'change') listeners.add(cb); },
-    removeEventListener: (type, cb) => { if (type === 'change') listeners.delete(cb); },
+    get matches() {
+      return dark;
+    },
+    addEventListener: (type, cb) => {
+      if (type === 'change') listeners.add(cb);
+    },
+    removeEventListener: (type, cb) => {
+      if (type === 'change') listeners.delete(cb);
+    },
   };
   return {
     win: {
-      matchMedia: (q) => (String(q).includes('prefers-color-scheme')
-        ? mql
-        : { matches: false, addEventListener() {}, removeEventListener() {} }),
+      matchMedia: (q) =>
+        String(q).includes('prefers-color-scheme')
+          ? mql
+          : { matches: false, addEventListener() {}, removeEventListener() {} },
     },
     doc: { documentElement: { dataset: {}, style: {} } },
     listenerCount: () => listeners.size,

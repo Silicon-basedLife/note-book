@@ -2,7 +2,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  countTags, hasTag, MAX_TAG_LEN, mergeTags, normalizeTag, parseTagInput, removeTag,
+  countTags,
+  hasTag,
+  MAX_TAG_LEN,
+  mergeTags,
+  normalizeTag,
+  parseTagInput,
+  removeTag,
 } from '../web/src/lib/core/tags.ts';
 import { entryFromDoc } from '../web/src/lib/core/index.ts';
 import { NoteCore } from '../web/src/lib/core/store.ts';
@@ -14,9 +20,16 @@ const clock = () => (t += 1000);
 
 function doc(over = {}) {
   return {
-    id: 'n-1', folder: '收件箱', title: 'x', tags: [], pinned: false,
-    createdAt: '2025-01-01T00:00:00.000Z', updatedAt: '2025-01-02T00:00:00.000Z',
-    body: '', extra: [], ...over,
+    id: 'n-1',
+    folder: '收件箱',
+    title: 'x',
+    tags: [],
+    pinned: false,
+    createdAt: '2025-01-01T00:00:00.000Z',
+    updatedAt: '2025-01-02T00:00:00.000Z',
+    body: '',
+    extra: [],
+    ...over,
   };
 }
 
@@ -31,7 +44,7 @@ test('normalizeTag：去 #、折叠空白、截断超长；空/纯空白返回�
   assert.equal(normalizeTag('#工作'), '工作');
   assert.equal(normalizeTag('##双重'), '双重');
   assert.equal(normalizeTag('a  b'), 'a b');
-  assert.equal(normalizeTag('a\u0000b'), 'ab');     // 控制字符（含换行）先剔除，再折叠空白
+  assert.equal(normalizeTag('a\u0000b'), 'ab'); // 控制字符（含换行）先剔除，再折叠空白
   assert.equal(normalizeTag('   '), '');
   assert.equal(normalizeTag('#'), '');
   assert.equal(normalizeTag(''), '');
@@ -92,29 +105,57 @@ test('entryFromDoc：索引条目带 tags 与 pinned', () => {
 test('列表排序：置顶恒在最前（时间序）', async () => {
   const files = {
     'n-a.md': contentFor({ id: 'n-a', title: 'A', updatedAt: '2025-03-01T00:00:00.000Z' }),
-    'n-b.md': contentFor({ id: 'n-b', title: 'B', pinned: true, updatedAt: '2025-01-01T00:00:00.000Z' }),
+    'n-b.md': contentFor({
+      id: 'n-b',
+      title: 'B',
+      pinned: true,
+      updatedAt: '2025-01-01T00:00:00.000Z',
+    }),
     'n-c.md': contentFor({ id: 'n-c', title: 'C', updatedAt: '2025-04-01T00:00:00.000Z' }),
   };
-  const core = new NoteCore(new MemoryStorage({ files, meta: { folders: '["收件箱"]' } }), { now: clock });
+  const core = new NoteCore(new MemoryStorage({ files, meta: { folders: '["收件箱"]' } }), {
+    now: clock,
+  });
   await core.init();
   // listNotes 也走置顶分区：置顶的 n-b 时间最旧，但排在 n-c/n-a 之前
-  assert.deepEqual(core.listNotes().map((d) => d.id), ['n-b', 'n-c', 'n-a']);
+  assert.deepEqual(
+    core.listNotes().map((d) => d.id),
+    ['n-b', 'n-c', 'n-a'],
+  );
   // listNotesOrdered 与之一致（无手排时就是同一顺序）
-  assert.deepEqual(core.listNotesOrdered('all').map((d) => d.id), ['n-b', 'n-c', 'n-a']);
+  assert.deepEqual(
+    core.listNotesOrdered('all').map((d) => d.id),
+    ['n-b', 'n-c', 'n-a'],
+  );
 });
 
 test('列表排序：手排顺序在置顶分区内生效，且置顶仍在最前', async () => {
   const files = {
     'n-a.md': contentFor({ id: 'n-a', title: 'A', updatedAt: '2025-03-01T00:00:00.000Z' }),
     'n-b.md': contentFor({ id: 'n-b', title: 'B', updatedAt: '2025-02-01T00:00:00.000Z' }),
-    'n-c.md': contentFor({ id: 'n-c', title: 'C', pinned: true, updatedAt: '2025-01-01T00:00:00.000Z' }),
-    'n-d.md': contentFor({ id: 'n-d', title: 'D', pinned: true, updatedAt: '2025-01-05T00:00:00.000Z' }),
+    'n-c.md': contentFor({
+      id: 'n-c',
+      title: 'C',
+      pinned: true,
+      updatedAt: '2025-01-01T00:00:00.000Z',
+    }),
+    'n-d.md': contentFor({
+      id: 'n-d',
+      title: 'D',
+      pinned: true,
+      updatedAt: '2025-01-05T00:00:00.000Z',
+    }),
   };
-  const core = new NoteCore(new MemoryStorage({ files, meta: { folders: '["收件箱"]' } }), { now: clock });
+  const core = new NoteCore(new MemoryStorage({ files, meta: { folders: '["收件箱"]' } }), {
+    now: clock,
+  });
   await core.init();
   // 手排：普通区 a 在 b 前；置顶区 c 在 d 前（与时间序相反，证明手排生效）
   await core.setNoteOrder('all', ['n-a', 'n-b', 'n-c', 'n-d']);
-  assert.deepEqual(core.listNotesOrdered('all').map((d) => d.id), ['n-c', 'n-d', 'n-a', 'n-b']);
+  assert.deepEqual(
+    core.listNotesOrdered('all').map((d) => d.id),
+    ['n-c', 'n-d', 'n-a', 'n-b'],
+  );
   // 手排里把置顶项写在后面也不影响它排最前
   await core.setNoteOrder('all', ['n-a', 'n-c', 'n-b', 'n-d']);
   const ids = core.listNotesOrdered('all').map((d) => d.id);
@@ -150,9 +191,17 @@ test('回收站里的笔记不参与活跃列表（置顶也一样）', async ()
     'n-a.md': contentFor({ id: 'n-a', title: 'A', pinned: true }),
     'n-b.md': contentFor({ id: 'n-b', title: 'B' }),
   };
-  const core = new NoteCore(new MemoryStorage({ files, meta: { folders: '["收件箱"]' } }), { now: clock });
+  const core = new NoteCore(new MemoryStorage({ files, meta: { folders: '["收件箱"]' } }), {
+    now: clock,
+  });
   await core.init();
   await core.deleteNote('n-a');
-  assert.deepEqual(core.listNotesOrdered('all').map((d) => d.id), ['n-b']);
-  assert.deepEqual(core.listTrashNotes().map((d) => d.id), ['n-a']);
+  assert.deepEqual(
+    core.listNotesOrdered('all').map((d) => d.id),
+    ['n-b'],
+  );
+  assert.deepEqual(
+    core.listTrashNotes().map((d) => d.id),
+    ['n-a'],
+  );
 });

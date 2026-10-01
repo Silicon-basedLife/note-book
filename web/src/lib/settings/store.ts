@@ -51,7 +51,11 @@ export async function saveSettings(next: AppSettings): Promise<void> {
     const payload = coerceSettings(merged);
     await emit(EVENT_NAME, payload);
   } else {
-    try { localStorage.setItem(LS_KEY, text); } catch { /* ignore */ }
+    try {
+      localStorage.setItem(LS_KEY, text);
+    } catch {
+      /* ignore */
+    }
     getChannel()?.postMessage(coerceSettings(merged));
   }
 }
@@ -63,7 +67,9 @@ export function subscribeSettings(cb: (s: AppSettings) => void): () => void {
     void listen<unknown>(EVENT_NAME, (ev) => {
       rawCache = ev.payload;
       cb(coerceSettings(ev.payload));
-    }).then((un) => { unlisten = un; });
+    }).then((un) => {
+      unlisten = un;
+    });
     return () => unlisten?.();
   }
   const ch = getChannel();

@@ -80,12 +80,20 @@ export function coerceSettings(raw: unknown): AppSettings {
   return {
     version: SETTINGS_VERSION,
     general: {
-      startLayout: pickEnum<StartLayout>(g.startLayout, ['fig3', 'fig4', 'fig5'], DEFAULT_SETTINGS.general.startLayout),
+      startLayout: pickEnum<StartLayout>(
+        g.startLayout,
+        ['fig3', 'fig4', 'fig5'],
+        DEFAULT_SETTINGS.general.startLayout,
+      ),
       rememberPanels: pickBool(g.rememberPanels, DEFAULT_SETTINGS.general.rememberPanels),
       theme: pickEnum<ThemeMode>(g.theme, THEME_MODES, DEFAULT_SETTINGS.general.theme),
     },
     editor: {
-      defaultMode: pickEnum<EditorMode>(e.defaultMode, ['edit', 'split', 'preview'], DEFAULT_SETTINGS.editor.defaultMode),
+      defaultMode: pickEnum<EditorMode>(
+        e.defaultMode,
+        ['edit', 'split', 'preview'],
+        DEFAULT_SETTINGS.editor.defaultMode,
+      ),
       autoSaveMs: clampNum(e.autoSaveMs, DEFAULT_SETTINGS.editor.autoSaveMs, AUTO_SAVE_RANGE),
       spellcheck: pickBool(e.spellcheck, DEFAULT_SETTINGS.editor.spellcheck),
       splitRatio: clampFloat(e.splitRatio, DEFAULT_SETTINGS.editor.splitRatio, SPLIT_RATIO_RANGE),
