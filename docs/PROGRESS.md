@@ -1,9 +1,12 @@
 # NoteApp 进度与交接（PROGRESS / HANDOFF）
 
-> 用途：上下文交接。新对话请先读本文件，再读 `AGENTS.md`、`README.md`、`docs/ROADMAP.md`、`docs/TECH_DESIGN.md`。
-> 记录时间：**v0.2.0 已发布**（标签 `v0.2.0` → 提交 `cdfa5fa`，已推送 GitHub 并由 Actions 构建发布；其后 master 又追加了版本一致性守卫，HEAD 见 `git log -1`）。前序：`cdfa5fa` 版本号/发布说明/CI 发布正文、`569c4a5` 删除 `demo/` 原型层、`b033e38`…`e86a471` **2026-10-01 全面规范检查**（编码+行尾守卫、Prettier 仅 `.ts`/`.mjs`、`.editorconfig`、rustfmt/clippy 与 CI 门禁、`npm run verify`、测试分层改名、a11y 与 Svelte 5 响应式修复）、`d16e4a7`+`d778a5b` 自签名证书与安装位置、`97b9f7b` **定位「应用打不开」真凶 = 360 残留 minifilter**、`20ed7b3` 强杀后清空 profile、`ed6bc18` 启动事故记录、`6e1c414` 回退「回车即换行」。
+> 用途：上下文交接。**新对话请先读 [`HANDOFF_v0.2.0.md`](HANDOFF_v0.2.0.md)**（自包含、含"下一个对话的指示"与硬约束），再读本文件、`AGENTS.md`、`README.md`、`docs/ROADMAP.md`、`docs/TECH_DESIGN.md`。
+> 记录时间：**v0.2.0 已正式发布**（Release 页 https://github.com/Silicon-basedLife/note-book/releases/tag/v0.2.0 ，
+> 含 `NoteApp_0.2.0_x64-setup.exe` 与 `NoteApp_0.2.0_x64_en-US.msi`；标签指向 **`b6a6512`** = 当前 `master`，184 项单测全绿、`npm run verify` 退出码 0）。
+> 发版过程共经历 run #1–#8 失败、**run #9 成功**：真因是 `countTags` 用 `localeCompare` 排同次数标签，**随系统区域设置变化**（zh-CN 开发机通过、en-US CI 失败）——已改为码位比较（`tags.ts` 的 `byTagCodeUnit`），并新增 `scripts/ci-check.ps1` 让 CI 失败可通过公开 API 读到原因。
+> 前序关键提交：`b033e38`…`e86a471` **2026-10-01 全面规范检查**（编码+行尾守卫、Prettier 仅 `.ts`/`.mjs`、`.editorconfig`、rustfmt/clippy 与 CI 门禁、`npm run verify`、测试分层改名、a11y 与 Svelte 5 响应式修复）、`569c4a5` 删除 `demo/` 原型层、`d16e4a7`+`d778a5b` 自签名证书与安装位置、`97b9f7b` **定位「应用打不开」真凶 = 360 残留 minifilter**、`20ed7b3` 强杀后清空 profile、`ed6bc18` 启动事故记录、`6e1c414` 回退「回车即换行」。
 > **先读两节**：**§1.12** 启动事故（强杀应用时 WebView2 正在写 profile → profile 损坏 → 应用彻底打不开）；**§1.16** 2026-09-30/10-01 完整事故与修复（360 残留过滤驱动按**路径**拦截 `noteapp.exe` 的写入 → WebView2 profile 写不进去 → Tauri `Failed to setup app: 拒绝访问` → 窗口闪一下消失；修法 = 目录重定向 junction + 自签名证书 + 安装到 `%LOCALAPPDATA%\Programs\NoteApp`）。
-> 一句话现状：**P0 MVP 全部完成、桌面端可用**；2026-10-01 又完成一次全面规范检查与修复（§1.16）。**仍待你确认**：§2 清单里"观感类"几条（主题、吸附），以及 §1.16 末尾的两个已知遗留项（父目录写入拦截仍在、5 条 Svelte a11y 警告）。
+> 一句话现状：**P0 MVP 与大部分"基础增强"已完成并发布 v0.2.0**；**剩余工作主要是 P1 的效率增强**（悬浮速记窗 / 全局热键 / 托盘常驻 / 附件 / 多级目录 / 导出等），清单见 `HANDOFF_v0.2.0.md` §2 与本文 §3.1。
 
 ---
 
