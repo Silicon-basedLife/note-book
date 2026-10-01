@@ -54,30 +54,32 @@ jobs:
       # 全部经 scripts/ci-check.ps1 包装：失败时把输出写进 job summary 并抛出 ::error:: 注解，
       # 因为 Actions 的完整日志需要认证，而 summary 与注解可通过公开 API 读到
       # （2026-10-01 发布 v0.2.0 时正是因为没有这个，失败原因完全看不到）。
+      # 用 -ExecutionPolicy Bypass 显式调用：与仓库其它脚本入口一致，避免 runner 的
+      # 执行策略把未签名脚本拦在"启动之前"——那种失败连 summary 都是空的。
       - name: Unit tests
         shell: pwsh
         run: |
-          & ./scripts/ci-check.ps1 -Label 'Unit tests' -Command 'node --test --test-isolation=none "tests/**/*.test.mjs"'
+          pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci-check.ps1 -Label 'Unit tests' -Command 'node --test --test-isolation=none "tests/**/*.test.mjs"'
 
       - name: Type check
         shell: pwsh
         run: |
-          & ./scripts/ci-check.ps1 -Label 'Type check' -Command 'npm --prefix web run typecheck'
+          pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci-check.ps1 -Label 'Type check' -Command 'npm --prefix web run typecheck'
 
       - name: Format check (Prettier, ts+mjs)
         shell: pwsh
         run: |
-          & ./scripts/ci-check.ps1 -Label 'Format check' -Command 'npm run format:check'
+          pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci-check.ps1 -Label 'Format check' -Command 'npm run format:check'
 
       - name: Rust format check
         shell: pwsh
         run: |
-          & ./scripts/ci-check.ps1 -Label 'Rust format check' -Command 'cargo fmt --manifest-path src-tauri/Cargo.toml --check'
+          pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci-check.ps1 -Label 'Rust format check' -Command 'cargo fmt --manifest-path src-tauri/Cargo.toml --check'
 
       - name: Rust lint (clippy, warnings are errors)
         shell: pwsh
         run: |
-          & ./scripts/ci-check.ps1 -Label 'Rust clippy' -Command 'cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings'
+          pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci-check.ps1 -Label 'Rust clippy' -Command 'cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings'
 
       - name: Build app and create GitHub Release
         uses: tauri-apps/tauri-action@v0
