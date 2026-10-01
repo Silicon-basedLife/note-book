@@ -23,3 +23,6 @@ Thumbs.db
 
 # 本地诊断：WebView2 profile 重定向目标（不入库）
 .local-webview/
+
+# 本机自签名代码签名证书（公钥部分，不入库）
+.signing/

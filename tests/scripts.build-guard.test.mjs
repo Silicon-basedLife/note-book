@@ -87,6 +87,22 @@ test('WebView2 目录重定向：脚本存在且拒绝删除真实 profile', () 
   assert.match(src, /Refusing to delete a real WebView2 profile/, '非空真实目录必须拒绝删除');
 });
 
+test('exe 签名：构建后自动签名，脚本必须自建证书、信任它并回读校验', () => {
+  const pkg = JSON.parse(read('package.json'));
+  for (const name of ['desktop:exe', 'desktop:build', 'desktop:dev']) {
+    assert.match(pkg.scripts[`post${name}`] ?? '', /sign-exe\.ps1/, `post${name} 应调用 sign-exe.ps1`);
+  }
+  assert.match(pkg.scripts['sign:exe'] ?? '', /sign-exe\.ps1/, '应提供手动签名入口');
+  const src = read('scripts/sign-exe.ps1');
+  assert.match(src, /New-SelfSignedCertificate/, '应能自建代码签名证书');
+  assert.match(src, /CodeSigningCert/, '证书类型必须是代码签名证书');
+  // 不装进受信任存储的话，自签名反而会显示"签名无效"，比不签名更糟
+  assert.match(src, /Cert:\\CurrentUser\\Root/, '必须让本账户信任该证书');
+  assert.match(src, /TrustedPublisher/, '应同时加入受信任的发布者');
+  assert.match(src, /Set-AuthenticodeSignature/, '必须真的执行签名');
+  assert.match(src, /Status -eq 'Valid'/, '必须回读并校验签名状态，不能只看命令有没有报错');
+});
+
 test('清理 360 残留：脚本必须提权、先备份，且绝不碰浏览器与用户数据', () => {
   const p = 'scripts/remove-360-leftovers.ps1';
   assert.ok(existsSync(join(root, p)));
