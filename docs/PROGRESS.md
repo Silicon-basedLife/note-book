@@ -1,7 +1,7 @@
 # NoteApp 进度与交接（PROGRESS / HANDOFF）
 
 > 用途：上下文交接。新对话请先读本文件，再读 `AGENTS.md`、`README.md`、`docs/ROADMAP.md`、`docs/TECH_DESIGN.md`。
-> 记录时间：HEAD = `b033e38`（**2026-10-01 全面规范检查**：编码+行尾守卫、Prettier（仅 `.ts`/`.mjs`）、`.editorconfig`、rustfmt/clippy 与 CI 门禁、`npm run verify`、测试分层改名、a11y 与 Svelte 5 响应式修复；其前 `d16e4a7`+`d778a5b` 自签名证书与安装位置、`97b9f7b` **定位「应用打不开」真凶 = 360 残留 minifilter**、`20ed7b3` 强杀后清空 profile、`ed6bc18` 启动事故记录、`6e1c414` 回退「回车即换行」）。
+> 记录时间：**v0.2.0 已发布**（标签 `v0.2.0` → 提交 `cdfa5fa`，已推送 GitHub 并由 Actions 构建发布；其后 master 又追加了版本一致性守卫，HEAD 见 `git log -1`）。前序：`cdfa5fa` 版本号/发布说明/CI 发布正文、`569c4a5` 删除 `demo/` 原型层、`b033e38`…`e86a471` **2026-10-01 全面规范检查**（编码+行尾守卫、Prettier 仅 `.ts`/`.mjs`、`.editorconfig`、rustfmt/clippy 与 CI 门禁、`npm run verify`、测试分层改名、a11y 与 Svelte 5 响应式修复）、`d16e4a7`+`d778a5b` 自签名证书与安装位置、`97b9f7b` **定位「应用打不开」真凶 = 360 残留 minifilter**、`20ed7b3` 强杀后清空 profile、`ed6bc18` 启动事故记录、`6e1c414` 回退「回车即换行」。
 > **先读两节**：**§1.12** 启动事故（强杀应用时 WebView2 正在写 profile → profile 损坏 → 应用彻底打不开）；**§1.16** 2026-09-30/10-01 完整事故与修复（360 残留过滤驱动按**路径**拦截 `noteapp.exe` 的写入 → WebView2 profile 写不进去 → Tauri `Failed to setup app: 拒绝访问` → 窗口闪一下消失；修法 = 目录重定向 junction + 自签名证书 + 安装到 `%LOCALAPPDATA%\Programs\NoteApp`）。
 > 一句话现状：**P0 MVP 全部完成、桌面端可用**；2026-10-01 又完成一次全面规范检查与修复（§1.16）。**仍待你确认**：§2 清单里"观感类"几条（主题、吸附），以及 §1.16 末尾的两个已知遗留项（父目录写入拦截仍在、5 条 Svelte a11y 警告）。
 
@@ -33,7 +33,7 @@ web/                   前端（Svelte 5 + TS + Vite，双页产物）
   src/settings/         独立设置窗口（Settings.svelte、main.ts）
   scripts/              serve-dist.mjs（静态托管）、ui-smoke.mjs（主窗口冒烟）、settings-smoke.mjs（设置窗口冒烟）
 scripts/setup.ps1       桌面一键构建（装 Rust → 装依赖 → tauri build --no-bundle）
-tests/                  183 项 node:test（分层见 tests/README.md：core.* = web/src、<产物>.* = 产物级契约）
+tests/                  184 项 node:test（分层见 tests/README.md：core.* = web/src、<产物>.* = 产物级契约）
 docs/import/            导入/解析的人手样本（说明见该目录 README）
 scripts/                构建/诊断/修复脚本（见 §1.16；含 kill-running-app、sign-exe、probe-ui、link-webview-dir、remove-360-leftovers 等）
 ```
@@ -355,7 +355,7 @@ flex-grow 用比例分配时，**当所有 flex-grow 之和小于 1**，浏览�
 
 ### 1.15 验证现状（本沙箱，当前）
 
-- **单元/集成测试：183 项全绿**（`npm test`；102 → 116（主题）→ 120（实时跟随）→ 129（标签/置顶）→ 142（待办聚合）→ 186（格式工具栏）→ 187（分屏比例）→ 193（构建脚本守卫）→ 202（编码守卫）→ 204（规范基础设施）→ 205（测试命名守卫）→ 206（行尾守卫）→ **183（2026-10-01 删除 `demo/` 原型层及其 23 项测试）**。回车即换行那 8 项已随回退移除，见 §1.11）
+- **单元/集成测试：184 项全绿**（`npm test`；102 → 116（主题）→ 120（实时跟随）→ 129（标签/置顶）→ 142（待办聚合）→ 186（格式工具栏）→ 187（分屏比例）→ 193（构建脚本守卫）→ 202（编码守卫）→ 204（规范基础设施）→ 205（测试命名守卫）→ 206（行尾守卫）→ **183（2026-10-01 删除 `demo/` 原型层及其 23 项测试）** → **184（+版本一致性守卫，发布 v0.2.0 后补）**。回车即换行那 8 项已随回退移除，见 §1.11）
 - **规范门禁：`npm run verify` 退出码 0**（= 单测 + `tsc --noEmit` + Prettier `--check`（`.ts`/`.mjs`）+ `cargo fmt --check` + `cargo clippy -D warnings`），CI 同步执行这五项
 - **真实 Chrome 冒烟：主窗口 107/107、设置窗口 25/25**（布局 10 项；设置窗口连跑 4 次全过）
 - `tsc --noEmit` 通过；`vite build` 通过（双页产物，含 head 内联主题引导脚本）

@@ -428,3 +428,36 @@ test('测试命名规范：文件名必须体现覆盖层（core.* = web/src，d
 
   assert.ok(existsSync(join(root, 'tests', 'README.md')), 'tests/README.md 必须说明分层约定');
 });
+
+test('版本一致性：六处版本号必须一致（避免发出错版本的 release）', () => {
+  // 2026-10-01 发布 v0.2.0 时踩到：改了 package.json / tauri.conf.json / Cargo.toml，
+  // 却忘了两个 lock 文件里**根节点**的 version，而 Cargo.lock 里还有 3 处 0.1.0 属于依赖
+  // （jiff-core / vswhom / windows-threading）—— 那些**绝不能跟着改**。
+  const version = JSON.parse(read('package.json')).version;
+  assert.match(version, /^\d+\.\d+\.\d+$/, `package.json 版本格式异常：${version}`);
+
+  for (const file of ['web/package.json', 'src-tauri/tauri.conf.json']) {
+    assert.equal(JSON.parse(read(file)).version, version, `${file} 版本与 package.json 不一致`);
+  }
+
+  // Cargo.toml：只看顶层那行（多行字符串上不能靠 Select-String 的 ^ 锚点）
+  const cargo = read('src-tauri/Cargo.toml').match(/^version\s*=\s*"([^"]+)"/m);
+  assert.ok(cargo, 'Cargo.toml 里找不到顶层 version');
+  assert.equal(cargo[1], version, `Cargo.toml 版本 ${cargo[1]} 与 package.json 不一致`);
+
+  // 两个 lock 文件的**根节点**（第一个 name/version 对）
+  for (const lock of ['package-lock.json', 'web/package-lock.json']) {
+    const matched = read(lock).match(/"name":\s*"[^"]+",\r?\n\s*"version":\s*"([^"]+)"/);
+    assert.ok(matched, `${lock} 里找不到根节点的 version`);
+    assert.equal(matched[1], version, `${lock} 根版本 ${matched[1]} 与 package.json 不一致`);
+  }
+
+  // Cargo.lock：按包名定位 noteapp，绝不能全局替换（依赖里也有 0.1.0）
+  const noteapp = read('src-tauri/Cargo.lock').match(/name = "noteapp"\r?\nversion = "([^"]+)"/);
+  assert.ok(noteapp, 'Cargo.lock 里找不到 noteapp 条目');
+  assert.equal(
+    noteapp[1],
+    version,
+    `Cargo.lock 的 noteapp 版本 ${noteapp[1]} 与 package.json 不一致`,
+  );
+});

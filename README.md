@@ -181,7 +181,7 @@ tests/                    # node:test 套件：core.*（web/src 生产逻辑）+
 
 ## 验证状态
 
-- 单元/集成测试：全绿（`npm test`，**183 项**，见各 `tests/*.test.mjs`；测试文件按覆盖层命名，约定见 [tests/README.md](tests/README.md)；含 `tests/theme.css.test.mjs` 对“颜色必须走主题变量”的样式契约校验、`tests/core.md-format.test.mjs` 对格式工具栏的逐字断言）；
+- 单元/集成测试：全绿（`npm test`，**184 项** —— `v0.2.0` 标签处为 183 项，其后新增「版本一致性」守卫，见各 `tests/*.test.mjs`；测试文件按覆盖层命名，约定见 [tests/README.md](tests/README.md)；含 `tests/theme.css.test.mjs` 对“颜色必须走主题变量”的样式契约校验、`tests/core.md-format.test.mjs` 对格式工具栏的逐字断言）；
 - **规范门禁：`npm run verify` 退出码 0** —— 单测 + `tsc --noEmit` + Prettier `--check`（仅 `.ts`/`.mjs`）+ `cargo fmt --check` + `cargo clippy -D warnings`；CI 执行同样五项。格式与行尾约定见 [.editorconfig](.editorconfig) 与 [.gitattributes](.gitattributes)；
 - `tsc --noEmit` 通过；`vite build` 通过（双页产物：主窗口 + 设置窗口；**构建会报 Svelte 警告，请留意**——2026-10-01 就是从构建输出里发现了 26 条长期无人查看的警告，见 [PROGRESS §1.16](docs/PROGRESS.md)）；
 - 真实 Chrome 端到端冒烟：**主窗口 107/107、设置窗口 25/25** 通过（默认仅侧栏 / 面板级联与手柄 / 右键菜单 / 拖拽排序移动 / 手排 / 回收站还原批量 / 多选 / 含回收站搜索 / 设置改键与冲突 / 主题切换、持久化与实时跟随系统 / 标签添加·筛选·移除与置顶分区 / 待办聚合、勾选回写与跳转定位 / 格式工具栏逐字比对、撤销重做、高亮渲染与折叠区 / **宽度分配、可拖拽分隔条与不留白** / 无控制台错误）。
