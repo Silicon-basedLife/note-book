@@ -20,6 +20,8 @@
     "kill-app": "node scripts/kill-running-app.mjs",
     "diagnose:startup": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/diagnose-startup.ps1",
     "shortcut:desktop": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/create-desktop-shortcut.ps1",
+    "link:webview": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/link-webview-dir.ps1",
+    "clean:360": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/remove-360-leftovers.ps1",
     "predesktop:dev": "node scripts/kill-running-app.mjs",
     "predesktop:build": "node scripts/kill-running-app.mjs",
     "predesktop:exe": "node scripts/kill-running-app.mjs",

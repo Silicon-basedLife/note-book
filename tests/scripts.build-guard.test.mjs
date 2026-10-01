@@ -121,8 +121,11 @@ test('文件格式不变量：.bat 必须纯 ASCII（cmd 代码页会把非 ASCI
 });
 
 test('文件格式不变量：.ps1 必须纯 ASCII（PowerShell 5.1 无 BOM 时按 ANSI 读取）', () => {
-  for (const p of ['scripts/diagnose-startup.ps1', 'scripts/setup.ps1', 'scripts/release.ps1', 'scripts/create-desktop-shortcut.ps1']) {
-    if (!existsSync(join(root, p))) continue;
+  // 扫全部脚本，而不是写死名单：新增脚本会自动被覆盖（已经两次踩到"注释里写中文"）。
+  const all = readdirSync(join(root, 'scripts')).filter((name) => name.endsWith('.ps1'));
+  assert.ok(all.length > 0, 'scripts/ 下应有 .ps1 脚本');
+  for (const name of all) {
+    const p = `scripts/${name}`;
     const raw = bytes(p);
     const max = raw.reduce((m, b) => Math.max(m, b), 0);
     assert.ok(max < 128, `${p} 含非 ASCII 字节（最大 ${max}）：请保持纯 ASCII，或用带 BOM 的 UTF-8`);
