@@ -24,8 +24,8 @@ npm run desktop:setup     # = scripts/setup.ps1：装 Rust(如缺) → 装依赖
 数据存放：`%APPDATA%\com.noteapp.desktop\notes\<id>.md`（笔记）+ 同目录 `meta.json`（文件夹等元数据），纯文本可随时备份。
 
 > 说明：本仓库的开发沙箱网络只放行 npm 源，`cargo` 需要的 crates.io / static.rust-lang.org 不可达，
-> 因此 **cargo/tauri 的最终编译需在你的本机终端执行**（`npm run desktop:setup`）。代码侧验证（187 项单测、
-> tsc、vite build、真实 Chrome 冒烟）均已在此环境通过；Rust 薄壳只做 8 个文件读写命令（薄壳核心边界，
+> 因此 **cargo/tauri 的最终编译需在你的本机终端执行**（`npm run desktop:setup`）。代码侧验证（206 项单测、
+> tsc、vite build、真实 Chrome 冒烟、`npm run verify` 规范门禁）均已在此环境通过；Rust 薄壳只做 8 个文件读写命令（薄壳核心边界，
 > 见 [TECH_DESIGN §1.1/§2](docs/TECH_DESIGN.md)），前端存储适配器见 `web/src/lib/core/storage/tauri.ts`。
 >
 > 另外：**打包 MSI/NSIS 安装包**需要 Tauri 从 github.com 下载 NSIS/WiX 工具；若网络访问不了
@@ -175,6 +175,7 @@ demo/                     # 纯前端原型（参照保留）
 
 ## 验证状态
 
-- 单元/集成测试：全绿（`npm test`，**187 项**，见各 `tests/*.test.mjs`；含 `tests/theme.css.test.mjs` 对“颜色必须走主题变量”的样式契约校验、`tests/core.md-format.test.mjs` 对格式工具栏的逐字断言）；
-- `tsc --noEmit` 通过；`vite build` 通过（双页产物：主窗口 + 设置窗口）；
+- 单元/集成测试：全绿（`npm test`，**206 项**，见各 `tests/*.test.mjs`；测试文件按覆盖层命名，约定见 [tests/README.md](tests/README.md)；含 `tests/theme.css.test.mjs` 对“颜色必须走主题变量”的样式契约校验、`tests/core.md-format.test.mjs` 对格式工具栏的逐字断言）；
+- **规范门禁：`npm run verify` 退出码 0** —— 单测 + `tsc --noEmit` + Prettier `--check`（仅 `.ts`/`.mjs`）+ `cargo fmt --check` + `cargo clippy -D warnings`；CI 执行同样五项。格式与行尾约定见 [.editorconfig](.editorconfig) 与 [.gitattributes](.gitattributes)；
+- `tsc --noEmit` 通过；`vite build` 通过（双页产物：主窗口 + 设置窗口；**构建会报 Svelte 警告，请留意**——2026-10-01 就是从构建输出里发现了 26 条长期无人查看的警告，见 [PROGRESS §1.16](docs/PROGRESS.md)）；
 - 真实 Chrome 端到端冒烟：**主窗口 107/107、设置窗口 25/25** 通过（默认仅侧栏 / 面板级联与手柄 / 右键菜单 / 拖拽排序移动 / 手排 / 回收站还原批量 / 多选 / 含回收站搜索 / 设置改键与冲突 / 主题切换、持久化与实时跟随系统 / 标签添加·筛选·移除与置顶分区 / 待办聚合、勾选回写与跳转定位 / 格式工具栏逐字比对、撤销重做、高亮渲染与折叠区 / **宽度分配、可拖拽分隔条与不留白** / 无控制台错误）。

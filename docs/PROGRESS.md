@@ -1,9 +1,9 @@
 # NoteApp 进度与交接（PROGRESS / HANDOFF）
 
 > 用途：上下文交接。新对话请先读本文件，再读 `AGENTS.md`、`README.md`、`docs/ROADMAP.md`、`docs/TECH_DESIGN.md`。
-> 记录时间：HEAD = `ed6bc18`（启动事故记录与编码守卫；其前 `20ed7b3` **修掉"编译一次就把应用搞坏"的根因**、`97cda87`+`b398211`+`0b0bfcc` 启动诊断脚本、`5b740fc` 启动器 CRLF 修复、`7e4eff5` 编译前杀进程、`6e1c414` 回退「回车即换行」、`2e7e8dc` 启动器、`8771f8e`+`144ede7` 回车即换行【已回退】、`93434ae` 布局修复、`5f7c26f` 使用教程、`30f216f` 格式工具栏）。
-> **刚发生过一次启动事故（应用彻底打不开）——结论与全部证据在 §1.12，务必先读**：根因是"强杀应用时 WebView2 正在写 profile"，**与代码无关**；修复=重启+删除 WebView2 profile 目录；防治已实现在 `kill-running-app.mjs`（构建前自动轮换 profile）。
-> 一句话现状：**P0 MVP 全部完成并已在你的 Windows 桌面端跑通**；在此之上完成了大量增强（回收站、拖拽、多选、面板级联、独立设置窗口、存储迁移、QQ 式侧边吸附、**主题**）。当前**只差你在本机重新构建一次并确认 §2 的清单（含主题观感）**。
+> 记录时间：HEAD = `b033e38`（**2026-10-01 全面规范检查**：编码+行尾守卫、Prettier（仅 `.ts`/`.mjs`）、`.editorconfig`、rustfmt/clippy 与 CI 门禁、`npm run verify`、测试分层改名、a11y 与 Svelte 5 响应式修复；其前 `d16e4a7`+`d778a5b` 自签名证书与安装位置、`97b9f7b` **定位「应用打不开」真凶 = 360 残留 minifilter**、`20ed7b3` 强杀后清空 profile、`ed6bc18` 启动事故记录、`6e1c414` 回退「回车即换行」）。
+> **先读两节**：**§1.12** 启动事故（强杀应用时 WebView2 正在写 profile → profile 损坏 → 应用彻底打不开）；**§1.16** 2026-09-30/10-01 完整事故与修复（360 残留过滤驱动按**路径**拦截 `noteapp.exe` 的写入 → WebView2 profile 写不进去 → Tauri `Failed to setup app: 拒绝访问` → 窗口闪一下消失；修法 = 目录重定向 junction + 自签名证书 + 安装到 `%LOCALAPPDATA%\Programs\NoteApp`）。
+> 一句话现状：**P0 MVP 全部完成、桌面端可用**；2026-10-01 又完成一次全面规范检查与修复（§1.16）。**仍待你确认**：§2 清单里"观感类"几条（主题、吸附），以及 §1.16 末尾的两个已知遗留项（父目录写入拦截仍在、5 条 Svelte a11y 警告）。
 
 ---
 
@@ -33,8 +33,10 @@ web/                   前端（Svelte 5 + TS + Vite，双页产物）
   src/settings/         独立设置窗口（Settings.svelte、main.ts）
   scripts/              serve-dist.mjs（静态托管）、ui-smoke.mjs（主窗口冒烟）、settings-smoke.mjs（设置窗口冒烟）
 scripts/setup.ps1       桌面一键构建（装 Rust → 装依赖 → tauri build --no-bundle）
-tests/                  102 项 node:test（core.* + demo 回归）
-demo/                   浏览器原型（已被另一次改动升级为“文件夹+笔记双实体 + IndexedDB”，见 commit a1cba63）
+tests/                  206 项 node:test（分层见 tests/README.md：core.* = web/src、demo.* = demo/ 原型、<产物>.* = 产物级契约）
+demo/                   浏览器原型（已被另一次改动升级为“文件夹+笔记双实体 + IndexedDB”，见 commit a1cba63；去留见 docs/TECH_DESIGN.md）
+docs/import/            导入/解析的人手样本（说明见该目录 README）
+scripts/                构建/诊断/修复脚本（见 §1.16；含 kill-running-app、sign-exe、probe-ui、link-webview-dir、remove-360-leftovers 等）
 ```
 
 ### 0.2 本沙箱环境的硬限制（务必先看，否则会踩坑）
@@ -351,7 +353,8 @@ flex-grow 用比例分配时，**当所有 flex-grow 之和小于 1**，浏览�
 
 ### 1.15 验证现状（本沙箱，当前）
 
-- **单元/集成测试：193 项全绿**（`npm test`；102 → 116（主题）→ 120（实时跟随）→ 129（标签/置顶）→ 142（待办聚合）→ 186（格式工具栏）→ 187（分屏比例）→ **193（+6 项构建脚本守卫，见 §1.12）**。回车即换行那 8 项已随回退移除，见 §1.11）
+- **单元/集成测试：206 项全绿**（`npm test`；102 → 116（主题）→ 120（实时跟随）→ 129（标签/置顶）→ 142（待办聚合）→ 186（格式工具栏）→ 187（分屏比例）→ 193（构建脚本守卫）→ **202（编码守卫）→ 204（规范基础设施）→ 205（测试命名守卫）→ 206（行尾守卫）**。回车即换行那 8 项已随回退移除，见 §1.11）
+- **规范门禁：`npm run verify` 退出码 0**（= 单测 + `tsc --noEmit` + Prettier `--check`（`.ts`/`.mjs`）+ `cargo fmt --check` + `cargo clippy -D warnings`），CI 同步执行这五项
 - **真实 Chrome 冒烟：主窗口 107/107、设置窗口 25/25**（布局 10 项；设置窗口连跑 4 次全过）
 - `tsc --noEmit` 通过；`vite build` 通过（双页产物，含 head 内联主题引导脚本）
 - **桌面端启动**：2026-09-30 事故已定位并修复（见 §1.12）；恢复后用户实测窗口正常
@@ -359,6 +362,90 @@ flex-grow 用比例分配时，**当所有 flex-grow 之和小于 1**，浏览�
 - 环境提示：本沙箱里 `vite build` 与 headless Chrome 都必须以 `danger-full-access` 升级执行（esbuild spawn / Chrome mojo 命名管道）；冒烟脚本要放到后台作业里跑，避免前台超时被中断导致误判；**CDP 实例跑几轮后要换端口重启**（标签页累积会导致 WS 异常，表现为脚本挂住或 `Inspected target navigated or closed`），且 `$env:TEMP` 每次调用都不同、不要用它做跨调用临时文件路径
 - **已知偶发（不是应用缺陷）**：设置窗口冒烟的 `深色选择写入 localStorage` 在**机器高负载**时偶发失败（本沙箱同时跑构建 + 多个 headless Chrome + CDP 脚本时出现过 2 次）。已排查过并排除：不是标签页残留（`/json/close` 收尾正常，跑完只剩 `chrome://newtab`）、不是加载竞态（`{#if !ready}` 已把设置 UI 拦在加载完成之后）、不是应用写盘问题（直连 CDP 诊断里点击后 1.5 秒内 `localStorage` 就是 `dark`）、也不是本次回退引入（该断言在本功能之前就失败过一次）。**低负载下连跑 4 次全 25/25**。若再遇到，直接重跑，不要花时间去查应用代码。
 - **不要用原始字符串匹配 localStorage**：写盘是 300ms 去抖，`raw.includes('"dark"')` 这类断言只看某一瞬间。统一用 `settingsEq(路径, 期望值)`（解析 JSON 后按键路径严格比较，超时 15s）。
+
+### 1.16 2026-09-30 / 10-01 完整事故与修复（"加了个换行，软件就打不开了"）
+
+> 这一节写给未来接手的人（和未来的我）。用户的主观因果（"加了换行就废了"）与代码事实不一致，
+> 过程里我判断错多次——**请连"我错过什么"一起读**，否则会重走弯路。
+
+#### 时间线（本地时间）
+
+| 时刻 | 事件 |
+| --- | --- |
+| 9-30 21:13 | 应用正常运行（WebView2 正在写自己的 profile） |
+| 9-30 21:14 | **我让用户执行 `npm run desktop:setup`**，其 prebuild 钩子 `taskkill /f` 强杀应用 → **profile 被写坏** |
+| 9-30 21:15 | 重新编译出的 exe 首次启动失败 |
+| 9-30 21:22 起 | 每次双击 exe：**窗口闪一下就消失**；用户把时间点归因于"刚加了回车即换行" |
+| 9-30 22:02 | 我回退换行改动并重新编译 → **仍然失败**（这一步证明与换行无关） |
+| 9-30 23:20 | 加入启动日志与 panic 钩子（release 是 `windows_subsystem="windows"`，panic 文本被系统丢弃 → 之前完全无报错可查） |
+| 9-30 23:35 | 日志给出铁证：`WRITE FAILED: %LOCALAPPDATA%\com.noteapp.desktop -> 拒绝访问 (os error 5)` |
+| 10-01 00:03 | `remove-360-leftovers.ps1` 停止并禁用 360 残留驱动 `360Box64` |
+| 10-01 09:48 | 自签名代码签名证书；弹窗从"未知发布者"变为显示 `NoteApp Local Build` |
+| 10-01 10:2x | 全面规范检查（本节下半部分） |
+
+#### 三层根因（互相独立，缺一不可）
+
+1. **profile 被写坏（我的操作）**：强杀时 WebView2 正在写 `EBWebView`，之后每次启动 Tauri 都在
+   `setup()`（建窗口/建 webview）失败。→ 防治：构建前钩子改为**清空 profile 内容**；
+   **目录本体既不能删也不能改名**——在下面第 2 条那台机器上，应用自己建不出这个路径。
+2. **360 残留过滤驱动按路径拦截**：`360Box64`（DisplayName `360Box mini-filter driver`，360.cn WHQL 签名，
+   `Group=FSFilter Activity Monitor`，`Start=1` 随系统启动）在运行。**同一目录用非沙箱进程实测可创建、
+   可写入，ACL 无任何拒绝项，只有 `noteapp.exe` 写不进去** → 拦截挂在"路径 + 程序"上，不是权限问题。
+   旁证：**360 安全卫士并未安装**（卸载列表只有 360 安全浏览器），但存在
+   `HKLM\SOFTWARE\WOW6432Node\360Safe`、`%APPDATA%\360safe\SoftMgr`、空的
+   `C:\Program Files (x86)\360` 与那个驱动 → **是卫士的卸载残留**。
+   → 修法：把 `%LOCALAPPDATA%\com.noteapp.desktop\EBWebView` 做成**目录链接（junction）**指向可写位置
+   （`scripts/link-webview-dir.ps1` / `npm run link:webview`）。日志随即变成
+   `writable : ...\EBWebView`，窗口恢复 `visible=True pos=(208,208) size=248x799`。
+3. **exe 未签名** → 每次重新编译都弹"无法验证发布者"（新二进制 = 未建立信任；与代码内容无关）。
+   → 修法：`scripts/sign-exe.ps1` / `npm run sign:exe`：自建 `CN=NoteApp Local Build` 代码签名证书 →
+   导入 `CurrentUser\Root` 与 `CurrentUser\TrustedPublisher` → 签名 → **回读校验 `Status -eq 'Valid'`**。
+   已接入 `postdesktop:exe|build|dev`，并把 exe 安装到 `%LOCALAPPDATA%\Programs\NoteApp`（桌面图标指向它）。
+
+#### 我判断错的（弯路清单，别再走）
+
+- "侧边吸附把窗口藏起来了"（错：`side-dock.ts` 从不 close）
+- "ACL 被改坏"（错：ACL 一直正常）
+- "沙箱里能复现"（错：沙箱本就不允许写 `%LOCALAPPDATA%`；后来用**非沙箱**进程才拿到有效对照）
+- "杀不掉 = 有安全层保护"（错：能杀）
+- "`msedgewebview2` 归属/是否需要一起杀"（错）
+- "WebView2 引导程序能修复"（错：它只在缺失时安装）
+- "清空 profile 后首屏空白 = 软件坏了"（错：那是 profile 重建的瞬时状态；用 `probe-ui` 取证
+  才确认界面渲染正常：131 个元素、所有资源与 IPC 成功、无 JS 异常）
+
+#### 本轮新增的工具（都在 `scripts/`，纯 ASCII，均有守卫测试）
+
+| 脚本 | 用途 |
+| --- | --- |
+| `diagnose-startup.ps1` | 启动诊断：杀进程、profile 状态、MainWindowHandle/坐标、事件日志 1000 崩溃查询 |
+| `probe-ui.ps1` | **"窗口空白"取证**：连 WebView2 远程调试，报页面状态、已加载资源、JS 异常，可截图 |
+| `sign-exe.ps1` | 自签名证书 + 签名 + 回读校验（幂等） |
+| `link-webview-dir.ps1` | 建立/校验 profile 目录重定向（遇到非空真实目录会拒绝删除） |
+| `remove-360-leftovers.ps1` | 清理 360 卫士残留（**必须管理员**；先备份；`D:\360se6`、`D:\360MoveData` 命中即中止） |
+| `kill-running-app.mjs` | 构建前：杀应用 + 清空 profile 内容（保留目录/链接本体） |
+| `postbuild-unblock.mjs` | 构建后：去掉网络标记（等价右键"解除锁定"） |
+
+#### 2026-10-01 全面规范检查（同一批提交）
+
+| 问题 | 处理 |
+| --- | --- |
+| `.gitignore` **不是合法 UTF-8**（我用 `Add-Content` 追加中文，PS 5.1 默认按 ANSI 写进了 GBK 字节） | 重写为 UTF-8；**并补上守卫盲区**——原 `walk()` 跳过所有 `.` 开头项，`.gitignore`/`.gitattributes`/`.github` 从未被扫描 |
+| 行尾不一致（混合 + 7 个 `.ps1` 为 LF） | `.gitattributes` 统一 `* text=auto eol=lf` + Windows 脚本 CRLF；新增**行尾守卫** |
+| 完全没有 lint/format 工具链 | `.editorconfig`；Prettier **只作用于 `.ts`/`.mjs`**（43 文件）；`npm run verify` 与 CI 跑 prettier/rustfmt/clippy |
+| `cargo fmt --check` 失败 | `cargo fmt`（纯排版，无语义改动） |
+| 测试命名不体现覆盖层（`markdown.test.mjs`/`store.test.mjs` 实际测 `demo/`） | 改名 `demo.*`；新增 `tests/README.md` 与**命名守卫**（只认真的 import/读取，注释里提到不算） |
+| Svelte 编译警告 26 条（此前没人看构建输出） | 20 处 `<label>` 语义误用 → `span.row-title`（**视觉零变化**）；**1 处真实响应式 bug**：`let core: NoteCore`（非 `$state`）却被模板引用 → 新增 `storageLabel = $state('')`。警告 26 → 5 |
+| 文档数字过期、`docs/import` 无人引用 | README/PROGRESS 计数更新；`docs/import` **补 README 说明用途**（不删用户内容） |
+
+#### 已知遗留（不在本轮范围）
+
+1. **`%LOCALAPPDATA%\com.noteapp.desktop` 父目录仍写不进去**（360 驱动已停止+禁用后依然如此）→
+   **`EBWebView` 的 junction 必须保留**，删掉应用就回到"闪一下就消失"。
+   下一步可查 Windows Defender **受控文件夹访问**（`Get-MpPreference` 需要管理员，本轮被拒）。
+2. **5 条 Svelte a11y 警告**：`App.svelte` 里 `<div>`/`<span>` 绑定 click/contextmenu 却缺 ARIA role 与
+   键盘处理。修它要动交互结构（角色、tabindex、键盘路径），属独立任务。
+3. **`360Box64` 驱动文件仍在**（已 `Start=4` 禁用、已 Stopped）；重启后跑 `npm run clean:360` 彻底删除
+   （备份在 `C:\ProgramData\noteapp-360-backup-*`）。
 
 ---
 
@@ -447,19 +534,26 @@ flex-grow 用比例分配时，**当所有 flex-grow 之和小于 1**，浏览�
 
 ### 3.3 技术债 / 已知小问题（不影响功能）
 
-- Svelte 编译告警：若干 `a11y_*`（div 带 click/contextmenu 缺 role/键盘处理）与 `core` 未用 `$state` 的 non_reactive 提示；构建通过，属提示。
+- Svelte 编译告警（**2026-10-01 规范检查已处理主干**）：原 26 条 → 现在 **5 条**。已修：20 处 `<label>` 语义误用（改 `span.row-title`，视觉零变化）、1 处真实响应式 bug（`let core: NoteCore` 非 `$state` 却被模板引用 → 改为 `storageLabel = $state('')`）。**剩下 5 条**是 `App.svelte` 里 `<div>`/`<span>` 绑 click/contextmenu 缺 ARIA role 与键盘处理，属独立任务（见 §1.16 遗留 2）。**教训：构建输出必须看**——这 26 条警告存在很久，此前没人读 `npm run build` 的输出。
 - Rust 侧没有本地编译验证通道（无 cargo），依赖用户机器构建；建议每次改 Rust 后让用户回贴 cargo 输出。
 - `demo/` 与被 `a1cba63` 升级后的 `demo/js/db.mjs`、`tests/demo.store.test.mjs` 相关测试仍在跑，属于原型层，不影响生产实现。（**2026-10-01 规范检查**：该层测试已统一加 `demo.` 前缀，分层约定见 `tests/README.md`，并由 `tests/scripts.build-guard.test.mjs` 强制。）
 - **Svelte 5 响应式坑（已踩过两次，务必记住）**：`$derived` 不会追踪「被它调用的函数内部」读取的 state。凡是要随数据变化的派生值，必须在 `$derived` 表达式里**直接读** state（如 `listItems`），或改由 `refresh()` 显式写入 state（如 `allTags`）。写成 `someFn(core.xxx())` 只会算一次并永久停留在首次结果。
 - **`execCommand('insertText')` 的坑（见 §1.9）**：它是“在光标处插入”，**不会**替你删除选区。要用它替换一段区间，必须先 `setSelectionRange(replaceStart, replaceEnd)`，并在调用后用 `textarea.value === 期望文本` 校验结果。同理，写断言时不要只用 `startsWith`/`includes`——用**逐字比对**才能拦住“局部看起来对”的缺陷。
 - **flex-grow 之和 < 1 的坑（见 §1.10）**：flex 分配剩余空间时，若所有 flex-grow 之和**小于 1**，浏览器按「各自的 grow × 剩余空间」分配，余量**留在原处**（不归一化）。`flex: 0.5 1 0` 单独一个子元素只能拿到一半宽度。所以“单个子元素占满”要么让 grow 和为 1，要么显式 `:only-child { flex-grow: 1 }`。
 - **断言里的“按位置取元素”很脆**：`document.querySelector('.settings-body select')` 这类“第一个下拉/第一个按钮”的定位，在页面上插入新行后就会指到别的元素（§1.10 与主题那轮都踩过）。新写断言请按 **id 或语义标签** 定位。
-- **绝不要在 WebView2 正在使用 profile 时强杀应用（见 §1.12，代价最大的一条教训）**：WebView2 的浏览器进程**不随宿主退出**，被砍断的 profile 会损坏，此后每次启动都失败在 Tauri 的 `setup()`（建窗口/建 webview），而 release 是 GUI 子系统——**panic 文本被丢弃，用户只看到"窗口闪一下"或"没窗口"**。要么优雅关闭，要么强杀后**轮换 profile**（`kill-running-app.mjs` 已经这么做了）。
+- **绝不要在 WebView2 正在使用 profile 时强杀应用（见 §1.12，代价最大的一条教训）**：WebView2 的浏览器进程**不随宿主退出**，被砍断的 profile 会损坏，此后每次启动都失败在 Tauri 的 `setup()`（建窗口/建 webview），而 release 是 GUI 子系统——**panic 文本被丢弃，用户只看到"窗口闪一下"或"没窗口"**。要么优雅关闭，要么强杀后**清空 profile 内容**（`kill-running-app.mjs` 已经这么做）。
+  **注意别再写成"轮换/改名"**：`EBWebView` 可能是指向可写位置的 junction（见 §1.16），改名会让链接失效；而在被 360 残留驱动按路径拦截的机器上，**应用自己建不出这个路径**，目录一消失应用就彻底起不来。所以：**只清空内容，目录/链接本体一律保留。** 已加守卫断言（`tests/scripts.build-guard.test.mjs` 明确禁止对 profile 用 `renameSync`/直接 `rmSync`）。
 - **`launch-noteapp.bat` 必须 CRLF**（见 §1.12）：cmd.exe 解析 LF-only 的批处理会错乱，**把 REM 注释当命令执行**，报一屏"不是内部或外部命令"。已用 `.gitattributes`（`*.bat eol=crlf`）+ 单测双重锁住。
 - **`*.ps1` 必须纯 ASCII**（见 §1.12）：Windows PowerShell 5.1 在**没有 BOM** 时按 ANSI 读取 `.ps1`，UTF-8 中文会变乱码并**撑坏语法**（`Unexpected token`）。`setup.ps1` 开头早就写了这条约定，`diagnose-startup.ps1` 起初违反了它。要中文就用**带 BOM 的 UTF-8**，否则保持 ASCII。已加单测。
 - **绝不要用 PowerShell 的 `Get-Content`/`Set-Content` 改本仓库的 UTF-8 文件（本人已因此毁掉一次 PROGRESS.md）**：5.1 默认按 ANSI 读，中文变乱码后写回就**不可逆**（实测 1057 处字节丢失，逆变换只能恢复 99%）。要改文本请用编辑工具；必须用脚本时显式指定 `[System.IO.File]::ReadAllText($p,[Text.Encoding]::UTF8)` + `WriteAllText(..., UTF8Encoding($false))`。已加乱码特征的单测守卫。
 - **验证要针对最终产物本身，不要验证"等价副本"**（见 §1.12）：我曾用 `Out-File` 另写一个等价 `.bat` 做验证（PowerShell 默认给 CRLF），副本通过而真文件是坏的。同理 `.ps1` 的语法要用 `Parser::ParseFile` 对着真文件跑。
 - **别把命令输出管到 `Select-Object -First N`**（见 §1.12）：PowerShell 提前关闭管道会**杀掉上游进程**，脚本的后半段（例如 profile 剪枝）根本不会执行——我因此误判"剪枝失效"。
+- **`git commit -m` 里不要放中文引号/`$()`/反引号（本人已因此失败三次，见 §1.16）**：PowerShell 会先解析这些字符，提交根本不会生成（报 `Invalid path` 或把词当命令执行）。**一律写入消息文件后用 `git commit -F 文件`**，并把消息文件放在 `.gitignore` 覆盖的 `.git-msg-*.txt`。
+- **不要用 `Add-Content` 往 UTF-8 文件追加中文**（见 §1.16）：Windows PowerShell 5.1 的 `Add-Content` 默认按 **ANSI(GBK)** 写，于是 `.gitignore` 里混进了 GBK 字节，`read`/严格 UTF-8 解码直接失败（Node 宽容解码所以一直没暴露）。要追加中文就用编辑工具，或显式 `WriteAllText(..., UTF8Encoding($false))`。
+- **工作树行尾可能和 `.gitattributes` 不一致，成因是 `core.autocrlf=true`（本仓库实测就是 true）**（见 §1.16）：git 在**检出时**把 LF 转成 CRLF，而**提交里存的其实是 LF**（用 `git show <rev>:<path>` 逐字节验证过：`docs/PROGRESS.md` 历史版本 CR=0/LF=590）。因此一次规范检查后，6 个文档（`AGENTS.md`/`README.md`/`使用教程.md`/`docs/PROGRESS.md` 等）的**工作树**行尾悄悄变成 CRLF，与刚统一的 `eol=lf` 约定不符。加了显式 `.gitattributes` 后**属性优先于 `autocrlf`**，下次检出即正确；**提交前跑 `npm run verify`**（含行尾守卫），别再靠肉眼。
+  > ⚠️ 更正：提交 `b033e38` 的消息里我把成因写成"编辑工具会写 CRLF"——**那是错的**，真实成因是 `core.autocrlf=true`（该提交的代码改动与守卫本身没有问题，仅这句归因有误，在此更正）。
+- **守卫的启发式要能证明有效，也要能证明不误报**（见 §1.16）：我给"测试命名规范"写的第一版规则是"文件里出现 `demo/` 就算覆盖 demo"，结果把**注释里提到 demo/** 的两个文件误报。定规矩后必须**双向实测**：造一个真违规看它是否失败，删掉后确认没有误报。
+- **引入格式化工具前先量代价**（见 §1.16）：Prettier 全量重排是 **56 文件 / +6907−1794 行**（`app.css` 一个文件 1656 行，把作者刻意的紧凑单行写法全展开）。与用户确认后只作用于 `.ts`/`.mjs`（43 文件/+1895−476），并把"为什么排除 CSS/Svelte/Markdown"写进 `.prettierignore` + 守卫测试，避免以后有人"顺手"全量格式化。
 - `App.svelte` 里保留了一个 Web 预览专用的诊断钩子 `window.__diag()`（仅 `!isTauri()` 时挂载），用于排障与冒烟定位；如果觉得碍事可以删。
 
 ---
