@@ -55,11 +55,24 @@ if ($summary) {
   '```' | Out-File -Append -Encoding utf8 $summary
 }
 
-# Annotations are also publicly readable, and they pin the first meaningful error line.
+# Annotations are also publicly readable, and they must carry enough context to act on.
+# The failing detail often sits on the lines AFTER the match (for example a guard's list of
+# offenders after "AssertionError: Expected values to be strictly deep-equal:"), so take a
+# window around every hit rather than the matching line alone.
 # (ASCII only: node:test prints "not ok" for failures, so no non-ASCII marker is needed here.)
-$hits = $lines | Where-Object { $_ -match 'not ok|Error|error:|Cannot find|FAIL|failed' } | Select-Object -First 5
-$detail = if ($hits) { ($hits | ForEach-Object { $_.Trim() }) -join ' || ' } else { "exit code $code" }
-if ($detail.Length -gt 900) { $detail = $detail.Substring(0, 900) }
+$hitIndexes = @()
+for ($i = 0; $i -lt $lines.Count; $i++) {
+  if ($lines[$i] -match 'not ok|Error|error:|Cannot find|FAIL|failed') { $hitIndexes += $i }
+  if ($hitIndexes.Count -ge 3) { break }
+}
+$picked = @()
+foreach ($i in $hitIndexes) {
+  $from = [Math]::Max(0, $i - 1)
+  $to = [Math]::Min($lines.Count - 1, $i + 6)
+  for ($j = $from; $j -le $to; $j++) { if ($lines[$j].Trim()) { $picked += $lines[$j].Trim() } }
+}
+$detail = if ($picked.Count) { ($picked | Select-Object -Unique) -join ' || ' } else { "exit code $code" }
+if ($detail.Length -gt 1900) { $detail = $detail.Substring(0, 1900) }
 Write-Host "::error title=$Label failed::$detail"
 
 exit $code
