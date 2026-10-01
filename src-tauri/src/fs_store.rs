@@ -113,7 +113,8 @@ fn read_meta_map(app: &AppHandle) -> Result<serde_json::Map<String, Value>, Stri
         return Ok(serde_json::Map::new());
     }
     let text = fs::read_to_string(&path).map_err(|e| format!("读取 meta.json 失败: {e}"))?;
-    let parsed: Value = serde_json::from_str(&text).map_err(|e| format!("meta.json 解析失败: {e}"))?;
+    let parsed: Value =
+        serde_json::from_str(&text).map_err(|e| format!("meta.json 解析失败: {e}"))?;
     match parsed {
         Value::Object(map) => Ok(map),
         _ => Ok(serde_json::Map::new()),
@@ -122,7 +123,8 @@ fn read_meta_map(app: &AppHandle) -> Result<serde_json::Map<String, Value>, Stri
 
 fn write_meta_map(app: &AppHandle, map: &serde_json::Map<String, Value>) -> Result<(), String> {
     let path = meta_file(app)?;
-    let text = serde_json::to_string_pretty(map).map_err(|e| format!("meta.json 序列化失败: {e}"))?;
+    let text =
+        serde_json::to_string_pretty(map).map_err(|e| format!("meta.json 序列化失败: {e}"))?;
     fs::write(&path, text).map_err(|e| format!("写入 meta.json 失败: {e}"))
 }
 
@@ -204,7 +206,9 @@ pub fn read_settings(app: AppHandle) -> Result<Option<String>, String> {
     if !path.exists() {
         return Ok(None);
     }
-    fs::read_to_string(&path).map(Some).map_err(|e| format!("读取设置失败: {e}"))
+    fs::read_to_string(&path)
+        .map(Some)
+        .map_err(|e| format!("读取设置失败: {e}"))
 }
 
 #[tauri::command]
@@ -256,16 +260,25 @@ fn open_in_file_manager(path: &Path) -> std::io::Result<()> {
     }
     #[cfg(target_os = "macos")]
     {
-        std::process::Command::new("open").arg(path).spawn().map(|_| ())
+        std::process::Command::new("open")
+            .arg(path)
+            .spawn()
+            .map(|_| ())
     }
     #[cfg(all(unix, not(target_os = "macos")))]
     {
-        std::process::Command::new("xdg-open").arg(path).spawn().map(|_| ())
+        std::process::Command::new("xdg-open")
+            .arg(path)
+            .spawn()
+            .map(|_| ())
     }
     #[cfg(not(any(target_os = "windows", target_os = "macos", unix)))]
     {
         let _ = path;
-        Err(std::io::Error::new(std::io::ErrorKind::Unsupported, "unsupported platform"))
+        Err(std::io::Error::new(
+            std::io::ErrorKind::Unsupported,
+            "unsupported platform",
+        ))
     }
 }
 
@@ -337,8 +350,10 @@ pub fn migrate_notes(app: AppHandle, target: String) -> Result<StorageInfo, Stri
     let _ = copied;
 
     let pointer = serde_json::json!({ "notesDir": display_path(&dest_abs) });
-    let text = serde_json::to_string_pretty(&pointer).map_err(|e| format!("写入存储配置失败: {e}"))?;
-    fs::write(base_dir(&app)?.join(STORAGE_FILE), text).map_err(|e| format!("保存存储配置失败: {e}"))?;
+    let text =
+        serde_json::to_string_pretty(&pointer).map_err(|e| format!("写入存储配置失败: {e}"))?;
+    fs::write(base_dir(&app)?.join(STORAGE_FILE), text)
+        .map_err(|e| format!("保存存储配置失败: {e}"))?;
 
     storage_info(&app)
 }

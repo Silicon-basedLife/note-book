@@ -14,7 +14,9 @@ fn log_path() -> PathBuf {
             return dir.join("noteapp-log.txt");
         }
     }
-    let base = std::env::var("TEMP").or_else(|_| std::env::var("TMP")).unwrap_or_else(|_| ".".into());
+    let base = std::env::var("TEMP")
+        .or_else(|_| std::env::var("TMP"))
+        .unwrap_or_else(|_| ".".into());
     PathBuf::from(base).join("noteapp-log.txt")
 }
 
@@ -26,7 +28,11 @@ fn append_log(text: &str) {
             let _ = std::fs::remove_file(&path);
         }
     }
-    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(&path) {
+    if let Ok(mut f) = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&path)
+    {
         let _ = f.write_all(text.as_bytes());
     }
 }
@@ -40,7 +46,9 @@ fn log_startup() {
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_secs())
         .unwrap_or(0);
-    let cwd = std::env::current_dir().map(|p| p.display().to_string()).unwrap_or_else(|_| "?".into());
+    let cwd = std::env::current_dir()
+        .map(|p| p.display().to_string())
+        .unwrap_or_else(|_| "?".into());
     let args: Vec<String> = std::env::args().collect();
     append_log(&format!(
         "\n=== NoteApp start (epoch {secs}) ===\nversion: {}\ncwd: {cwd}\nargs: {args:?}\n",
