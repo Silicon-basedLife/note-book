@@ -205,7 +205,7 @@
         <section class="card">
           <div class="row">
             <div class="row-main">
-              <label>主题</label>
+              <span class="row-title">主题</span>
               <p class="hint">浅色 / 深色 / 跟随系统；{themeDetail}（主窗口与设置窗口同时生效）</p>
             </div>
             <div class="theme-preview">
@@ -222,7 +222,7 @@
           </div>
           <div class="row">
             <div class="row-main">
-              <label>启动布局</label>
+              <span class="row-title">启动布局</span>
               <p class="hint">打开应用时显示到哪一级（图3 仅侧栏 → 图4 列表 → 图5 完整）</p>
             </div>
             <select id="start-layout" value={s.general.startLayout} onchange={(e) => { s.general.startLayout = (e.target as HTMLSelectElement).value as AppSettings['general']['startLayout']; scheduleSave(); }}>
@@ -233,7 +233,7 @@
           </div>
           <div class="row">
             <div class="row-main">
-              <label>记住面板开合</label>
+              <span class="row-title">记住面板开合</span>
               <p class="hint">开启后，重启沿用上次的面板状态与所在文件夹</p>
             </div>
             <input type="checkbox" checked={s.general.rememberPanels} onchange={(e) => { s.general.rememberPanels = (e.target as HTMLInputElement).checked; scheduleSave(); }} />
@@ -249,7 +249,7 @@
           {#each ACTIONS as a (a.id)}
             <div class="row">
               <div class="row-main">
-                <label>{a.label}</label>
+                <span class="row-title">{a.label}</span>
                 {#if a.description}<p class="hint">{a.description}</p>{/if}
               </div>
               <button class="keycap" class:capturing={capturing === a.id} onclick={() => { capturing = a.id; shortcutError = null; }}>
@@ -268,14 +268,14 @@
           <p class="hint">当前为浏览器预览模式，存储位置管理仅在桌面版可用。</p>
         {:else if storage}
           <section class="card">
-            <div class="row"><div class="row-main"><label>当前笔记目录</label><p class="hint mono">{storage.notesDir || '（未获取到路径）'}</p></div>
+            <div class="row"><div class="row-main"><span class="row-title">当前笔记目录</span><p class="hint mono">{storage.notesDir || '（未获取到路径）'}</p></div>
               <button class="btn-ghost small" disabled={!storage.notesDir} onclick={() => void doOpen(storage!.notesDir)}>打开</button></div>
-            <div class="row"><div class="row-main"><label>应用数据目录</label><p class="hint mono">{storage.dataDir || '（未获取到路径）'}</p></div>
+            <div class="row"><div class="row-main"><span class="row-title">应用数据目录</span><p class="hint mono">{storage.dataDir || '（未获取到路径）'}</p></div>
               <button class="btn-ghost small" disabled={!storage.dataDir} onclick={() => void doOpen(storage!.dataDir)}>打开</button></div>
-            <div class="row"><div class="row-main"><label>设置文件</label><p class="hint mono">{storage.settingsFile || '（未获取到路径）'}</p></div></div>
+            <div class="row"><div class="row-main"><span class="row-title">设置文件</span><p class="hint mono">{storage.settingsFile || '（未获取到路径）'}</p></div></div>
           </section>
           <section class="card">
-            <div class="row-main"><label>更改存储位置（迁移）</label>
+            <div class="row-main"><span class="row-title">更改存储位置（迁移）</span>
               <p class="hint">把现有笔记与 meta.json 复制到新目录并切换；建议选择<b>空目录</b>。原目录内容会保留作为备份。</p></div>
             <div class="migrate-row">
               <input type="text" placeholder="点击“浏览…”选择，或直接输入 例如 D:\NoteAppData" value={migratePath} oninput={(e) => (migratePath = (e.target as HTMLInputElement).value)} />
@@ -295,7 +295,7 @@
         <h2>编辑器</h2>
         <section class="card">
           <div class="row">
-            <div class="row-main"><label>默认视图</label><p class="hint">打开笔记时的默认显示方式</p></div>
+            <div class="row-main"><span class="row-title">默认视图</span><p class="hint">打开笔记时的默认显示方式</p></div>
             <select value={s.editor.defaultMode} onchange={(e) => { s.editor.defaultMode = (e.target as HTMLSelectElement).value as AppSettings['editor']['defaultMode']; scheduleSave(); }}>
               <option value="edit">编辑</option>
               <option value="split">分屏</option>
@@ -303,12 +303,12 @@
             </select>
           </div>
           <div class="row">
-            <div class="row-main"><label>自动保存去抖</label><p class="hint">{AUTO_SAVE_RANGE.min}–{AUTO_SAVE_RANGE.max} 毫秒；越小越即时，越大越省写入</p></div>
+            <div class="row-main"><span class="row-title">自动保存去抖</span><p class="hint">{AUTO_SAVE_RANGE.min}–{AUTO_SAVE_RANGE.max} 毫秒；越小越即时，越大越省写入</p></div>
             <input type="number" min={AUTO_SAVE_RANGE.min} max={AUTO_SAVE_RANGE.max} step="50" value={s.editor.autoSaveMs}
               oninput={(e) => { s.editor.autoSaveMs = Number((e.target as HTMLInputElement).value); scheduleSave(); }} />
           </div>
           <div class="row">
-            <div class="row-main"><label>拼写检查</label><p class="hint">编辑器内启用系统拼写检查（默认关闭）</p></div>
+            <div class="row-main"><span class="row-title">拼写检查</span><p class="hint">编辑器内启用系统拼写检查（默认关闭）</p></div>
             <input type="checkbox" checked={s.editor.spellcheck} onchange={(e) => { s.editor.spellcheck = (e.target as HTMLInputElement).checked; scheduleSave(); }} />
           </div>
         </section>
@@ -318,11 +318,11 @@
         <h2>窗口与吸附</h2>
         <section class="card">
           <div class="row">
-            <div class="row-main"><label>侧边吸附</label><p class="hint">拖到屏幕边缘时贴边停靠，鼠标离开后缩进</p></div>
+            <div class="row-main"><span class="row-title">侧边吸附</span><p class="hint">拖到屏幕边缘时贴边停靠，鼠标离开后缩进</p></div>
             <input type="checkbox" checked={s.dock.enabled} onchange={(e) => { s.dock.enabled = (e.target as HTMLInputElement).checked; scheduleSave(); }} />
           </div>
           <div class="row">
-            <div class="row-main"><label>吸附侧</label></div>
+            <div class="row-main"><span class="row-title">吸附侧</span></div>
             <select value={s.dock.side} onchange={(e) => { s.dock.side = (e.target as HTMLSelectElement).value as AppSettings['dock']['side']; scheduleSave(); }}>
               <option value="both">左右都支持</option>
               <option value="left">仅左侧</option>
@@ -330,21 +330,21 @@
             </select>
           </div>
           <div class="row">
-            <div class="row-main"><label>缩进延迟</label><p class="hint">{HIDE_DELAY_RANGE.min}–{HIDE_DELAY_RANGE.max} 毫秒（鼠标离开窗口后）</p></div>
+            <div class="row-main"><span class="row-title">缩进延迟</span><p class="hint">{HIDE_DELAY_RANGE.min}–{HIDE_DELAY_RANGE.max} 毫秒（鼠标离开窗口后）</p></div>
             <input type="number" min={HIDE_DELAY_RANGE.min} max={HIDE_DELAY_RANGE.max} step="500" value={s.dock.hideDelayMs}
               oninput={(e) => { s.dock.hideDelayMs = Number((e.target as HTMLInputElement).value); scheduleSave(); }} />
           </div>
           <div class="row">
-            <div class="row-main"><label>缩进后置顶</label></div>
+            <div class="row-main"><span class="row-title">缩进后置顶</span></div>
             <input type="checkbox" checked={s.dock.topmost} onchange={(e) => { s.dock.topmost = (e.target as HTMLInputElement).checked; scheduleSave(); }} />
           </div>
           <div class="row">
-            <div class="row-main"><label>唤出热区宽度</label><p class="hint">{HOT_ZONE_RANGE.min}–{HOT_ZONE_RANGE.max} 像素（屏幕边缘）</p></div>
+            <div class="row-main"><span class="row-title">唤出热区宽度</span><p class="hint">{HOT_ZONE_RANGE.min}–{HOT_ZONE_RANGE.max} 像素（屏幕边缘）</p></div>
             <input type="number" min={HOT_ZONE_RANGE.min} max={HOT_ZONE_RANGE.max} value={s.dock.hotZonePx}
               oninput={(e) => { s.dock.hotZonePx = Number((e.target as HTMLInputElement).value); scheduleSave(); }} />
           </div>
           <div class="row">
-            <div class="row-main"><label>仅侧栏态生效</label><p class="hint">只在图3（仅侧栏）时吸附，展开后自动取消停靠</p></div>
+            <div class="row-main"><span class="row-title">仅侧栏态生效</span><p class="hint">只在图3（仅侧栏）时吸附，展开后自动取消停靠</p></div>
             <input type="checkbox" checked={s.dock.onlySidebar} onchange={(e) => { s.dock.onlySidebar = (e.target as HTMLInputElement).checked; scheduleSave(); }} />
           </div>
         </section>
@@ -353,11 +353,11 @@
       {#if tab === 'about'}
         <h2>关于</h2>
         <section class="card">
-          <div class="row"><div class="row-main"><label>NoteApp</label><p class="hint">本地 Markdown 笔记 · 版本 {storage?.appVersion ?? '0.1.0'}</p></div></div>
-          <div class="row"><div class="row-main"><label>数据位置</label><p class="hint mono">{storage?.notesDir ?? '（浏览器预览模式）'}</p></div>
+          <div class="row"><div class="row-main"><span class="row-title">NoteApp</span><p class="hint">本地 Markdown 笔记 · 版本 {storage?.appVersion ?? '0.1.0'}</p></div></div>
+          <div class="row"><div class="row-main"><span class="row-title">数据位置</span><p class="hint mono">{storage?.notesDir ?? '（浏览器预览模式）'}</p></div>
             {#if storage}<button class="btn-ghost small" onclick={() => void doOpen(storage!.dataDir)}>打开数据目录</button>{/if}
           </div>
-          <div class="row"><div class="row-main"><label>快捷键入口</label><p class="hint">⌘/Ctrl + , 可随时打开本设置窗口</p></div></div>
+          <div class="row"><div class="row-main"><span class="row-title">快捷键入口</span><p class="hint">⌘/Ctrl + , 可随时打开本设置窗口</p></div></div>
         </section>
       {/if}
     </main>
@@ -381,7 +381,7 @@
   .row { display: flex; align-items: center; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--divider); }
   .row:last-child { border-bottom: none; }
   .row-main { flex: 1; min-width: 0; }
-  .row-main label { font-size: 13.5px; }
+  .row-main .row-title { font-size: 13.5px; }
   .hint { margin: 2px 0 0; font-size: 12px; color: var(--text-2); }
   .mono { font-family: var(--mono); font-size: 12px; word-break: break-all; }
   .err { color: var(--danger); font-size: 12.5px; margin: 6px 0; }

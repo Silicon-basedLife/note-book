@@ -65,6 +65,8 @@
 
   // ---------- 全局状态 ----------
   let core: NoteCore;
+  /** 侧栏存储位置文案：必须走 $state，否则赋值后模板不会更新（Svelte 5 会告警） */
+  let storageLabel = $state('');
   let dock: SideDock | null = null; // QQ 式侧边吸附（仅桌面 Tauri）
   let ready = $state(false);
   let folders = $state<string[]>([]);
@@ -1339,6 +1341,7 @@
       themeFollower.update(loaded.general.theme);
       registerActions(loaded);
       core = await createCore();
+      storageLabel = isTauri() ? '本机文件' : '本机（IndexedDB）';
       core.on(() => refresh());
       ready = true;
       refresh();
@@ -1482,7 +1485,7 @@
       <div class="sb-foot">
         <button class="btn-ghost" onclick={() => void openSettingsWindow()}>⚙️ 设置</button>
         <button class="btn-ghost" onclick={() => (helpOpen = true)}>⌨️ 快捷键</button>
-        <span class="sb-storage">存储：{core ? (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window ? '本机文件' : '本机（IndexedDB）') : ''}</span>
+        <span class="sb-storage">存储：{storageLabel}</span>
       </div>
     </aside>
 
