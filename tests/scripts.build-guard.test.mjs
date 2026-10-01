@@ -32,12 +32,17 @@ test('构建钩子：所有 tauri 构建入口都先跑 scripts/kill-running-app
   assert.match(scripts['predesktop:setup'] ?? '', /kill-running-app\.mjs/);
 });
 
-test('构建钩子：强杀应用后会轮换 WebView2 profile（否则会把它写坏）', () => {
+test('构建钩子：强杀应用后清空 WebView2 profile，但必须保留 profile 目录本身', () => {
   const src = read('scripts/kill-running-app.mjs');
   assert.match(src, /EBWebView/, '必须处理 WebView2 数据目录');
-  assert.match(src, /rotated-/, '必须把 profile 改名轮换，而不是继续复用');
+  assert.match(src, /readdirSync\(profile\)/, '必须清空 profile 的内容');
+  // 关键不变量（2026-09-30 的教训）：目录本身既不能删也不能改名。
+  // 在"安全软件按路径拦截这个 exe 写入"的机器上，应用自己建不出该路径——
+  // 一旦删掉或改名，应用就再也起不来（窗口闪一下就消失）。
+  // 且 profile 可能是 junction：改名链接会让它失效。
+  assert.doesNotMatch(src, /rmSync\(profile[),]/, '不得直接删除 profile 目录本身');
+  assert.doesNotMatch(src, /renameSync\(/, '不得改名 profile（会让目录消失或 junction 失效）');
   assert.match(src, /identifier/, '应读取 tauri.conf.json 的 identifier 而不是硬编码');
-  assert.match(src, /KEEP_ROTATED/, '应保留有限份数的轮换目录');
   // 非 Windows 必须安全退出
   assert.match(src, /process\.platform !== 'win32'/);
 });
@@ -70,6 +75,31 @@ test('启动入口：提供桌面快捷方式脚本（绕开资源管理器弹�
   assert.match(src, /cmd\.exe/, '快捷方式应通过 cmd.exe 启动');
   assert.match(src, /\/c start ""/, '应使用 cmd /c start "" 形式');
   assert.ok(existsSync(join(root, 'launch-noteapp.bat')), '启动器应保留');
+});
+
+test('WebView2 目录重定向：脚本存在且拒绝删除真实 profile', () => {
+  const p = 'scripts/link-webview-dir.ps1';
+  assert.ok(existsSync(join(root, p)), '必须提供可重复创建 junction 的脚本');
+  const src = read(p);
+  assert.match(src, /mklink \/J/, '应使用目录 junction');
+  assert.match(src, /ReparsePoint/, '创建后必须验证链接属性');
+  // 安全不变量：不能默默删掉一个真实（非空）的 WebView2 profile
+  assert.match(src, /Refusing to delete a real WebView2 profile/, '非空真实目录必须拒绝删除');
+});
+
+test('清理 360 残留：脚本必须提权、先备份，且绝不碰浏览器与用户数据', () => {
+  const p = 'scripts/remove-360-leftovers.ps1';
+  assert.ok(existsSync(join(root, p)));
+  const src = read(p);
+  assert.match(src, /BuiltInRole\]::Administrator/, '必须要求管理员权限');
+  assert.match(src, /reg export/, '删除前必须备份服务注册表项');
+  assert.match(src, /Copy-Item/, '删除前必须备份驱动文件');
+  // 硬守卫：这两个路径属于浏览器与用户数据（D:\360MoveData 里是迁移后的桌面）
+  assert.match(src, /'D:\\360se6'/, '必须把浏览器目录列为禁改路径');
+  assert.match(src, /'D:\\360MoveData'/, '必须把用户数据目录列为禁改路径（桌面在其中）');
+  assert.match(src, /ABORT\] Refusing to touch/, '命中禁改路径必须中止');
+  assert.match(src, /sc\.exe stop/, '应先尝试停止驱动而不是硬删');
+  assert.match(src, /start= disabled/, '停不下来时应降级为禁用并提示重启');
 });
 
 test('文件格式不变量：.bat 必须是 CRLF，否则 cmd.exe 会把注释当命令执行', () => {
