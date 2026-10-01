@@ -244,3 +244,36 @@ test('编码不变量：核心文档仍含预期中文（防止"整体被替换�
   const readme = read('README.md');
   assert.ok(readme.includes('NoteApp'), 'README.md 内容异常');
 });
+
+test('规范基础设施：.editorconfig 与 .gitattributes 的编码/行尾约定必须一致', () => {
+  assert.ok(existsSync(join(root, '.editorconfig')), '应提供 .editorconfig（编辑器无关的基础约定）');
+  const ec = read('.editorconfig');
+  assert.match(ec, /charset\s*=\s*utf-8/, '.editorconfig 必须声明 UTF-8');
+  assert.match(ec, /end_of_line\s*=\s*lf/, '.editorconfig 默认应为 LF');
+  assert.match(ec, /\[\*\.\{bat,cmd,ps1\}\]/, 'Windows 脚本要在 .editorconfig 里单独声明');
+  assert.match(ec, /end_of_line\s*=\s*crlf/, 'Windows 脚本必须 CRLF');
+  assert.match(ec, /trim_trailing_whitespace\s*=\s*false/, 'Markdown 不能删行尾空格（是换行语义）');
+
+  const ga = read('.gitattributes');
+  assert.match(ga, /\*\s+text=auto\s+eol=lf/, '.gitattributes 应默认 LF');
+  for (const ext of ['ps1', 'bat', 'cmd']) {
+    assert.match(ga, new RegExp(`\\*\\.${ext}\\s+text\\s+eol=crlf`), `.gitattributes 应把 .${ext} 设为 CRLF`);
+  }
+});
+
+test('规范基础设施：verify 入口与 CI 必须真正卡住测试/类型/格式/lint', () => {
+  const pkg = JSON.parse(read('package.json'));
+  const verify = pkg.scripts.verify ?? '';
+  assert.ok(verify, '应提供 npm run verify 一键校验');
+  for (const part of ['test', 'typecheck', 'fmt:rust:check', 'lint:rust']) {
+    assert.ok(verify.includes(part), `verify 应包含 ${part}`);
+  }
+  assert.ok(pkg.scripts['fmt:rust:check'], '应提供 rustfmt 检查入口');
+  assert.ok(pkg.scripts['lint:rust'], '应提供 clippy 入口');
+
+  const ci = read('.github/workflows/release.yml');
+  assert.match(ci, /cargo fmt --manifest-path src-tauri\/Cargo\.toml --check/, 'CI 必须校验 Rust 格式');
+  assert.match(ci, /cargo clippy .*-D warnings/, 'CI 必须把 clippy warning 当错误');
+  assert.match(ci, /node --test .*tests/, 'CI 必须跑单测');
+  assert.match(ci, /typecheck/, 'CI 必须跑类型检查');
+});
