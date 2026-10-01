@@ -50,21 +50,34 @@ jobs:
           npm ci
           npm ci --prefix web
 
+      # 规范门禁：单测 / 类型 / Prettier（逻辑代码）/ rustfmt / clippy 必须干净。
+      # 全部经 scripts/ci-check.ps1 包装：失败时把输出写进 job summary 并抛出 ::error:: 注解，
+      # 因为 Actions 的完整日志需要认证，而 summary 与注解可通过公开 API 读到
+      # （2026-10-01 发布 v0.2.0 时正是因为没有这个，失败原因完全看不到）。
       - name: Unit tests
-        run: node --test --test-isolation=none "tests/**/*.test.mjs"
+        shell: pwsh
+        run: |
+          & ./scripts/ci-check.ps1 -Label 'Unit tests' -Command 'node --test --test-isolation=none "tests/**/*.test.mjs"'
 
       - name: Type check
-        run: npm --prefix web run typecheck
+        shell: pwsh
+        run: |
+          & ./scripts/ci-check.ps1 -Label 'Type check' -Command 'npm --prefix web run typecheck'
 
-      # 规范门禁：Prettier（逻辑代码）/ rustfmt / clippy 必须干净（本地等价入口 npm run verify）
       - name: Format check (Prettier, ts+mjs)
-        run: npm run format:check
+        shell: pwsh
+        run: |
+          & ./scripts/ci-check.ps1 -Label 'Format check' -Command 'npm run format:check'
 
       - name: Rust format check
-        run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
+        shell: pwsh
+        run: |
+          & ./scripts/ci-check.ps1 -Label 'Rust format check' -Command 'cargo fmt --manifest-path src-tauri/Cargo.toml --check'
 
       - name: Rust lint (clippy, warnings are errors)
-        run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+        shell: pwsh
+        run: |
+          & ./scripts/ci-check.ps1 -Label 'Rust clippy' -Command 'cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings'
 
       - name: Build app and create GitHub Release
         uses: tauri-apps/tauri-action@v0
