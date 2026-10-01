@@ -81,6 +81,19 @@ export interface TagCount {
  * 统计标签出现次数（大小写不敏感合并，展示用首次出现的写法），按次数倒序、同数按名称排序。
  * deleted 的笔记不应传入（由调用方过滤）。
  */
+/**
+ * 同次数时的排序键：**必须与系统区域设置无关**。
+ *
+ * 这里原本用 `a.tag.localeCompare(b.tag)`，而 `localeCompare` 的结果取决于运行环境的
+ * 区域设置：中文标签「工作」与英文「Work」在 zh-CN 下是 工作 < Work，在 en-US 下相反。
+ * 后果有两个：同一个笔记库在不同语言的机器上标签顺序不一致；单测在 CI（en-US）上失败、
+ * 在开发机（zh-CN）上通过。改用码位比较后，顺序在任何机器上都相同、可复现。
+ */
+function byTagCodeUnit(a: string, b: string): number {
+  if (a === b) return 0;
+  return a < b ? -1 : 1;
+}
+
 export function countTags(notes: ReadonlyArray<{ tags: ReadonlyArray<string> }>): TagCount[] {
   const counts = new Map<string, TagCount>();
   for (const note of notes) {
@@ -92,6 +105,6 @@ export function countTags(notes: ReadonlyArray<{ tags: ReadonlyArray<string> }>)
     }
   }
   return [...counts.values()].sort((a, b) =>
-    b.count !== a.count ? b.count - a.count : a.tag.localeCompare(b.tag),
+    b.count !== a.count ? b.count - a.count : byTagCodeUnit(a.tag, b.tag),
   );
 }

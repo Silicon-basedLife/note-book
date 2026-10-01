@@ -76,18 +76,22 @@ test('mergeTags / removeTag / hasTag：大小写不敏感去重、保序、已�
   assert.equal(hasTag(['a'], ''), false);
 });
 
-test('countTags：按次数倒序、同数按名称排序；大小写合并只算一次', () => {
+test('countTags：按次数倒序、同数按码位排序；大小写合并只算一次', () => {
   const notes = [
     { tags: ['工作', '学习'] },
     { tags: ['工作', 'Work'] },
     { tags: ['work'] },
     { tags: [] },
   ];
-  assert.deepEqual(countTags(notes), [
-    { tag: '工作', count: 2 },
-    { tag: 'Work', count: 2 },
-    { tag: '学习', count: 1 },
-  ]);
+  // 断言"契约"而不是某台机器的排序结果：先按 count 倒序；同数之间用**码位**排序
+  // （刻意不用 localeCompare —— 它随系统区域设置变化，会让 zh-CN 开发机与 en-US CI 结果相反，
+  //  也会让同一个笔记库在不同语言的机器上标签顺序不一致；见 tags.ts 里的说明）。
+  const byCount = countTags(notes);
+  assert.deepEqual(byCount.map((t) => t.count), [2, 2, 1]);
+  assert.deepEqual(
+    byCount.map((t) => `${t.tag}:${t.count}`),
+    ['Work:2', '工作:2', '学习:1'],
+  );
   assert.deepEqual(countTags([]), []);
   // 同一篇里重复标签只算一次
   assert.deepEqual(countTags([{ tags: ['x', 'X'] }]), [{ tag: 'x', count: 1 }]);
