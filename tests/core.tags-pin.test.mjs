@@ -87,7 +87,10 @@ test('countTags：按次数倒序、同数按码位排序；大小写合并只�
   // （刻意不用 localeCompare —— 它随系统区域设置变化，会让 zh-CN 开发机与 en-US CI 结果相反，
   //  也会让同一个笔记库在不同语言的机器上标签顺序不一致；见 tags.ts 里的说明）。
   const byCount = countTags(notes);
-  assert.deepEqual(byCount.map((t) => t.count), [2, 2, 1]);
+  assert.deepEqual(
+    byCount.map((t) => t.count),
+    [2, 2, 1],
+  );
   assert.deepEqual(
     byCount.map((t) => `${t.tag}:${t.count}`),
     ['Work:2', '工作:2', '学习:1'],
