@@ -145,6 +145,30 @@ test('文件格式不变量：.bat 必须是 CRLF，否则 cmd.exe 会把注释�
   }
 });
 
+test('文件格式不变量：工作树行尾必须符合 .gitattributes 约定（Windows 脚本 CRLF，其余 LF）', () => {
+  // 2026-10-01 加上这条：编辑工具在 Windows 上会把文件写成 CRLF，于是 AGENTS.md、README.md、
+  // docs/PROGRESS.md 等 6 个文档的工作树行尾悄悄变成了 CRLF，与 .gitattributes 的约定不符
+  // （git 只在下次 checkout 时才纠正，本地测试与 diff 却一直带着噪音）。
+  const WINDOWS_SCRIPT = new Set(['.ps1', '.bat', '.cmd']);
+  const files = collectTextFiles().filter((file) => !file.endsWith('.tmp-'));
+  assert.ok(files.length > 30, `扫描到的文件太少（${files.length}）`);
+
+  const offenders = [];
+  for (const file of files) {
+    const rel = relative(root, file);
+    const raw = readFileSync(file);
+    const crlf = raw.filter((b) => b === 13).length;
+    const lf = raw.filter((b) => b === 10).length;
+    if (lf === 0) continue; // 单行文件无所谓
+    if (WINDOWS_SCRIPT.has(extname(rel))) {
+      if (crlf !== lf) offenders.push(`${rel}: Windows 脚本必须全部 CRLF（CR=${crlf} LF=${lf}）`);
+    } else if (crlf > 0) {
+      offenders.push(`${rel}: 应为 LF，但发现 ${crlf} 个 CR`);
+    }
+  }
+  assert.deepEqual(offenders, [], `行尾不符合 .gitattributes 约定：\n${offenders.join('\n')}`);
+});
+
 test('文件格式不变量：.bat 必须纯 ASCII（cmd 代码页会把非 ASCII 变乱码）', () => {
   const raw = bytes('launch-noteapp.bat');
   const max = raw.reduce((m, b) => Math.max(m, b), 0);
