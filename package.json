@@ -23,6 +23,7 @@
     "link:webview": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/link-webview-dir.ps1",
     "clean:360": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/remove-360-leftovers.ps1",
     "sign:exe": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sign-exe.ps1",
+    "probe:ui": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/probe-ui.ps1",
     "predesktop:dev": "node scripts/kill-running-app.mjs",
     "predesktop:build": "node scripts/kill-running-app.mjs",
     "predesktop:exe": "node scripts/kill-running-app.mjs",

@@ -103,6 +103,17 @@ test('exe 签名：构建后自动签名，脚本必须自建证书、信任它�
   assert.match(src, /Status -eq 'Valid'/, '必须回读并校验签名状态，不能只看命令有没有报错');
 });
 
+test('界面取证：probe-ui 必须读取完整 WebSocket 消息（分帧会截断大响应）', () => {
+  const pkg = JSON.parse(read('package.json'));
+  assert.match(pkg.scripts['probe:ui'] ?? '', /probe-ui\.ps1/, '应提供 npm run probe:ui');
+  const src = read('scripts/probe-ui.ps1');
+  assert.match(src, /debugging-port/, '必须说明如何开启 WebView2 远程调试');
+  assert.match(src, /EndOfMessage/, '必须循环读到 EndOfMessage，否则截图这类大响应会被截断');
+  assert.match(src, /Runtime\.enable/, '必须启用运行时事件才能抓到 JS 异常');
+  assert.match(src, /exceptionThrown/, '必须报告未捕获异常');
+  assert.match(src, /captureScreenshot/, '应支持截图取证');
+});
+
 test('清理 360 残留：脚本必须提权、先备份，且绝不碰浏览器与用户数据', () => {
   const p = 'scripts/remove-360-leftovers.ps1';
   assert.ok(existsSync(join(root, p)));
