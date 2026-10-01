@@ -14,17 +14,26 @@
 #   Usage: npm run shortcut:desktop
 #          or: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/create-desktop-shortcut.ps1
 #   Optional: -OutDir <dir>   (defaults to the current user's Desktop; used by tests)
+#   Optional: -ExePath <path> (defaults to the installed copy if present, else the build
+#                             output under src-tauri\target\release)
 #
 # NOTE: keep this file pure ASCII. Windows PowerShell 5.1 reads .ps1 as ANSI when
 #       there is no BOM, so non-ASCII text can break parsing (same rule as setup.ps1).
 # ---------------------------------------------------------------------------
 param(
-  [string]$OutDir = ''
+  [string]$OutDir = '',
+  [string]$ExePath = ''
 )
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
-$exe = Join-Path $root 'src-tauri\target\release\noteapp.exe'
+$installed = Join-Path $env:LOCALAPPDATA 'Programs\NoteApp\noteapp.exe'
+$exe = $ExePath
+if (-not $exe) {
+  # Prefer the installed copy: the build output is a working directory that can be wiped
+  # by a rebuild, and it is also the path Windows had flagged for the publisher warning.
+  if (Test-Path $installed) { $exe = $installed } else { $exe = Join-Path $root 'src-tauri\target\release\noteapp.exe' }
+}
 
 if (-not (Test-Path $exe)) {
   Write-Host "[ERROR] Not found: $exe" -ForegroundColor Red
